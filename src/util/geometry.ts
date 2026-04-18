@@ -1,4 +1,4 @@
-import type { Anchor, CanvasNode } from '@shared/types';
+import type { Anchor, CanvasNode, NodeStyle } from '@shared/types';
 
 export interface Point {
   x: number;
@@ -97,4 +97,36 @@ export function rectsOverlap(a: Rect, b: Rect): boolean {
     a.y + a.height < b.y ||
     b.y + b.height < a.y
   );
+}
+
+export function isColorDark(c: string): boolean {
+  if (c === 'transparent') return false;
+  const m = c.match(/^#?([0-9a-f]{6})$/i);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return lum < 128;
+}
+
+export function defaultStyleForBackground(bg: string): NodeStyle {
+  const dark = isColorDark(bg);
+  return {
+    fill: dark ? '#1f2937' : '#f4f6f8',
+    stroke: dark ? '#e6e8eb' : '#0b0d10',
+    strokeWidth: 2,
+    opacity: 1,
+    fontSize: 16,
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontWeight: 500,
+    color: dark ? '#e6e8eb' : '#0b0d10',
+    textAlign: 'center',
+    cornerRadius: 8,
+  };
+}
+
+export function defaultEdgeStrokeForBackground(bg: string): string {
+  return isColorDark(bg) ? '#e6e8eb' : '#0b0d10';
 }

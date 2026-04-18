@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CanvasEdge, CanvasNode, NodeType } from '@shared/types';
 import { DEFAULT_NODE_STYLE, useCanvas } from '@/store/canvasStore';
-import { combinedBbox, rectsOverlap, type Point } from '@/util/geometry';
+import {
+  combinedBbox,
+  rectsOverlap,
+  defaultStyleForBackground,
+  defaultEdgeStrokeForBackground,
+  type Point,
+} from '@/util/geometry';
 import Shape from './Shape';
 import Edge from './Edge';
 import SelectionLayer, { type Handle } from './SelectionLayer';
@@ -155,8 +161,11 @@ export default function Canvas({
       }
       if (tool === 'connector') {
         e.stopPropagation();
-        const le = useCanvas.getState().lastEdge;
-        const edgeId = useCanvas.getState().addEdge({
+        const state = useCanvas.getState();
+        const le = state.lastEdge;
+        const bg = state.board?.background ?? '#ffffff';
+        const edgeStroke = le.style.stroke ?? defaultEdgeStrokeForBackground(bg);
+        const edgeId = state.addEdge({
           fromNode: node.id,
           fromAnchor: 'auto',
           fromPoint: null,
@@ -166,7 +175,7 @@ export default function Canvas({
           routing: le.routing,
           arrowStart: le.arrowStart,
           arrowEnd: true,
-          style: { ...le.style },
+          style: { ...le.style, stroke: edgeStroke },
         }).id;
         setInteraction({ kind: 'draw-connector', fromNodeId: node.id, edgeId });
         (e.target as Element).setPointerCapture(e.pointerId);
@@ -281,7 +290,7 @@ export default function Canvas({
           width: 1,
           height: 1,
           rotation: 0,
-          style: { ...DEFAULT_NODE_STYLE, ...(remembered ?? {}) },
+          style: { ...defaultStyleForBackground(background), ...(remembered ?? {}) },
           content: {},
         });
         setInteraction({ kind: 'draw-shape', shape: tool, start: snapped, nodeId: node.id });
@@ -292,6 +301,7 @@ export default function Canvas({
         const snapped = maybeSnap(world);
         const startNode = findTopmostNodeAt(store.nodes, world);
         const le = store.lastEdge;
+        const edgeStroke = le.style.stroke ?? defaultEdgeStrokeForBackground(background);
         const edge = store.addEdge({
           fromNode: startNode?.id ?? null,
           fromAnchor: startNode ? 'auto' : null,
@@ -302,7 +312,7 @@ export default function Canvas({
           routing: le.routing,
           arrowStart: tool === 'line' ? le.arrowStart : le.arrowStart,
           arrowEnd: tool === 'arrow' ? true : le.arrowEnd,
-          style: { ...le.style },
+          style: { ...le.style, stroke: edgeStroke },
         });
         setInteraction({
           kind: 'draw-line',
@@ -327,7 +337,7 @@ export default function Canvas({
           height,
           rotation: 0,
           style: {
-            ...DEFAULT_NODE_STYLE,
+            ...defaultStyleForBackground(background),
             fill: 'transparent',
             stroke: 'transparent',
             ...(remembered ?? {}),
