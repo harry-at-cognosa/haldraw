@@ -37,7 +37,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 ## Things to decide later
 
 - **Portable `.haldraw` file format.** JSON export does 80% of this; do we also want a CLI (`haldraw open path.haldraw`)?
-- **Code signing & notarization.** $99/yr Apple Developer Program — skip until more than a couple of friends use it.
+- **Code signing & notarization & Mac App Store.** Detailed plan lives in [MAS.md](./MAS.md) — two rungs (Developer ID notarized DMG, then MAS). Skip until the app outgrows the "share with a few friends" phase.
 - **Windows / Linux builds.** `electron-builder` handles most of it; Windows signing cert is an extra cost.
 - **Collaboration.** Single-user was the explicit goal. Shared boards would require a sync layer (Yjs, etc.) and an upstream server.
 

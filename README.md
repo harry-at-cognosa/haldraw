@@ -23,7 +23,7 @@ Data lives at `~/Library/Application Support/haldraw/haldraw.db`. Delete that fi
 npm run package    # produces .dmg under dist/
 ```
 
-Packaging uses `build/icon.png` for the app icon. For full build & distribution instructions (prerequisites, how to install the built app, sharing with friends, troubleshooting), see [BUILD.md](./BUILD.md).
+Packaging uses `build/icon.png` for the app icon. For full build & distribution instructions (prerequisites, how to install the built app, sharing with friends, troubleshooting), see [BUILD.md](./BUILD.md). For the forward-looking path to a signed Developer ID DMG or a Mac App Store submission, see [MAS.md](./MAS.md).
 
 ## Features
 
