@@ -52,12 +52,18 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
       "target": [
         {
           "target": "dmg",
           "arch": ["arm64"]
         }
       ]
+    },
+    "dmg": {
+      "writeUpdateInfo": false
     }
   }
 }
