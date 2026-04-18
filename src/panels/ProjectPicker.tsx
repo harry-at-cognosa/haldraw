@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Board, Project } from '@shared/types';
-import { Plus, Folder, FileText, Trash2, Pencil, Copy } from 'lucide-react';
+import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2 } from 'lucide-react';
 import PromptModal from './PromptModal';
 import { useDialogs } from '@/hooks/useDialogs';
 
@@ -235,6 +235,16 @@ export default function ProjectPicker({
                       className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-panel-hover text-fg-muted"
                     >
                       <Copy size={12} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.haldraw.writeClipboard(`haldraw://board/${b.id}`);
+                      }}
+                      title="Copy in-app link (paste into a shape's Link field)"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-panel-hover text-fg-muted"
+                    >
+                      <Link2 size={12} />
                     </button>
                     <button
                       onClick={(e) => {

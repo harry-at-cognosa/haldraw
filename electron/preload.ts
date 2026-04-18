@@ -32,6 +32,8 @@ const api: HaldrawApi = {
   },
   exportPng: (payload) => ipcRenderer.invoke('exportPng', payload),
   exportSvg: (payload) => ipcRenderer.invoke('exportSvg', payload),
+  openExternal: (url) => ipcRenderer.invoke('openExternal', url),
+  writeClipboard: (text) => ipcRenderer.invoke('writeClipboard', text),
   theme: {
     get: () => ipcRenderer.invoke('theme:get'),
     set: (theme) => ipcRenderer.invoke('theme:set', theme),

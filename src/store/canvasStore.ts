@@ -67,11 +67,11 @@ interface CanvasState {
   select: (ids: string[], opts?: { additive?: boolean; edges?: boolean }) => void;
   clearSelection: () => void;
 
-  addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex'> & { zIndex?: number }) => CanvasNode;
+  addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId'> & { zIndex?: number; groupId?: string | null }) => CanvasNode;
   updateNodes: (ids: string[], updater: (n: CanvasNode) => CanvasNode | void) => void;
   deleteNodes: (ids: string[]) => void;
 
-  addEdge: (partial: Omit<CanvasEdge, 'id' | 'boardId' | 'createdAt' | 'updatedAt'>) => CanvasEdge;
+  addEdge: (partial: Omit<CanvasEdge, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'midpoint' | 'labelPoint'> & { midpoint?: { x: number; y: number } | null; labelPoint?: { x: number; y: number } | null }) => CanvasEdge;
   updateEdges: (ids: string[], updater: (e: CanvasEdge) => CanvasEdge | void) => void;
   deleteEdges: (ids: string[]) => void;
 
@@ -85,6 +85,13 @@ interface CanvasState {
   sendToBack: (ids: string[]) => void;
   bringForward: (ids: string[]) => void;
   sendBackward: (ids: string[]) => void;
+
+  groupSelection: () => void;
+  ungroupSelection: () => void;
+  expandSelectionToGroups: (ids: string[]) => string[];
+
+  alignSelection: (mode: 'left' | 'center-h' | 'right' | 'top' | 'middle' | 'bottom') => void;
+  distributeSelection: (axis: 'h' | 'v') => void;
 
   toggleGrid: () => void;
   toggleSnap: () => void;
@@ -213,6 +220,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       createdAt: now,
       updatedAt: now,
       zIndex,
+      groupId: null,
       ...partial,
     };
     const prev = snapshot(get());
@@ -284,6 +292,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       boardId: get().boardId!,
       createdAt: now,
       updatedAt: now,
+      midpoint: null,
+      labelPoint: null,
       ...partial,
     };
     const prev = snapshot(get());
@@ -485,6 +495,149 @@ export const useCanvas = create<CanvasState>((set, get) => ({
 
   toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
   toggleSnap: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
+
+  groupSelection: () => {
+    const ids = [...get().selection];
+    if (ids.length < 2) return;
+    const prev = snapshot(get());
+    const groupId = newId();
+    set((s) => {
+      const nodes = { ...s.nodes };
+      const dirty = new Set(s.dirtyNodeIds);
+      const now = Date.now();
+      for (const id of ids) {
+        if (!nodes[id]) continue;
+        nodes[id] = { ...nodes[id], groupId, updatedAt: now };
+        dirty.add(id);
+      }
+      return {
+        nodes,
+        dirtyNodeIds: dirty,
+        history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
+    });
+  },
+
+  ungroupSelection: () => {
+    const ids = [...get().selection];
+    if (!ids.length) return;
+    const prev = snapshot(get());
+    set((s) => {
+      const nodes = { ...s.nodes };
+      const dirty = new Set(s.dirtyNodeIds);
+      const now = Date.now();
+      const groupsToClear = new Set<string>();
+      for (const id of ids) {
+        const n = nodes[id];
+        if (n?.groupId) groupsToClear.add(n.groupId);
+      }
+      for (const n of Object.values(nodes)) {
+        if (n.groupId && groupsToClear.has(n.groupId)) {
+          nodes[n.id] = { ...n, groupId: null, updatedAt: now };
+          dirty.add(n.id);
+        }
+      }
+      return {
+        nodes,
+        dirtyNodeIds: dirty,
+        history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
+    });
+  },
+
+  alignSelection: (mode) => {
+    const s = get();
+    const ids = [...s.selection];
+    if (ids.length < 2) return;
+    const nodes = ids.map((id) => s.nodes[id]).filter(Boolean);
+    if (nodes.length < 2) return;
+    const minX = Math.min(...nodes.map((n) => n.x));
+    const maxX = Math.max(...nodes.map((n) => n.x + n.width));
+    const minY = Math.min(...nodes.map((n) => n.y));
+    const maxY = Math.max(...nodes.map((n) => n.y + n.height));
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const prev = snapshot(s);
+    set((st) => {
+      const out = { ...st.nodes };
+      const dirty = new Set(st.dirtyNodeIds);
+      const now = Date.now();
+      for (const id of ids) {
+        const n = out[id];
+        if (!n) continue;
+        let x = n.x;
+        let y = n.y;
+        if (mode === 'left') x = minX;
+        else if (mode === 'right') x = maxX - n.width;
+        else if (mode === 'center-h') x = cx - n.width / 2;
+        else if (mode === 'top') y = minY;
+        else if (mode === 'bottom') y = maxY - n.height;
+        else if (mode === 'middle') y = cy - n.height / 2;
+        out[id] = { ...n, x, y, updatedAt: now };
+        dirty.add(id);
+      }
+      return {
+        nodes: out,
+        dirtyNodeIds: dirty,
+        history: [...st.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
+    });
+  },
+
+  distributeSelection: (axis) => {
+    const s = get();
+    const ids = [...s.selection];
+    if (ids.length < 3) return;
+    const nodes = ids.map((id) => s.nodes[id]).filter(Boolean);
+    if (nodes.length < 3) return;
+    const sorted = [...nodes].sort((a, b) => (axis === 'h' ? a.x - b.x : a.y - b.y));
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const firstCenter = axis === 'h' ? first.x + first.width / 2 : first.y + first.height / 2;
+    const lastCenter = axis === 'h' ? last.x + last.width / 2 : last.y + last.height / 2;
+    const step = (lastCenter - firstCenter) / (sorted.length - 1);
+    const prev = snapshot(s);
+    set((st) => {
+      const out = { ...st.nodes };
+      const dirty = new Set(st.dirtyNodeIds);
+      const now = Date.now();
+      sorted.forEach((n, i) => {
+        if (i === 0 || i === sorted.length - 1) return;
+        const targetCenter = firstCenter + step * i;
+        const curr = { ...n };
+        if (axis === 'h') curr.x = targetCenter - curr.width / 2;
+        else curr.y = targetCenter - curr.height / 2;
+        curr.updatedAt = now;
+        out[n.id] = curr;
+        dirty.add(n.id);
+      });
+      return {
+        nodes: out,
+        dirtyNodeIds: dirty,
+        history: [...st.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
+    });
+  },
+
+  expandSelectionToGroups: (ids) => {
+    const s = get();
+    const groupIds = new Set<string>();
+    for (const id of ids) {
+      const gid = s.nodes[id]?.groupId;
+      if (gid) groupIds.add(gid);
+    }
+    const out = new Set(ids);
+    if (groupIds.size) {
+      for (const n of Object.values(s.nodes)) {
+        if (n.groupId && groupIds.has(n.groupId)) out.add(n.id);
+      }
+    }
+    return [...out];
+  },
 
   consumeDirty: () => {
     const s = get();

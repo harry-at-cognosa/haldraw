@@ -16,10 +16,12 @@ export default function BoardEditor({
   project,
   board,
   onBack,
+  openBoardById,
 }: {
   project: Project;
   board: Board;
   onBack: () => void;
+  openBoardById: (id: string) => Promise<boolean>;
 }) {
   const [ready, setReady] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
@@ -135,6 +137,28 @@ export default function BoardEditor({
   const onRequestImageFile = useCallback((file: File, cursor: Point) => {
     onRequestImagePaste(file, cursor);
   }, [onRequestImagePaste]);
+
+  const onOpenLink = useCallback(
+    async (url: string) => {
+      try {
+        const internal = url.match(/^haldraw:\/\/board\/([A-Za-z0-9]+)/);
+        if (internal) {
+          await flushSave();
+          const ok = await openBoardById(internal[1]);
+          if (!ok) setToast({ kind: 'err', text: 'Linked board not found.' });
+          return;
+        }
+        if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) {
+          await window.haldraw.openExternal(url);
+          return;
+        }
+        setToast({ kind: 'err', text: `Unrecognized link: ${url}` });
+      } catch (err) {
+        setToast({ kind: 'err', text: `Link failed: ${(err as Error).message}` });
+      }
+    },
+    [openBoardById]
+  );
 
   const onPickIcon = (name: string) => {
     const vp = useCanvas.getState().viewport;
@@ -316,6 +340,12 @@ export default function BoardEditor({
         flushSave().then(() => setToast({ kind: 'ok', text: 'Saved' }));
         return;
       }
+      if (meta && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        if (e.shiftKey) store.ungroupSelection();
+        else store.groupSelection();
+        return;
+      }
       if (e.key === 'Escape') {
         store.clearSelection();
         store.setTool('select');
@@ -451,6 +481,7 @@ export default function BoardEditor({
             imageUrls={imageUrls}
             onRequestImagePaste={onRequestImagePaste}
             onRequestImageFile={onRequestImageFile}
+            onOpenLink={onOpenLink}
           />
           <Minimap />
         </div>

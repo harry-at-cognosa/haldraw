@@ -31,6 +31,8 @@ export default function ShortcutHelp({ open, onClose }: { open: boolean; onClose
         ['⌘C / ⌘V / ⌘X', 'Copy / Paste / Cut'],
         ['⌘D', 'Duplicate selection'],
         ['⌘⇧D', 'Duplicate entire board (timestamped copy)'],
+        ['⌘G / ⌘⇧G', 'Group / Ungroup'],
+        ['⌥-click', 'Select single shape inside a group'],
         ['⌘A', 'Select all'],
         ['Delete / Backspace', 'Delete selection'],
         ['Arrow keys (+Shift)', 'Nudge 1px (10px)'],

@@ -29,6 +29,7 @@ export interface NodeContent {
   text?: string;
   iconName?: string;
   imageId?: string;
+  link?: string;
 }
 
 export interface CanvasNode {
@@ -43,6 +44,7 @@ export interface CanvasNode {
   zIndex: number;
   style: NodeStyle;
   content: NodeContent;
+  groupId: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -70,6 +72,8 @@ export interface CanvasEdge {
   arrowEnd: boolean;
   style: EdgeStyle;
   label?: string;
+  midpoint: { x: number; y: number } | null;
+  labelPoint: { x: number; y: number } | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -142,6 +146,8 @@ export interface HaldrawApi {
   };
   exportPng: (payload: { defaultName: string; dataUrl: string }) => Promise<{ saved: boolean; path?: string }>;
   exportSvg: (payload: { defaultName: string; xml: string }) => Promise<{ saved: boolean; path?: string }>;
+  openExternal: (url: string) => Promise<void>;
+  writeClipboard: (text: string) => Promise<void>;
   theme: {
     get: () => Promise<'dark' | 'light'>;
     set: (theme: 'dark' | 'light') => Promise<void>;

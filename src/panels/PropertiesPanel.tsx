@@ -4,7 +4,6 @@ import { useRef } from 'react';
 import {
   ArrowBigLeft,
   ArrowBigRight,
-  ArrowRight,
   Minus,
   Spline,
   CornerDownRight,
@@ -13,6 +12,14 @@ import {
   ChevronsUp,
   ChevronsDown,
   Trash2,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
+  AlignHorizontalDistributeCenter,
+  AlignVerticalDistributeCenter,
 } from 'lucide-react';
 
 const PALETTE = [
@@ -41,6 +48,8 @@ export default function PropertiesPanel() {
   const sendBackward = useCanvas((s) => s.sendBackward);
   const deleteNodes = useCanvas((s) => s.deleteNodes);
   const deleteEdges = useCanvas((s) => s.deleteEdges);
+  const alignSelection = useCanvas((s) => s.alignSelection);
+  const distributeSelection = useCanvas((s) => s.distributeSelection);
 
   const selectedNodes = [...selection].map((id) => nodes[id]).filter(Boolean) as CanvasNode[];
   const selectedEdges = [...edgeSelection].map((id) => edges[id]).filter(Boolean) as CanvasEdge[];
@@ -235,6 +244,54 @@ export default function PropertiesPanel() {
                   }}
                   className="w-16 text-right bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent"
                 />
+              </div>
+            </Section>
+            {selectedNodes.length >= 2 ? (
+              <Section title="Align">
+                <div className="grid grid-cols-6 gap-1">
+                  <IconBtn icon={AlignLeft} label="Align left" onClick={() => alignSelection('left')} />
+                  <IconBtn icon={AlignCenter} label="Align horizontal center" onClick={() => alignSelection('center-h')} />
+                  <IconBtn icon={AlignRight} label="Align right" onClick={() => alignSelection('right')} />
+                  <IconBtn icon={AlignStartVertical} label="Align top" onClick={() => alignSelection('top')} />
+                  <IconBtn icon={AlignCenterVertical} label="Align vertical middle" onClick={() => alignSelection('middle')} />
+                  <IconBtn icon={AlignEndVertical} label="Align bottom" onClick={() => alignSelection('bottom')} />
+                </div>
+                {selectedNodes.length >= 3 ? (
+                  <div className="grid grid-cols-2 gap-1 pt-1">
+                    <IconBtn
+                      icon={AlignHorizontalDistributeCenter}
+                      label="Distribute horizontally (3+)"
+                      onClick={() => distributeSelection('h')}
+                    />
+                    <IconBtn
+                      icon={AlignVerticalDistributeCenter}
+                      label="Distribute vertically (3+)"
+                      onClick={() => distributeSelection('v')}
+                    />
+                  </div>
+                ) : null}
+              </Section>
+            ) : null}
+            <Section title="Link">
+              <input
+                type="text"
+                value={first?.content.link ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  updateNodes(
+                    selectedNodes.map((n) => n.id),
+                    (n) => {
+                      n.content = { ...n.content, link: v || undefined };
+                    }
+                  );
+                }}
+                onBlur={commit}
+                placeholder="https://… or haldraw://board/ID"
+                className="w-full bg-canvas rounded px-2 py-1.5 border border-border outline-none focus:border-accent text-sm"
+              />
+              <div className="text-xs text-fg-muted pt-1 leading-relaxed">
+                ⌘-click the shape (or its link badge) to open. Internal board
+                links drill into another diagram without leaving haldraw.
               </div>
             </Section>
             <button

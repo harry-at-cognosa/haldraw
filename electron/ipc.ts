@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import { ipcMain, dialog, shell, clipboard, BrowserWindow } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import * as projectsRepo from './repo/projects';
 import * as boardsRepo from './repo/boards';
@@ -84,4 +84,14 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('theme:get', () => (metaRepo.getMeta('theme') ?? 'dark') as 'dark' | 'light');
   ipcMain.handle('theme:set', (_e, theme: 'dark' | 'light') => metaRepo.setMeta('theme', theme));
+
+  ipcMain.handle('openExternal', async (_e, url: string) => {
+    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) {
+      throw new Error('Only http(s) and mailto links can be opened externally');
+    }
+    await shell.openExternal(url);
+  });
+  ipcMain.handle('writeClipboard', (_e, text: string) => {
+    clipboard.writeText(text);
+  });
 }

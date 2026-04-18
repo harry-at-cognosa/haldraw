@@ -7,16 +7,18 @@ type Props = {
   nodes: Record<string, CanvasNode>;
   selected: boolean;
   onPointerDown?: (e: React.PointerEvent, edge: CanvasEdge) => void;
+  onLabelPointerDown?: (e: React.PointerEvent, edge: CanvasEdge) => void;
 };
 
-function EdgeInner({ edge, nodes, selected, onPointerDown }: Props) {
+function EdgeInner({ edge, nodes, selected, onPointerDown, onLabelPointerDown }: Props) {
   const d = buildPath(edge, nodes);
   const stroke = edge.style.stroke ?? '#e6e8eb';
   const strokeWidth = edge.style.strokeWidth ?? 2;
   const opacity = edge.style.opacity ?? 1;
   const dasharray = edge.style.strokeDasharray;
   const { from, to } = edgeEndpoints(edge, nodes);
-  const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+  const defaultMid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+  const labelAt = edge.labelPoint ?? defaultMid;
 
   return (
     <g>
@@ -52,11 +54,15 @@ function EdgeInner({ edge, nodes, selected, onPointerDown }: Props) {
       ) : null}
       {edge.label ? (
         <foreignObject
-          x={mid.x - 60}
-          y={mid.y - 12}
+          x={labelAt.x - 60}
+          y={labelAt.y - 12}
           width={120}
           height={24}
-          pointerEvents="none"
+          pointerEvents={selected ? 'all' : 'none'}
+          style={{ cursor: selected ? 'move' : 'default' }}
+          onPointerDown={(e) => {
+            if (selected) onLabelPointerDown?.(e, edge);
+          }}
         >
           <div
             className="text-xs text-center px-1.5 py-0.5 rounded bg-panel/80 border border-border inline-block"

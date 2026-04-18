@@ -103,16 +103,26 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         z_index: number;
         style: string;
         content: string;
+        group_id: string | null;
       }>;
 
     const idMap = new Map<string, string>();
+    const groupIdMap = new Map<string, string>();
     const insertNode = db.prepare(`
-      INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const n of nodeRows) {
       const nid = ulid();
       idMap.set(n.id, nid);
+      let gid: string | null = null;
+      if (n.group_id) {
+        gid = groupIdMap.get(n.group_id) ?? null;
+        if (!gid) {
+          gid = ulid();
+          groupIdMap.set(n.group_id, gid);
+        }
+      }
       insertNode.run(
         nid,
         newId,
@@ -125,6 +135,7 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         n.z_index,
         n.style,
         n.content,
+        gid,
         now,
         now
       );
@@ -145,11 +156,13 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         arrow_end: number;
         style: string;
         label: string | null;
+        midpoint: string | null;
+        label_point: string | null;
       }>;
 
     const insertEdge = db.prepare(`
-      INSERT INTO edges (id, board_id, from_node, from_anchor, from_point, to_node, to_anchor, to_point, routing, arrow_start, arrow_end, style, label, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO edges (id, board_id, from_node, from_anchor, from_point, to_node, to_anchor, to_point, routing, arrow_start, arrow_end, style, label, midpoint, label_point, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const e of edgeRows) {
       insertEdge.run(
@@ -166,6 +179,8 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         e.arrow_end,
         e.style,
         e.label,
+        e.midpoint,
+        e.label_point,
         now,
         now
       );

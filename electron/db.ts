@@ -88,6 +88,9 @@ function migrate(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS edges_to    ON edges(to_node);
   `);
   addColumnIfMissing(db, 'boards', 'background', `TEXT NOT NULL DEFAULT '#ffffff'`);
+  addColumnIfMissing(db, 'nodes', 'group_id', `TEXT`);
+  addColumnIfMissing(db, 'edges', 'midpoint', `TEXT`);
+  addColumnIfMissing(db, 'edges', 'label_point', `TEXT`);
 }
 
 function addColumnIfMissing(

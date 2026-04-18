@@ -5,7 +5,7 @@ import { combinedBbox, rectsOverlap, type Point } from '@/util/geometry';
 import Shape from './Shape';
 import Edge from './Edge';
 import SelectionLayer, { type Handle } from './SelectionLayer';
-import { edgeEndpoints } from './routing';
+import { edgeEndpoints, orthogonalElbow } from './routing';
 
 type Interaction =
   | { kind: 'idle' }
@@ -53,16 +53,26 @@ type Interaction =
       kind: 'drag-edge-endpoint';
       edgeId: string;
       which: 'from' | 'to';
+    }
+  | {
+      kind: 'drag-edge-midpoint';
+      edgeId: string;
+    }
+  | {
+      kind: 'drag-edge-label';
+      edgeId: string;
     };
 
 export default function Canvas({
   imageUrls,
   onRequestImagePaste,
   onRequestImageFile,
+  onOpenLink,
 }: {
   imageUrls: Record<string, string>;
   onRequestImagePaste: (blob: Blob, cursor: Point) => void;
   onRequestImageFile: (file: File, cursor: Point) => void;
+  onOpenLink: (url: string) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'idle' });
@@ -159,12 +169,22 @@ export default function Canvas({
       }
       if (tool !== 'select') return;
       e.stopPropagation();
+      if (e.metaKey && node.content.link) {
+        onOpenLink(node.content.link);
+        return;
+      }
       const store = useCanvas.getState();
       const additive = e.shiftKey || e.metaKey;
-      if (!store.selection.has(node.id)) store.select([node.id], { additive });
+      const includeGroup = !e.altKey;
+      const targets = includeGroup
+        ? store.expandSelectionToGroups([node.id])
+        : [node.id];
+      if (!store.selection.has(node.id)) store.select(targets, { additive });
       const selected = additive
-        ? [...store.selection, ...(store.selection.has(node.id) ? [] : [node.id])]
-        : [...store.selection];
+        ? [...store.selection, ...targets.filter((id) => !store.selection.has(id))]
+        : targets.length > 1
+          ? targets
+          : [...store.selection];
       const ids = Array.from(new Set(selected));
       const initial: Record<string, { x: number; y: number }> = {};
       for (const id of ids) {
@@ -427,6 +447,18 @@ export default function Canvas({
           });
           return;
         }
+        case 'drag-edge-midpoint': {
+          store.updateEdges([interaction.edgeId], (ed) => {
+            ed.midpoint = { x: world.x, y: world.y };
+          });
+          return;
+        }
+        case 'drag-edge-label': {
+          store.updateEdges([interaction.edgeId], (ed) => {
+            ed.labelPoint = { x: world.x, y: world.y };
+          });
+          return;
+        }
         case 'drag-edge-endpoint': {
           const edge = store.edges[interaction.edgeId];
           if (!edge) return;
@@ -523,6 +555,10 @@ export default function Canvas({
           setHoveredNodeId(null);
           break;
         }
+        case 'drag-edge-midpoint':
+        case 'drag-edge-label':
+          store.endTransient();
+          break;
       }
       setInteraction({ kind: 'idle' });
       try {
@@ -591,6 +627,27 @@ export default function Canvas({
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
+  const startMidpointDrag = (e: React.PointerEvent) => {
+    if (!selectedEdge) return;
+    e.stopPropagation();
+    useCanvas.getState().beginTransient();
+    setInteraction({ kind: 'drag-edge-midpoint', edgeId: selectedEdge.id });
+    (e.target as Element).setPointerCapture(e.pointerId);
+  };
+
+  const startLabelDrag = (e: React.PointerEvent) => {
+    if (!selectedEdge) return;
+    e.stopPropagation();
+    useCanvas.getState().beginTransient();
+    setInteraction({ kind: 'drag-edge-label', edgeId: selectedEdge.id });
+    (e.target as Element).setPointerCapture(e.pointerId);
+  };
+
+  const orthoElbow =
+    selectedEdge && selectedEdge.routing === 'orthogonal'
+      ? orthogonalElbow(selectedEdge, nodes)
+      : null;
+
   const marqueeRect = interaction.kind === 'marquee' ? normalizeRect(interaction.start, interaction.current) : null;
   const isTransparent = background === 'transparent';
   const checkerStyle: React.CSSProperties = isTransparent
@@ -647,6 +704,12 @@ export default function Canvas({
               nodes={nodes}
               selected={edgeSelection.has(edge.id)}
               onPointerDown={handleEdgePointerDown}
+              onLabelPointerDown={(e) => {
+                if (edgeSelection.has(edge.id)) {
+                  useCanvas.getState().select([edge.id], { edges: true });
+                  startLabelDrag(e);
+                }
+              }}
             />
           ))}
           {sortedNodes.map((node) => (
@@ -677,6 +740,47 @@ export default function Canvas({
               imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
             />
           ))}
+          <g data-ui="true">
+            {sortedNodes
+              .filter((n) => !!n.content.link)
+              .map((n) => {
+                const s = 20 / viewport.zoom;
+                const bx = n.x + n.width - s * 0.3;
+                const by = n.y - s * 0.7;
+                return (
+                  <g
+                    key={`link-${n.id}`}
+                    transform={`translate(${bx} ${by})`}
+                    style={{ cursor: 'pointer' }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      if (n.content.link) onOpenLink(n.content.link);
+                    }}
+                  >
+                    <rect
+                      x={0}
+                      y={0}
+                      width={s}
+                      height={s}
+                      rx={s / 4}
+                      fill="var(--accent)"
+                      stroke="white"
+                      strokeWidth={1 / viewport.zoom}
+                    />
+                    <g transform={`scale(${s / 20})`}>
+                      <path
+                        d="M6 14 L14 6 M8 6 L14 6 L14 12"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth={2.25}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </g>
+                  </g>
+                );
+              })}
+          </g>
           {selectedNodes.length > 0 && interaction.kind !== 'marquee' && interaction.kind !== 'draw-shape' ? (
             <g data-ui="true">
             <SelectionLayer
@@ -719,6 +823,20 @@ export default function Canvas({
                   />
                 );
               })}
+              {orthoElbow ? (
+                <rect
+                  x={orthoElbow.x - 6 / viewport.zoom}
+                  y={orthoElbow.y - 6 / viewport.zoom}
+                  width={12 / viewport.zoom}
+                  height={12 / viewport.zoom}
+                  rx={3 / viewport.zoom}
+                  fill="white"
+                  stroke="var(--accent)"
+                  strokeWidth={2 / viewport.zoom}
+                  style={{ cursor: 'move' }}
+                  onPointerDown={startMidpointDrag}
+                />
+              ) : null}
             </g>
           ) : null}
           {hoveredNodeId && nodes[hoveredNodeId] ? (

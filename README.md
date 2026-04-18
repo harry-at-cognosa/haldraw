@@ -4,12 +4,18 @@ Local infinite-canvas diagramming app. Excalidraw/tldraw-style, runs as a native
 
 ## Run
 
+Requirements: **Node 18+** (20+ recommended) and npm. macOS assumed; other platforms need small tweaks to the `build` section of `package.json`.
+
+From the project root (the directory containing `package.json`):
+
 ```bash
-npm install
-npm run dev        # launches Electron with HMR
+npm install        # first time only — downloads deps + rebuilds better-sqlite3 for Electron
+npm run dev        # every time after — compiles main+preload, runs Vite, opens the Electron window
 ```
 
-Data lives at `~/Library/Application Support/haldraw/haldraw.db`.
+That's it — the Electron window is the app. There is no separate "web" or "server" mode.
+
+Data lives at `~/Library/Application Support/haldraw/haldraw.db`. Delete that file to reset the app to a clean slate.
 
 ## Package
 

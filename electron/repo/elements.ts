@@ -13,6 +13,7 @@ type NodeRow = {
   z_index: number;
   style: string;
   content: string;
+  group_id: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -31,6 +32,8 @@ type EdgeRow = {
   arrow_end: number;
   style: string;
   label: string | null;
+  midpoint: string | null;
+  label_point: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -48,6 +51,7 @@ function toNode(row: NodeRow): CanvasNode {
     zIndex: row.z_index,
     style: JSON.parse(row.style),
     content: JSON.parse(row.content),
+    groupId: row.group_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -68,6 +72,8 @@ function toEdge(row: EdgeRow): CanvasEdge {
     arrowEnd: row.arrow_end === 1,
     style: JSON.parse(row.style),
     label: row.label ?? undefined,
+    midpoint: row.midpoint ? JSON.parse(row.midpoint) : null,
+    labelPoint: row.label_point ? JSON.parse(row.label_point) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -90,8 +96,8 @@ export function listEdgesByBoard(boardId: string): CanvasEdge[] {
 export function upsertNodes(boardId: string, nodes: CanvasNode[]): void {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, created_at, updated_at)
-    VALUES (@id, @board_id, @type, @x, @y, @width, @height, @rotation, @z_index, @style, @content, @created_at, @updated_at)
+    INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, created_at, updated_at)
+    VALUES (@id, @board_id, @type, @x, @y, @width, @height, @rotation, @z_index, @style, @content, @group_id, @created_at, @updated_at)
     ON CONFLICT(id) DO UPDATE SET
       type = excluded.type,
       x = excluded.x,
@@ -102,6 +108,7 @@ export function upsertNodes(boardId: string, nodes: CanvasNode[]): void {
       z_index = excluded.z_index,
       style = excluded.style,
       content = excluded.content,
+      group_id = excluded.group_id,
       updated_at = excluded.updated_at
   `);
   const touchBoard = db.prepare('UPDATE boards SET updated_at = ? WHERE id = ?');
@@ -119,6 +126,7 @@ export function upsertNodes(boardId: string, nodes: CanvasNode[]): void {
         z_index: n.zIndex,
         style: JSON.stringify(n.style ?? {}),
         content: JSON.stringify(n.content ?? {}),
+        group_id: n.groupId ?? null,
         created_at: n.createdAt,
         updated_at: n.updatedAt,
       });
@@ -141,8 +149,8 @@ export function removeNodes(ids: string[]): void {
 export function upsertEdges(boardId: string, edges: CanvasEdge[]): void {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO edges (id, board_id, from_node, from_anchor, from_point, to_node, to_anchor, to_point, routing, arrow_start, arrow_end, style, label, created_at, updated_at)
-    VALUES (@id, @board_id, @from_node, @from_anchor, @from_point, @to_node, @to_anchor, @to_point, @routing, @arrow_start, @arrow_end, @style, @label, @created_at, @updated_at)
+    INSERT INTO edges (id, board_id, from_node, from_anchor, from_point, to_node, to_anchor, to_point, routing, arrow_start, arrow_end, style, label, midpoint, label_point, created_at, updated_at)
+    VALUES (@id, @board_id, @from_node, @from_anchor, @from_point, @to_node, @to_anchor, @to_point, @routing, @arrow_start, @arrow_end, @style, @label, @midpoint, @label_point, @created_at, @updated_at)
     ON CONFLICT(id) DO UPDATE SET
       from_node = excluded.from_node,
       from_anchor = excluded.from_anchor,
@@ -155,6 +163,8 @@ export function upsertEdges(boardId: string, edges: CanvasEdge[]): void {
       arrow_end = excluded.arrow_end,
       style = excluded.style,
       label = excluded.label,
+      midpoint = excluded.midpoint,
+      label_point = excluded.label_point,
       updated_at = excluded.updated_at
   `);
   const touchBoard = db.prepare('UPDATE boards SET updated_at = ? WHERE id = ?');
@@ -174,6 +184,8 @@ export function upsertEdges(boardId: string, edges: CanvasEdge[]): void {
         arrow_end: e.arrowEnd ? 1 : 0,
         style: JSON.stringify(e.style ?? {}),
         label: e.label ?? null,
+        midpoint: e.midpoint ? JSON.stringify(e.midpoint) : null,
+        label_point: e.labelPoint ? JSON.stringify(e.labelPoint) : null,
         created_at: e.createdAt,
         updated_at: e.updatedAt,
       });

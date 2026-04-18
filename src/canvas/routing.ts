@@ -26,21 +26,28 @@ export function edgeEndpoints(
   return { from, to, fromNormal, toNormal };
 }
 
+export function orthogonalElbow(
+  edge: CanvasEdge,
+  nodes: Record<string, CanvasNode>
+): { x: number; y: number } {
+  if (edge.midpoint) return edge.midpoint;
+  const { from, to, fromNormal } = edgeEndpoints(edge, nodes);
+  if (Math.abs(fromNormal.x) > Math.abs(fromNormal.y)) {
+    return { x: (from.x + to.x) / 2, y: from.y };
+  }
+  return { x: from.x, y: (from.y + to.y) / 2 };
+}
+
 export function buildPath(edge: CanvasEdge, nodes: Record<string, CanvasNode>): string {
   const { from, to, fromNormal, toNormal } = edgeEndpoints(edge, nodes);
   switch (edge.routing) {
     case 'orthogonal': {
-      // Elbow. Extend along normals then axis-align.
-      const offset = 24;
-      const ax = from.x + fromNormal.x * offset;
-      const ay = from.y + fromNormal.y * offset;
-      const bx = to.x + toNormal.x * offset;
-      const by = to.y + toNormal.y * offset;
-      // Prefer horizontal-first if normal is mostly horizontal on start
-      if (Math.abs(fromNormal.x) > Math.abs(fromNormal.y)) {
-        return `M ${from.x} ${from.y} L ${ax} ${from.y} L ${ax} ${by} L ${bx} ${by} L ${to.x} ${to.y}`;
+      const elbow = orthogonalElbow(edge, nodes);
+      const horizFirst = Math.abs(fromNormal.x) > Math.abs(fromNormal.y);
+      if (horizFirst) {
+        return `M ${from.x} ${from.y} L ${elbow.x} ${from.y} L ${elbow.x} ${to.y} L ${to.x} ${to.y}`;
       }
-      return `M ${from.x} ${from.y} L ${from.x} ${ay} L ${bx} ${ay} L ${bx} ${to.y} L ${to.x} ${to.y}`;
+      return `M ${from.x} ${from.y} L ${from.x} ${elbow.y} L ${to.x} ${elbow.y} L ${to.x} ${to.y}`;
     }
     case 'curved': {
       const dist = Math.max(40, Math.hypot(to.x - from.x, to.y - from.y) * 0.4);
