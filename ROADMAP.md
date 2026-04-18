@@ -6,6 +6,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 
 ## Round 2 (next batch of likely-valuable work)
 
+- **Customizable color palette.** Let the user replace any swatch in the fill / stroke / text palettes with a color picked via the native macOS color panel ("crayon box"). Scope: system-wide going forward. Existing drawings untouched — every element already stores its own hex code. Includes a **Reset palette** button to revert to the starter set (eight swatches + transparent + eight board backgrounds).
 - **Configurable grid spacing.** Slider in the Board panel for dot size and snap granularity. Today hardcoded: 20 px between dots, 10 px snap. Harry wanted "half-inch dots" as an option.
 - **Export to JSON** + **import from JSON.** A portable, human-readable `.haldraw` file so you can hand a diagram to a friend without cloning the DB. Doubles as a safe text-diff for version control.
 - **Auto-backup.** Rotating daily snapshots of the SQLite file to `~/Library/Application Support/haldraw/backups/`, keep last N (configurable, default 14). Cheap insurance.
