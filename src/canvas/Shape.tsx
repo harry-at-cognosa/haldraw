@@ -201,10 +201,11 @@ function EditableText({ initial, onCommit }: { initial: string; onCommit: (t: st
     el.innerText = initial;
     const grab = () => {
       el.focus({ preventScroll: true });
+      if (document.activeElement !== el) return;
       try {
         const range = document.createRange();
         range.selectNodeContents(el);
-        range.collapse(false);
+        if (initial.length > 0) range.collapse(false);
         const sel = window.getSelection();
         sel?.removeAllRanges();
         sel?.addRange(range);
@@ -212,25 +213,14 @@ function EditableText({ initial, onCommit }: { initial: string; onCommit: (t: st
         // empty content can refuse selection; ignore
       }
     };
-    // Focus is racy for empty contenteditable inside an SVG foreignObject
-    // that was just inserted — try a few points in the event loop to make
-    // sure it lands before the user's first keystroke.
-    grab();
-    const rafId = requestAnimationFrame(grab);
-    const t0 = setTimeout(grab, 0);
-    const t1 = setTimeout(grab, 60);
-    return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(t0);
-      clearTimeout(t1);
-    };
+    const t = setTimeout(grab, 0);
+    return () => clearTimeout(t);
   }, []);
 
   return (
     <div
       ref={ref}
       contentEditable
-      tabIndex={0}
       suppressContentEditableWarning
       onInput={(e) => {
         valRef.current = (e.target as HTMLElement).innerText;
