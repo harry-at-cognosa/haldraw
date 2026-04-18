@@ -57,6 +57,7 @@ interface CanvasState {
   snapToGrid: boolean;
   gridSize: number;
   transientChange: boolean;
+  editingNodeId: string | null;
   lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
   lastEdge: {
     style: EdgeStyle;
@@ -64,6 +65,7 @@ interface CanvasState {
     arrowStart: boolean;
     arrowEnd: boolean;
   };
+  setEditingNodeId: (id: string | null) => void;
 
   hydrate: (s: BoardSnapshot) => void;
   clear: () => void;
@@ -156,6 +158,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   snapToGrid: false,
   gridSize: 10,
   transientChange: false,
+  editingNodeId: null,
   lastNodeStyle: {},
   lastEdge: {
     style: { stroke: '#0b0d10', strokeWidth: 2, opacity: 1 },
@@ -203,6 +206,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     }),
 
   setTool: (tool) => set({ tool }),
+
+  setEditingNodeId: (id) => set({ editingNodeId: id }),
 
   setViewport: (v) => set({ viewport: v }),
 

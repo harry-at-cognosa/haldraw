@@ -237,8 +237,8 @@ export default function BoardEditor({
   // Keyboard shortcuts
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
-      if (isTyping()) return;
       const store = useCanvas.getState();
+      if (isTyping() || store.editingNodeId) return;
       const meta = e.metaKey || e.ctrlKey;
 
       // Simple tool keys

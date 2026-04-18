@@ -77,7 +77,8 @@ export default function Canvas({
   const svgRef = useRef<SVGSVGElement>(null);
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'idle' });
   const [cursorWorld, setCursorWorld] = useState<Point>({ x: 0, y: 0 });
-  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const editingNodeId = useCanvas((s) => s.editingNodeId);
+  const setEditingNodeId = useCanvas((s) => s.setEditingNodeId);
   const [spacePressed, setSpacePressed] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
