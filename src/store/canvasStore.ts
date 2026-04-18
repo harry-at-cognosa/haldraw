@@ -738,14 +738,14 @@ export const useCanvas = create<CanvasState>((set, get) => ({
 }));
 
 export const DEFAULT_NODE_STYLE: NodeStyle = {
-  fill: '#1f2937',
-  stroke: '#e6e8eb',
+  fill: '#f4f6f8',
+  stroke: '#0b0d10',
   strokeWidth: 2,
   opacity: 1,
   fontSize: 16,
   fontFamily: 'Inter, system-ui, sans-serif',
   fontWeight: 500,
-  color: '#e6e8eb',
+  color: '#0b0d10',
   textAlign: 'center',
   cornerRadius: 8,
 };
