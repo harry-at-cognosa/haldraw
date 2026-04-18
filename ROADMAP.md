@@ -29,6 +29,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 - Pinch-zoom on trackpad.
 - Window size / position persistence per project.
 - Quick-swap between light/dark canvas while dark-UI stays (or vice-versa).
+- Optional app-theme ↔ board-background link (toggle: when app theme flips, auto-flip the current board's paper color). Left independent by default.
 - "Lock" a shape so it can't be accidentally moved.
 - Arrow keys while dragging = constrain to horizontal / vertical.
 
