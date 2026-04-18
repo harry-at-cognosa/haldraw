@@ -123,8 +123,8 @@ export default function ProjectPicker({
     <div className="flex h-full w-full bg-canvas text-fg">
       <aside className="w-72 shrink-0 border-r border-border bg-panel flex flex-col">
         <div
-          className="flex items-center justify-between px-4 h-12 border-b border-border"
-          style={{ WebkitAppRegion: 'drag' } as any}
+          className="flex items-center justify-between h-12 border-b border-border"
+          style={{ WebkitAppRegion: 'drag', paddingLeft: 78, paddingRight: 12 } as any}
         >
           <div className="text-sm font-semibold tracking-tight">
             haldraw{' '}

@@ -67,8 +67,8 @@ export default function Toolbar({
 
   return (
     <div
-      className="h-12 shrink-0 border-b border-border bg-panel flex items-center px-2 gap-1 text-sm"
-      style={{ WebkitAppRegion: 'drag' } as any}
+      className="h-12 shrink-0 border-b border-border bg-panel flex items-center gap-1 text-sm"
+      style={{ WebkitAppRegion: 'drag', paddingLeft: 78, paddingRight: 8 } as any}
     >
       <button
         onClick={onBack}
