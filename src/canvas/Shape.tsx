@@ -199,28 +199,38 @@ function EditableText({ initial, onCommit }: { initial: string; onCommit: (t: st
     const el = ref.current;
     if (!el) return;
     el.innerText = initial;
-    // Delay focus to the next frame so React and Electron have finished
-    // committing the DOM. Without this, focus is sometimes silently
-    // dropped and keystrokes hit the global shortcut handler.
-    const frame = requestAnimationFrame(() => {
+    const grab = () => {
       el.focus({ preventScroll: true });
       try {
         const range = document.createRange();
         range.selectNodeContents(el);
+        range.collapse(false);
         const sel = window.getSelection();
         sel?.removeAllRanges();
         sel?.addRange(range);
       } catch {
-        // ignore selection failure on an empty node
+        // empty content can refuse selection; ignore
       }
-    });
-    return () => cancelAnimationFrame(frame);
+    };
+    // Focus is racy for empty contenteditable inside an SVG foreignObject
+    // that was just inserted — try a few points in the event loop to make
+    // sure it lands before the user's first keystroke.
+    grab();
+    const rafId = requestAnimationFrame(grab);
+    const t0 = setTimeout(grab, 0);
+    const t1 = setTimeout(grab, 60);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t0);
+      clearTimeout(t1);
+    };
   }, []);
 
   return (
     <div
       ref={ref}
       contentEditable
+      tabIndex={0}
       suppressContentEditableWarning
       onInput={(e) => {
         valRef.current = (e.target as HTMLElement).innerText;
