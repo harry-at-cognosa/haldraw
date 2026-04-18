@@ -148,9 +148,13 @@ export default function Canvas({
 
   const handleNodePointerDown = useCallback(
     (e: React.PointerEvent, node: CanvasNode) => {
-      if (editingNodeId) return;
+      if (editingNodeId) {
+        e.stopPropagation();
+        return;
+      }
       if (tool === 'connector') {
         e.stopPropagation();
+        const le = useCanvas.getState().lastEdge;
         const edgeId = useCanvas.getState().addEdge({
           fromNode: node.id,
           fromAnchor: 'auto',
@@ -158,10 +162,10 @@ export default function Canvas({
           toNode: null,
           toAnchor: null,
           toPoint: { x: cursorWorld.x, y: cursorWorld.y },
-          routing: 'straight',
-          arrowStart: false,
+          routing: le.routing,
+          arrowStart: le.arrowStart,
           arrowEnd: true,
-          style: { stroke: '#e6e8eb', strokeWidth: 2, opacity: 1 },
+          style: { ...le.style },
         }).id;
         setInteraction({ kind: 'draw-connector', fromNodeId: node.id, edgeId });
         (e.target as Element).setPointerCapture(e.pointerId);
@@ -262,6 +266,7 @@ export default function Canvas({
         const snapped = maybeSnap(world);
         const nodeType: 'rect' | 'ellipse' | 'diamond' =
           tool === 'ellipse' ? 'ellipse' : tool === 'diamond' ? 'diamond' : 'rect';
+        const remembered = store.lastNodeStyle[nodeType];
         const node = store.addNode({
           type: nodeType,
           x: snapped.x,
@@ -269,7 +274,7 @@ export default function Canvas({
           width: 1,
           height: 1,
           rotation: 0,
-          style: { ...DEFAULT_NODE_STYLE },
+          style: { ...DEFAULT_NODE_STYLE, ...(remembered ?? {}) },
           content: {},
         });
         setInteraction({ kind: 'draw-shape', shape: tool, start: snapped, nodeId: node.id });
@@ -279,6 +284,7 @@ export default function Canvas({
       if (tool === 'line' || tool === 'arrow') {
         const snapped = maybeSnap(world);
         const startNode = findTopmostNodeAt(store.nodes, world);
+        const le = store.lastEdge;
         const edge = store.addEdge({
           fromNode: startNode?.id ?? null,
           fromAnchor: startNode ? 'auto' : null,
@@ -286,10 +292,10 @@ export default function Canvas({
           toNode: null,
           toAnchor: null,
           toPoint: { x: snapped.x, y: snapped.y },
-          routing: 'straight',
-          arrowStart: false,
-          arrowEnd: tool === 'arrow',
-          style: { stroke: '#e6e8eb', strokeWidth: 2, opacity: 1 },
+          routing: le.routing,
+          arrowStart: tool === 'line' ? le.arrowStart : le.arrowStart,
+          arrowEnd: tool === 'arrow' ? true : le.arrowEnd,
+          style: { ...le.style },
         });
         setInteraction({
           kind: 'draw-line',
@@ -303,6 +309,7 @@ export default function Canvas({
       }
       if (tool === 'text') {
         const snapped = maybeSnap(world);
+        const remembered = store.lastNodeStyle.text;
         const node = store.addNode({
           type: 'text',
           x: snapped.x - 60,
@@ -310,7 +317,12 @@ export default function Canvas({
           width: 120,
           height: 28,
           rotation: 0,
-          style: { ...DEFAULT_NODE_STYLE, fill: 'transparent', stroke: 'transparent' },
+          style: {
+            ...DEFAULT_NODE_STYLE,
+            fill: 'transparent',
+            stroke: 'transparent',
+            ...(remembered ?? {}),
+          },
           content: { text: '' },
         });
         store.select([node.id]);
@@ -660,9 +672,13 @@ export default function Canvas({
       }
     : { backgroundColor: background };
 
+  const gridDotColor = isBgDark(background)
+    ? 'rgba(255,255,255,0.32)'
+    : 'rgba(0,0,0,0.28)';
+  const dotRadius = Math.max(1.1, viewport.zoom * 1.1);
   const gridStyle: React.CSSProperties = showGrid
     ? {
-        backgroundImage: `radial-gradient(${isBgDark(background) ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'} 1px, transparent 1px)`,
+        backgroundImage: `radial-gradient(${gridDotColor} ${dotRadius}px, transparent ${dotRadius + 0.5}px)`,
         backgroundSize: `${20 * viewport.zoom}px ${20 * viewport.zoom}px`,
         backgroundPosition: `${viewport.x}px ${viewport.y}px`,
       }

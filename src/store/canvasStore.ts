@@ -5,7 +5,9 @@ import type {
   CanvasEdge,
   CanvasNode,
   EdgeRouting,
+  EdgeStyle,
   NodeStyle,
+  NodeType,
   Viewport,
 } from '@shared/types';
 import { newId } from '@/util/id';
@@ -55,6 +57,13 @@ interface CanvasState {
   snapToGrid: boolean;
   gridSize: number;
   transientChange: boolean;
+  lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
+  lastEdge: {
+    style: EdgeStyle;
+    routing: EdgeRouting;
+    arrowStart: boolean;
+    arrowEnd: boolean;
+  };
 
   hydrate: (s: BoardSnapshot) => void;
   clear: () => void;
@@ -92,6 +101,11 @@ interface CanvasState {
 
   alignSelection: (mode: 'left' | 'center-h' | 'right' | 'top' | 'middle' | 'bottom') => void;
   distributeSelection: (axis: 'h' | 'v') => void;
+
+  rememberNodeStyle: (type: NodeType, style: NodeStyle) => void;
+  rememberEdgeAttrs: (patch: Partial<CanvasState['lastEdge']>) => void;
+  resetNodeStyle: (ids: string[]) => void;
+  resetLastNodeStyle: (type: NodeType) => void;
 
   toggleGrid: () => void;
   toggleSnap: () => void;
@@ -142,6 +156,13 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   snapToGrid: false,
   gridSize: 10,
   transientChange: false,
+  lastNodeStyle: {},
+  lastEdge: {
+    style: { stroke: '#0b0d10', strokeWidth: 2, opacity: 1 },
+    routing: 'straight',
+    arrowStart: false,
+    arrowEnd: true,
+  },
 
   hydrate: (s) => {
     const nodes: Record<string, CanvasNode> = {};
@@ -584,6 +605,54 @@ export const useCanvas = create<CanvasState>((set, get) => ({
         history: [...st.history.slice(-HISTORY_LIMIT + 1), prev],
         future: [],
       };
+    });
+  },
+
+  rememberNodeStyle: (type, style) => {
+    set((s) => ({ lastNodeStyle: { ...s.lastNodeStyle, [type]: { ...style } } }));
+  },
+
+  rememberEdgeAttrs: (patch) => {
+    set((s) => ({
+      lastEdge: {
+        style: patch.style ? { ...s.lastEdge.style, ...patch.style } : s.lastEdge.style,
+        routing: patch.routing ?? s.lastEdge.routing,
+        arrowStart: patch.arrowStart ?? s.lastEdge.arrowStart,
+        arrowEnd: patch.arrowEnd ?? s.lastEdge.arrowEnd,
+      },
+    }));
+  },
+
+  resetNodeStyle: (ids) => {
+    if (!ids.length) return;
+    const prev = snapshot(get());
+    set((s) => {
+      const nodes = { ...s.nodes };
+      const dirty = new Set(s.dirtyNodeIds);
+      const now = Date.now();
+      const lastCopy = { ...s.lastNodeStyle };
+      for (const id of ids) {
+        const n = nodes[id];
+        if (!n) continue;
+        nodes[id] = { ...n, style: { ...DEFAULT_NODE_STYLE }, updatedAt: now };
+        dirty.add(id);
+        delete lastCopy[n.type];
+      }
+      return {
+        nodes,
+        dirtyNodeIds: dirty,
+        lastNodeStyle: lastCopy,
+        history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
+    });
+  },
+
+  resetLastNodeStyle: (type) => {
+    set((s) => {
+      const copy = { ...s.lastNodeStyle };
+      delete copy[type];
+      return { lastNodeStyle: copy };
     });
   },
 

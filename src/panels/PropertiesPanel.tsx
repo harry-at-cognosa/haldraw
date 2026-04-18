@@ -1,5 +1,5 @@
 import { useCanvas } from '@/store/canvasStore';
-import type { CanvasEdge, CanvasNode, EdgeRouting, NodeStyle } from '@shared/types';
+import type { Anchor, CanvasEdge, CanvasNode, EdgeRouting, NodeStyle } from '@shared/types';
 import { useRef } from 'react';
 import {
   ArrowBigLeft,
@@ -50,6 +50,9 @@ export default function PropertiesPanel() {
   const deleteEdges = useCanvas((s) => s.deleteEdges);
   const alignSelection = useCanvas((s) => s.alignSelection);
   const distributeSelection = useCanvas((s) => s.distributeSelection);
+  const rememberNodeStyle = useCanvas((s) => s.rememberNodeStyle);
+  const rememberEdgeAttrs = useCanvas((s) => s.rememberEdgeAttrs);
+  const resetNodeStyle = useCanvas((s) => s.resetNodeStyle);
 
   const selectedNodes = [...selection].map((id) => nodes[id]).filter(Boolean) as CanvasNode[];
   const selectedEdges = [...edgeSelection].map((id) => edges[id]).filter(Boolean) as CanvasEdge[];
@@ -65,6 +68,9 @@ export default function PropertiesPanel() {
         n.style = { ...n.style, ...p };
       }
     );
+    for (const n of selectedNodes) {
+      rememberNodeStyle(n.type, { ...n.style, ...p });
+    }
     commit();
   };
 
@@ -76,6 +82,12 @@ export default function PropertiesPanel() {
         if (p.style) edge.style = { ...edge.style, ...p.style };
       }
     );
+    rememberEdgeAttrs({
+      style: p.style,
+      routing: p.routing,
+      arrowStart: p.arrowStart,
+      arrowEnd: p.arrowEnd,
+    });
     commit();
   };
 
@@ -295,6 +307,13 @@ export default function PropertiesPanel() {
               </div>
             </Section>
             <button
+              onClick={() => resetNodeStyle(selectedNodes.map((n) => n.id))}
+              className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-fg hover:border-fg-muted text-sm"
+              title="Restore the shape's default style and clear remembered style for this type"
+            >
+              Reset styles
+            </button>
+            <button
               onClick={() => deleteNodes(selectedNodes.map((n) => n.id))}
               className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-red-400 hover:border-red-400 inline-flex items-center justify-center gap-1.5"
             >
@@ -305,6 +324,24 @@ export default function PropertiesPanel() {
 
         {selectedEdges.length > 0 ? (
           <>
+            {firstEdge?.fromNode || firstEdge?.toNode ? (
+              <Section title="Anchors">
+                {firstEdge?.fromNode ? (
+                  <AnchorRow
+                    label="From"
+                    value={firstEdge?.fromAnchor ?? 'auto'}
+                    onChange={(a) => patchEdges({ fromAnchor: a })}
+                  />
+                ) : null}
+                {firstEdge?.toNode ? (
+                  <AnchorRow
+                    label="To"
+                    value={firstEdge?.toAnchor ?? 'auto'}
+                    onChange={(a) => patchEdges({ toAnchor: a })}
+                  />
+                ) : null}
+              </Section>
+            ) : null}
             <Section title="Routing">
               <div className="grid grid-cols-3 gap-1">
                 <RouteBtn
@@ -568,6 +605,43 @@ function IconBtn({
     >
       <Icon size={14} />
     </button>
+  );
+}
+
+function AnchorRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: Anchor;
+  onChange: (a: Anchor) => void;
+}) {
+  const options: Array<{ v: Anchor; l: string }> = [
+    { v: 'auto', l: 'Auto' },
+    { v: 'top', l: 'Top' },
+    { v: 'right', l: 'Right' },
+    { v: 'bottom', l: 'Bot' },
+    { v: 'left', l: 'Left' },
+    { v: 'center', l: 'Ctr' },
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-fg-muted text-xs w-10">{label}</span>
+      <div className="flex flex-wrap gap-1">
+        {options.map((o) => (
+          <button
+            key={o.v}
+            onClick={() => onChange(o.v)}
+            className={`px-2 py-0.5 rounded text-xs ${
+              value === o.v ? 'bg-accent text-white' : 'border border-border hover:bg-panel-hover text-fg-muted'
+            }`}
+          >
+            {o.l}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
