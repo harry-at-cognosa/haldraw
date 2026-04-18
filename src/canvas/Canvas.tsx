@@ -317,12 +317,14 @@ export default function Canvas({
       if (tool === 'text') {
         const snapped = maybeSnap(world);
         const remembered = store.lastNodeStyle.text;
+        const width = 220;
+        const height = 52;
         const node = store.addNode({
           type: 'text',
-          x: snapped.x - 60,
-          y: snapped.y - 14,
-          width: 120,
-          height: 28,
+          x: snapped.x - width / 2,
+          y: snapped.y - height / 2,
+          width,
+          height,
           rotation: 0,
           style: {
             ...DEFAULT_NODE_STYLE,
