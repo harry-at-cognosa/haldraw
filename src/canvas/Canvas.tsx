@@ -243,8 +243,14 @@ export default function Canvas({
 
   const handleBackgroundPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      // If a node is being edited, blur the contenteditable so its
+      // onBlur handler can commit the typed text before we change
+      // any other state — otherwise we'd unmount before blur fires
+      // and silently discard the user's input.
       if (editingNodeId) {
-        setEditingNodeId(null);
+        const active = document.activeElement as HTMLElement | null;
+        if (active && 'blur' in active) active.blur();
+        return;
       }
       if (e.button === 1 || spacePressed || tool === 'pan') {
         setInteraction({
