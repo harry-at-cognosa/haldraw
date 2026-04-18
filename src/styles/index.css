@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: #0b0d10;
+  --panel: #15181d;
+  --panel-hover: #1c2027;
+  --border: #2e333c;
+  --fg: #f7f8fa;
+  --fg-muted: #b4bac4;
+  --accent: #38bdf8;
+  --accent-soft: rgba(56, 189, 248, 0.16);
+  --grid-dot: rgba(255, 255, 255, 0.08);
+  font-size: 17px;
+}
+
+:root.light {
+  --canvas: #f7f8fa;
+  --panel: #ffffff;
+  --panel-hover: #eef1f5;
+  --border: #d9dde3;
+  --fg: #05070a;
+  --fg-muted: #4a525e;
+  --accent: #0284c7;
+  --accent-soft: rgba(2, 132, 199, 0.12);
+  --grid-dot: rgba(0, 0, 0, 0.1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dot-grid {
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+}

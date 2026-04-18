@@ -1,0 +1,16 @@
+node_modules
+out
+dist
+build-output
+.DS_Store
+*.log
+.vite
+.env
+.env.*
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+.vscode
+.idea
+/20000

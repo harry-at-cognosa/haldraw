@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <g stroke="url(#accent)" stroke-width="36" stroke-linecap="round" fill="none">
+    <rect x="220" y="260" width="260" height="220" rx="36"/>
+    <ellipse cx="730" cy="600" rx="130" ry="130"/>
+    <path d="M 480 380 C 580 380, 620 520, 700 540"/>
+  </g>
+  <circle cx="480" cy="380" r="18" fill="url(#accent)"/>
+  <circle cx="730" cy="600" r="18" fill="url(#accent)"/>
+  <text x="512" y="860" text-anchor="middle" fill="#e6e8eb" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="120" letter-spacing="-4">haldraw</text>
+</svg>
