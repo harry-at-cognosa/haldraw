@@ -199,12 +199,22 @@ function EditableText({ initial, onCommit }: { initial: string; onCommit: (t: st
     const el = ref.current;
     if (!el) return;
     el.innerText = initial;
-    el.focus();
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
+    // Delay focus to the next frame so React and Electron have finished
+    // committing the DOM. Without this, focus is sometimes silently
+    // dropped and keystrokes hit the global shortcut handler.
+    const frame = requestAnimationFrame(() => {
+      el.focus({ preventScroll: true });
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      } catch {
+        // ignore selection failure on an empty node
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   return (
