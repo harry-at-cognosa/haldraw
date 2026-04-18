@@ -23,7 +23,7 @@ Data lives at `~/Library/Application Support/haldraw/haldraw.db`. Delete that fi
 npm run package    # produces .dmg under dist/
 ```
 
-(Packaging uses `build/icon.png` for the app icon.)
+Packaging uses `build/icon.png` for the app icon. For full build & distribution instructions (prerequisites, how to install the built app, sharing with friends, troubleshooting), see [BUILD.md](./BUILD.md).
 
 ## Features
 
