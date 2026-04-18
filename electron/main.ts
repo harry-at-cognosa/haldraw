@@ -6,6 +6,16 @@ import { registerIpcHandlers } from './ipc';
 
 app.setName('haldraw');
 
+if (process.platform === 'darwin') {
+  app.setAboutPanelOptions({
+    applicationName: 'haldraw',
+    applicationVersion: app.getVersion(),
+    version: app.getVersion(),
+    copyright: '© 2026 Harry A. Layman, PhD',
+    website: 'https://github.com/harry-at-cognosa/haldraw',
+  });
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1400,

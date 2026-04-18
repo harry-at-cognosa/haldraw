@@ -3,6 +3,7 @@ import type { Board, Project } from '@shared/types';
 import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2 } from 'lucide-react';
 import PromptModal from './PromptModal';
 import { useDialogs } from '@/hooks/useDialogs';
+import { APP_VERSION } from '@/util/version';
 
 export default function ProjectPicker({
   onOpen,
@@ -125,7 +126,10 @@ export default function ProjectPicker({
           className="flex items-center justify-between px-4 h-12 border-b border-border"
           style={{ WebkitAppRegion: 'drag' } as any}
         >
-          <div className="text-sm font-semibold tracking-tight">haldraw</div>
+          <div className="text-sm font-semibold tracking-tight">
+            haldraw{' '}
+            <span className="text-xs text-fg-muted font-normal tabular-nums">v{APP_VERSION}</span>
+          </div>
           <button
             onClick={createProject}
             className="p-1.5 rounded-md hover:bg-panel-hover text-fg-muted hover:text-fg"

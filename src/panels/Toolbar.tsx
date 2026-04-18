@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useCanvas, type Tool } from '@/store/canvasStore';
 import ExportMenu, { type ExportFormat } from './ExportMenu';
+import { APP_VERSION } from '@/util/version';
 
 type ToolDef = { id: Tool; icon: React.ComponentType<any>; label: string; shortcut: string };
 
@@ -107,7 +108,10 @@ export default function Toolbar({
         })}
       </div>
 
-      <div className="flex-1 text-center truncate px-4 text-fg font-semibold">{title}</div>
+      <div className="flex-1 text-center truncate px-4 text-fg font-semibold">
+        {title}
+        <span className="ml-2 text-xs text-fg-muted font-normal tabular-nums">v{APP_VERSION}</span>
+      </div>
 
       <div className="flex items-center gap-0.5" style={{ WebkitAppRegion: 'no-drag' } as any}>
         <IconButton icon={Undo2} onClick={undo} disabled={!hasUndo} label="Undo (⌘Z)" />
