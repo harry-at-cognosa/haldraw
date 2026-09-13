@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Board, PickedImageFile, Project } from '@shared/types';
-import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2, ImagePlus } from 'lucide-react';
+import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2, ImagePlus, Keyboard } from 'lucide-react';
+import ShortcutHelp from './ShortcutHelp';
 import { fileToPicked } from '@/util/importImage';
 import PromptModal from './PromptModal';
 import { useDialogs } from '@/hooks/useDialogs';
@@ -16,6 +17,7 @@ export default function ProjectPicker({
   const [boards, setBoards] = useState<Board[]>([]);
   const { request, ask, confirm, onResolve } = useDialogs();
   const [dragOver, setDragOver] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const selectedRef = useRef<Project | null>(null);
   selectedRef.current = selected;
 
@@ -75,7 +77,6 @@ export default function ProjectPicker({
   };
 
   const createBoard = async () => {
-    if (!selected) return;
     const name = await ask({
       kind: 'prompt',
       title: 'New board',
@@ -84,14 +85,24 @@ export default function ProjectPicker({
       confirmLabel: 'Create',
     });
     if (!name) return;
-    const b = await window.haldraw.boards.create(selected.id, name);
+    const project = await ensureProject();
+    const b = await window.haldraw.boards.create(project.id, name);
     setBoards([b, ...boards]);
+  };
+
+  /** The selected project, or a freshly created "Untitled project" when there is none. */
+  const ensureProject = async (): Promise<Project> => {
+    if (selectedRef.current) return selectedRef.current;
+    const p = await window.haldraw.projects.create('Untitled project');
+    selectedRef.current = p;
+    setSelected(p);
+    await refreshProjects();
+    return p;
   };
 
   /** Create a board named after the image and open it with the image pending placement. */
   const createBoardFromPicked = async (picked: PickedImageFile) => {
-    const project = selectedRef.current;
-    if (!project) return;
+    const project = await ensureProject();
     const base = picked.name.replace(/\.[^.]+$/, '') || 'Untitled board';
     const name = await ask({
       kind: 'prompt',
@@ -106,11 +117,25 @@ export default function ProjectPicker({
   };
 
   const createBoardFromImage = async () => {
-    if (!selectedRef.current) return;
     const picked = await window.haldraw.images.pickFile();
     if (!picked) return;
     await createBoardFromPicked(picked);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setHelpOpen((v) => !v);
+      } else if (e.key === 'Escape') {
+        setHelpOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // File ▸ Import Image… while the picker is showing
   useEffect(() => {
@@ -120,7 +145,6 @@ export default function ProjectPicker({
   }, []);
 
   const onDragOver = (e: React.DragEvent) => {
-    if (!selected) return;
     if (Array.from(e.dataTransfer.items).some((i) => i.kind === 'file')) {
       e.preventDefault();
       setDragOver(true);
@@ -128,7 +152,6 @@ export default function ProjectPicker({
   };
   const onDrop = async (e: React.DragEvent) => {
     setDragOver(false);
-    if (!selected) return;
     const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
     if (!file) return;
     e.preventDefault();
@@ -236,9 +259,15 @@ export default function ProjectPicker({
           className="h-12 border-b border-border bg-panel px-6 flex items-center justify-between"
           style={{ WebkitAppRegion: 'drag' } as any}
         >
-          <div className="text-sm font-medium">{selected?.name ?? 'Select a project'}</div>
-          {selected ? (
-            <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as any}>
+          <div className="text-sm font-medium">{selected?.name ?? 'No project selected'}</div>
+          <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as any}>
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="p-1.5 rounded-md hover:bg-panel-hover text-fg-muted hover:text-fg"
+                title="Help (?)"
+              >
+                <Keyboard size={16} />
+              </button>
               <button
                 onClick={createBoardFromImage}
                 className="px-3 h-8 rounded-md border border-border text-fg-muted hover:text-fg hover:border-fg-muted text-sm font-medium"
@@ -256,8 +285,7 @@ export default function ProjectPicker({
                   <Plus size={14} /> New board
                 </span>
               </button>
-            </div>
-          ) : null}
+          </div>
         </header>
         <section
           className={`flex-1 overflow-y-auto scrollbar-thin p-8 transition ${
@@ -268,8 +296,12 @@ export default function ProjectPicker({
           onDrop={onDrop}
         >
           {!selected ? (
-            <div className="text-center text-fg-muted mt-24">
-              Create a project on the left to begin.
+            <div className="text-center text-fg-muted mt-24 space-y-2">
+              <div>No project selected.</div>
+              <div className="text-xs">
+                Click <b>New board</b> or <b>From image…</b> above, or drop an image here — a
+                project is created for you. Press <kbd className="px-1 rounded border border-border">?</kbd> for help.
+              </div>
             </div>
           ) : boards.length === 0 ? (
             <div className="text-center text-fg-muted mt-24">
@@ -336,6 +368,7 @@ export default function ProjectPicker({
         </section>
       </main>
       <PromptModal request={request} onResolve={onResolve} />
+      <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} variant="picker" />
     </div>
   );
 }

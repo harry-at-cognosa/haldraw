@@ -2,6 +2,19 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.4.1 — 2026-09-13
+
+First-run fixes found while testing 0.4.0 on an empty database.
+
+### Fixed
+
+- **Import with no project.** "From image…", ⌘⇧I, dropping an image on the board grid, and "New board" now create an "Untitled project" automatically when none is selected, instead of failing silently. The header buttons are always visible.
+
+### Added
+
+- **Library help.** Press `?` (or the keyboard icon in the header) on the project picker for a short help overlay. The editor's `?` overlay is unchanged.
+- Empty-state text on the picker explains the three ways to start.
+
 ## 0.4.0 — 2026-09-13
 
 Reference-image import: start a board from a PNG, GIF, JPEG, WebP, SVG or BMP and trace over it. Design and the two-release plan live in [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md).

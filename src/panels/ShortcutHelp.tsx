@@ -1,6 +1,37 @@
-export default function ShortcutHelp({ open, onClose }: { open: boolean; onClose: () => void }) {
+const PICKER_SECTIONS: Array<{ title: string; items: Array<[string, string]> }> = [
+  {
+    title: 'Getting started',
+    items: [
+      ['+ (sidebar)', 'New project'],
+      ['New board', 'Empty board in the selected project'],
+      ['From image…', 'Board with an image as a locked reference layer'],
+      ['Drop image on grid', 'Same as From image…'],
+      ['⌘⇧I', 'Import image (creates a project if none exists)'],
+    ],
+  },
+  {
+    title: 'Boards',
+    items: [
+      ['Click card', 'Open board'],
+      ['Hover card', 'Rename · Duplicate · Copy link · Delete'],
+      ['? ', 'Show/hide this overlay'],
+    ],
+  },
+];
+
+export default function ShortcutHelp({
+  open,
+  onClose,
+  variant = 'editor',
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** 'picker' shows the library view's help; 'editor' the canvas shortcuts. */
+  variant?: 'picker' | 'editor';
+}) {
   if (!open) return null;
-  const sections: Array<{ title: string; items: Array<[string, string]> }> = [
+  const sections: Array<{ title: string; items: Array<[string, string]> }> =
+    variant === 'picker' ? PICKER_SECTIONS : [
     {
       title: 'Tools',
       items: [
@@ -58,13 +89,14 @@ export default function ShortcutHelp({ open, onClose }: { open: boolean; onClose
       ],
     },
   ];
+  const title = variant === 'picker' ? 'Library help' : 'Keyboard shortcuts';
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
       <div
         className="w-[680px] max-w-[92%] max-h-[80vh] bg-panel border border-border rounded-xl shadow-panel p-6 overflow-y-auto scrollbar-thin"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-lg font-semibold mb-4">Keyboard shortcuts</div>
+        <div className="text-lg font-semibold mb-4">{title}</div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-sm">
           {sections.map((s) => (
             <div key={s.title}>
