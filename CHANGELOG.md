@@ -2,6 +2,21 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.3.0 — 2026-09-13
+
+Maintenance release. No new features; this cuts a versioned build that actually contains the 2026-04-18 afternoon fixes, which post-dated the 0.2.0 package.
+
+### Included since the 0.2.0 build
+
+- Text-edit focus and outside-click commit fixes.
+- Larger default text-box size so typed text is visible.
+- Light-theme-friendly default shape styles; default shape and edge colors follow the board background.
+- Version string surfaced in the project picker and toolbar.
+
+### Added
+
+- `docs/Make_fresh_haldraw_and_install_on_mac.md` — repeatable build-and-install procedure for macOS.
+
 ## 0.2.0 — 2026-04-18
 
 Round 1 of post-launch features, plus a pile of polish and bug fixes from first real use.
