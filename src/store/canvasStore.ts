@@ -78,7 +78,9 @@ interface CanvasState {
   select: (ids: string[], opts?: { additive?: boolean; edges?: boolean }) => void;
   clearSelection: () => void;
 
-  addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId'> & { zIndex?: number; groupId?: string | null }) => CanvasNode;
+  addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId' | 'locked'> & { zIndex?: number; groupId?: string | null; locked?: boolean }) => CanvasNode;
+  /** Lock (reference layer) or unlock nodes. Locking drops them from the selection. */
+  setLocked: (ids: string[], locked: boolean) => void;
   updateNodes: (ids: string[], updater: (n: CanvasNode) => CanvasNode | void) => void;
   deleteNodes: (ids: string[]) => void;
 
@@ -247,6 +249,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       updatedAt: now,
       zIndex,
       groupId: null,
+      locked: false,
       ...partial,
     };
     const prev = snapshot(get());
@@ -275,6 +278,29 @@ export const useCanvas = create<CanvasState>((set, get) => ({
         dirty.add(id);
       }
       return { nodes, dirtyNodeIds: dirty };
+    });
+  },
+
+  setLocked: (ids, locked) => {
+    const prev = snapshot(get());
+    set((s) => {
+      const nodes = { ...s.nodes };
+      const dirty = new Set(s.dirtyNodeIds);
+      const selection = new Set(s.selection);
+      const now = Date.now();
+      for (const id of ids) {
+        if (!nodes[id]) continue;
+        nodes[id] = { ...nodes[id], locked, updatedAt: now };
+        dirty.add(id);
+        if (locked) selection.delete(id);
+      }
+      return {
+        nodes,
+        dirtyNodeIds: dirty,
+        selection,
+        history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
     });
   },
 

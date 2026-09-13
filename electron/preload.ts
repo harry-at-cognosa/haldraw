@@ -29,6 +29,12 @@ const api: HaldrawApi = {
   images: {
     store: (payload) => ipcRenderer.invoke('images:store', payload),
     get: (id) => ipcRenderer.invoke('images:get', id),
+    pickFile: () => ipcRenderer.invoke('images:pickFile'),
+  },
+  onMenu: (channel, cb) => {
+    const listener = () => cb();
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
   exportPng: (payload) => ipcRenderer.invoke('exportPng', payload),
   exportSvg: (payload) => ipcRenderer.invoke('exportSvg', payload),

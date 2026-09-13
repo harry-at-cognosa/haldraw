@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Board, Project } from '@shared/types';
+import type { Board, PickedImageFile, Project } from '@shared/types';
 import ProjectPicker from './panels/ProjectPicker';
 import BoardEditor from './canvas/BoardEditor';
 
 export default function App() {
-  const [board, setBoard] = useState<{ project: Project; board: Board } | null>(null);
+  const [board, setBoard] = useState<{
+    project: Project;
+    board: Board;
+    pendingImport?: PickedImageFile | null;
+  } | null>(null);
 
   useEffect(() => {
     window.haldraw.theme.get().then((theme) => {
@@ -24,7 +28,11 @@ export default function App() {
   }, []);
 
   if (!board) {
-    return <ProjectPicker onOpen={(project, board) => setBoard({ project, board })} />;
+    return (
+      <ProjectPicker
+        onOpen={(project, board, pendingImport) => setBoard({ project, board, pendingImport })}
+      />
+    );
   }
   return (
     <BoardEditor
@@ -33,6 +41,7 @@ export default function App() {
       board={board.board}
       onBack={() => setBoard(null)}
       openBoardById={openBoardById}
+      pendingImport={board.pendingImport}
     />
   );
 }

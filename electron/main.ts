@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, Menu, shell, type MenuItemConstructorOptions } from 'electron';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { join } from 'node:path';
 import { getDb, closeDb } from './db';
@@ -14,6 +14,58 @@ if (process.platform === 'darwin') {
     copyright: '© 2026 Harry A. Layman, PhD',
     website: 'https://github.com/harry-at-cognosa/haldraw',
   });
+}
+
+/**
+ * Explicit application menu. Reproduces the parts of Electron's default menu
+ * the renderer relies on (Edit roles route ⌘C/⌘V/⌘A to the web contents on
+ * macOS) and adds File ▸ Import Image…. The default View zoom roles are left
+ * out on purpose: ⌘0 is the canvas zoom reset.
+ */
+function buildMenu(): void {
+  const isMac = process.platform === 'darwin';
+  const sendToFocused = (channel: string) => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    win?.webContents.send(channel);
+  };
+  const template: MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: 'appMenu' } as MenuItemConstructorOptions] : []),
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Import Image…',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => sendToFocused('menu:importImage'),
+        },
+        { type: 'separator' },
+        isMac ? { role: 'close' } : { role: 'quit' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    { role: 'windowMenu' },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function createWindow(): void {
@@ -59,6 +111,7 @@ app.whenReady().then(() => {
 
   getDb();
   registerIpcHandlers();
+  buildMenu();
 
   createWindow();
 

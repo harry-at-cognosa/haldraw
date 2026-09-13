@@ -30,6 +30,9 @@ export interface NodeContent {
   iconName?: string;
   imageId?: string;
   link?: string;
+  /** Intrinsic pixel size of the imported image (image nodes only). */
+  naturalWidth?: number;
+  naturalHeight?: number;
 }
 
 export interface CanvasNode {
@@ -45,6 +48,8 @@ export interface CanvasNode {
   style: NodeStyle;
   content: NodeContent;
   groupId: string | null;
+  /** Reference layer: rendered and exported, but ignored by every pointer interaction. */
+  locked: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -115,6 +120,14 @@ export interface ImageBlob {
   dataUrl: string;
 }
 
+export interface PickedImageFile {
+  name: string;
+  mime: string;
+  bytes: ArrayBuffer;
+}
+
+export type MenuChannel = 'menu:importImage';
+
 export interface HaldrawApi {
   projects: {
     list: () => Promise<Project[]>;
@@ -143,7 +156,11 @@ export interface HaldrawApi {
   images: {
     store: (payload: { mime: string; bytes: ArrayBuffer; width: number; height: number }) => Promise<string>;
     get: (id: string) => Promise<ImageBlob | null>;
+    /** Native open dialog filtered to image types. Resolves null on cancel. */
+    pickFile: () => Promise<PickedImageFile | null>;
   };
+  /** Subscribe to an application-menu command. Returns an unsubscribe function. */
+  onMenu: (channel: MenuChannel, cb: () => void) => () => void;
   exportPng: (payload: { defaultName: string; dataUrl: string }) => Promise<{ saved: boolean; path?: string }>;
   exportSvg: (payload: { defaultName: string; xml: string }) => Promise<{ saved: boolean; path?: string }>;
   openExternal: (url: string) => Promise<void>;

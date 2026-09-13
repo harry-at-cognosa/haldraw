@@ -6,6 +6,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 
 ## Round 2 (next batch of likely-valuable work)
 
+- **Reference image polish (0.5.0).** Opacity slider and per-board "dim references", downsample very large imports, first-frame-only note for GIFs, hide / exclude-from-export. Spec: [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md).
 - **Customizable color palette.** Let the user replace any swatch in the fill / stroke / text palettes with a color picked via the native macOS color panel ("crayon box"). Scope: system-wide going forward. Existing drawings untouched — every element already stores its own hex code. Includes a **Reset palette** button to revert to the starter set (eight swatches + transparent + eight board backgrounds).
 - **Configurable grid spacing.** Slider in the Board panel for dot size and snap granularity. Today hardcoded: 20 px between dots, 10 px snap. Harry wanted "half-inch dots" as an option.
 - **Export to JSON** + **import from JSON.** A portable, human-readable `.haldraw` file so you can hand a diagram to a friend without cloning the DB. Doubles as a safe text-diff for version control.
@@ -25,13 +26,13 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 
 ## Polish backlog (small, opportunistic)
 
-- Resize handle proportions / aspect-ratio lock (hold `Shift` while resizing).
+- ~~Resize handle proportions / aspect-ratio lock (hold `Shift` while resizing).~~ Shipped in 0.4.0.
 - Smarter orthogonal auto-routing (avoid overlapping shapes, Manhattan pathfinding).
 - Pinch-zoom on trackpad.
 - Window size / position persistence per project.
 - Quick-swap between light/dark canvas while dark-UI stays (or vice-versa).
 - Optional app-theme ↔ board-background link (toggle: when app theme flips, auto-flip the current board's paper color). Left independent by default.
-- "Lock" a shape so it can't be accidentally moved.
+- ~~"Lock" a shape so it can't be accidentally moved.~~ Shipped in 0.4.0 for images (reference layer); generalising the toggle to every shape type is a small follow-up.
 - Arrow keys while dragging = constrain to horizontal / vertical.
 
 ## Things to decide later

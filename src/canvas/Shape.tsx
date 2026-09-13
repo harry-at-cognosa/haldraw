@@ -88,7 +88,7 @@ function ShapeInner({
         width={node.width}
         height={node.height}
         opacity={opacity}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
       />
     );
   } else if (node.type === 'icon') {
@@ -167,7 +167,7 @@ function ShapeInner({
       data-node-type={node.type}
       onPointerDown={commonPointer}
       onDoubleClick={() => onDoubleClick(node)}
-      style={{ cursor: 'move' }}
+      style={{ cursor: node.locked ? 'default' : 'move' }}
     >
       <g transform={transform}>
         {shape}

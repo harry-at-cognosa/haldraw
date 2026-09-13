@@ -159,6 +159,9 @@ export default function Canvas({
         e.stopPropagation();
         return;
       }
+      // Reference layer: let the event bubble to the background so marquee,
+      // shape drawing and panning all work over a locked image.
+      if (node.locked) return;
       if (tool === 'connector') {
         e.stopPropagation();
         const state = useCanvas.getState();
@@ -394,6 +397,40 @@ export default function Canvas({
           if (h.includes('e')) right = Math.max(interaction.bbox.x + interaction.bbox.width + dx, left + 4);
           if (h.includes('n')) top = Math.min(interaction.bbox.y + dy, bottom - 4);
           if (h.includes('s')) bottom = Math.max(interaction.bbox.y + interaction.bbox.height + dy, top + 4);
+          if (e.shiftKey && interaction.bbox.width > 0 && interaction.bbox.height > 0) {
+            // Constrain the bounding box to its starting aspect ratio. The
+            // handle's own axes drive the size; the opposite side stays put,
+            // and single-axis handles grow symmetrically on the free axis.
+            const ratio = interaction.bbox.width / interaction.bbox.height;
+            const horiz = h.includes('e') || h.includes('w');
+            const vert = h.includes('n') || h.includes('s');
+            let w = right - left;
+            let hh = bottom - top;
+            if (horiz && vert) {
+              if (w / ratio >= hh) hh = w / ratio;
+              else w = hh * ratio;
+            } else if (horiz) {
+              hh = w / ratio;
+            } else {
+              w = hh * ratio;
+            }
+            if (horiz) {
+              if (h.includes('w')) left = right - w;
+              else right = left + w;
+            } else {
+              const cx = (left + right) / 2;
+              left = cx - w / 2;
+              right = cx + w / 2;
+            }
+            if (vert) {
+              if (h.includes('n')) top = bottom - hh;
+              else bottom = top + hh;
+            } else {
+              const cy = (top + bottom) / 2;
+              top = cy - hh / 2;
+              bottom = cy + hh / 2;
+            }
+          }
           const newW = right - left;
           const newH = bottom - top;
           const scaleX = newW / interaction.bbox.width;
@@ -532,8 +569,8 @@ export default function Canvas({
       switch (interaction.kind) {
         case 'marquee': {
           const r = normalizeRect(interaction.start, interaction.current);
-          const hit = Object.values(store.nodes).filter((n) =>
-            rectsOverlap(r, { x: n.x, y: n.y, width: n.width, height: n.height })
+          const hit = Object.values(store.nodes).filter(
+            (n) => !n.locked && rectsOverlap(r, { x: n.x, y: n.y, width: n.width, height: n.height })
           );
           if (hit.length) store.select(hit.map((n) => n.id));
           break;
@@ -754,6 +791,7 @@ export default function Canvas({
               selected={selection.has(node.id)}
               onPointerDown={handleNodePointerDown}
               onDoubleClick={(n) => {
+                if (n.locked) return;
                 if (
                   n.type === 'text' ||
                   n.type === 'rect' ||
@@ -911,7 +949,7 @@ function findTopmostNodeAt(
 ): CanvasNode | null {
   const sorted = Object.values(nodes).sort((a, b) => b.zIndex - a.zIndex);
   for (const n of sorted) {
-    if (n.id === excludeId) continue;
+    if (n.id === excludeId || n.locked) continue;
     if (p.x >= n.x && p.x <= n.x + n.width && p.y >= n.y && p.y <= n.y + n.height) {
       return n;
     }

@@ -1,11 +1,23 @@
 import { ipcMain, dialog, shell, clipboard, BrowserWindow } from 'electron';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { basename, extname } from 'node:path';
 import * as projectsRepo from './repo/projects';
 import * as boardsRepo from './repo/boards';
 import * as elementsRepo from './repo/elements';
 import * as imagesRepo from './repo/images';
 import * as metaRepo from './repo/meta';
-import type { CanvasEdge, CanvasNode, Viewport } from '@shared/types';
+import type { CanvasEdge, CanvasNode, PickedImageFile, Viewport } from '@shared/types';
+
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
+const MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  svg: 'image/svg+xml',
+};
 
 export function registerIpcHandlers() {
   ipcMain.handle('projects:list', () => projectsRepo.listProjects());
@@ -52,6 +64,23 @@ export function registerIpcHandlers() {
     }
   );
   ipcMain.handle('images:get', (_e, id: string) => imagesRepo.getImage(id));
+  ipcMain.handle('images:pickFile', async (event): Promise<PickedImageFile | null> => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win!, {
+      title: 'Import image',
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: IMAGE_EXTENSIONS }],
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    const path = result.filePaths[0];
+    const ext = extname(path).slice(1).toLowerCase();
+    const mime = MIME_BY_EXT[ext];
+    if (!mime) return null;
+    const buf = await readFile(path);
+    // Copy into a standalone ArrayBuffer so structured clone sends exactly the file bytes.
+    const bytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    return { name: basename(path), mime, bytes };
+  });
 
   ipcMain.handle(
     'exportPng',

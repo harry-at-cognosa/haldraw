@@ -14,6 +14,7 @@ type NodeRow = {
   style: string;
   content: string;
   group_id: string | null;
+  locked: number;
   created_at: number;
   updated_at: number;
 };
@@ -52,6 +53,7 @@ function toNode(row: NodeRow): CanvasNode {
     style: JSON.parse(row.style),
     content: JSON.parse(row.content),
     groupId: row.group_id ?? null,
+    locked: row.locked === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -96,8 +98,8 @@ export function listEdgesByBoard(boardId: string): CanvasEdge[] {
 export function upsertNodes(boardId: string, nodes: CanvasNode[]): void {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, created_at, updated_at)
-    VALUES (@id, @board_id, @type, @x, @y, @width, @height, @rotation, @z_index, @style, @content, @group_id, @created_at, @updated_at)
+    INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, locked, created_at, updated_at)
+    VALUES (@id, @board_id, @type, @x, @y, @width, @height, @rotation, @z_index, @style, @content, @group_id, @locked, @created_at, @updated_at)
     ON CONFLICT(id) DO UPDATE SET
       type = excluded.type,
       x = excluded.x,
@@ -109,6 +111,7 @@ export function upsertNodes(boardId: string, nodes: CanvasNode[]): void {
       style = excluded.style,
       content = excluded.content,
       group_id = excluded.group_id,
+      locked = excluded.locked,
       updated_at = excluded.updated_at
   `);
   const touchBoard = db.prepare('UPDATE boards SET updated_at = ? WHERE id = ?');
@@ -127,6 +130,7 @@ export function upsertNodes(boardId: string, nodes: CanvasNode[]): void {
         style: JSON.stringify(n.style ?? {}),
         content: JSON.stringify(n.content ?? {}),
         group_id: n.groupId ?? null,
+        locked: n.locked ? 1 : 0,
         created_at: n.createdAt,
         updated_at: n.updatedAt,
       });

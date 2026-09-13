@@ -2,6 +2,22 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.4.0 — 2026-09-13
+
+Reference-image import: start a board from a PNG, GIF, JPEG, WebP, SVG or BMP and trace over it. Design and the two-release plan live in [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md).
+
+### Added
+
+- **New board from image.** Project picker gains a **From image…** button beside **New board**, and the board grid accepts a dropped image file. Either creates a board named after the file and opens it with the image pending placement.
+- **File ▸ Import Image… (`⌘⇧I`)** and a toolbar button import into the open board. The app now installs an explicit application menu (Edit/Window roles preserved so `⌘C`/`⌘V` still reach the canvas; View zoom roles omitted because `⌘0` is the canvas zoom reset).
+- **Placement dialog.** Preview, pixel size and byte size; Size = Original / Fit to view / Scale %; Position = Origin / Centre of view; toggles for Lock as reference, Send to back, Fit view after placing. Whole import is a single undo step.
+- **Locked reference layer.** `locked` flag on nodes (new `nodes.locked` column, migrated on launch). Locked nodes render and export but ignore pointer-down, marquee, `⌘A`, double-click, and connector snapping, so drawing over them works. Board panel lists locked images with **Unlock** and **Remove**; the Image section of the properties panel has **Lock as reference**.
+- **Aspect ratio.** Image nodes render with `preserveAspectRatio="xMidYMid meet"` (letterbox, never stretch). `⇧` while dragging any resize handle constrains the selection's bounding box to its starting ratio. Imports record `naturalWidth`/`naturalHeight`; **Reset to original size** restores them.
+
+### Unchanged
+
+- Clipboard paste and drag-drop onto the canvas still insert an unlocked, cursor-centred image with no dialog.
+
 ## 0.3.0 — 2026-09-13
 
 Maintenance release. No new features; this cuts a versioned build that actually contains the 2026-04-18 afternoon fixes, which post-dated the 0.2.0 package.

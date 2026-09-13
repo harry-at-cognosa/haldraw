@@ -104,13 +104,14 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         style: string;
         content: string;
         group_id: string | null;
+        locked: number;
       }>;
 
     const idMap = new Map<string, string>();
     const groupIdMap = new Map<string, string>();
     const insertNode = db.prepare(`
-      INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, locked, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const n of nodeRows) {
       const nid = ulid();
@@ -136,6 +137,7 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         n.style,
         n.content,
         gid,
+        n.locked ?? 0,
         now,
         now
       );

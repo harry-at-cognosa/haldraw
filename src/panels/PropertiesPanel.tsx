@@ -20,6 +20,8 @@ import {
   AlignEndVertical,
   AlignHorizontalDistributeCenter,
   AlignVerticalDistributeCenter,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 const PALETTE = [
@@ -53,6 +55,7 @@ export default function PropertiesPanel() {
   const rememberNodeStyle = useCanvas((s) => s.rememberNodeStyle);
   const rememberEdgeAttrs = useCanvas((s) => s.rememberEdgeAttrs);
   const resetNodeStyle = useCanvas((s) => s.resetNodeStyle);
+  const setLocked = useCanvas((s) => s.setLocked);
 
   const selectedNodes = [...selection].map((id) => nodes[id]).filter(Boolean) as CanvasNode[];
   const selectedEdges = [...edgeSelection].map((id) => edges[id]).filter(Boolean) as CanvasEdge[];
@@ -282,6 +285,37 @@ export default function PropertiesPanel() {
                     />
                   </div>
                 ) : null}
+              </Section>
+            ) : null}
+            {selectedNodes.some((n) => n.type === 'image') ? (
+              <Section title="Image">
+                <button
+                  onClick={() => setLocked(selectedNodes.map((n) => n.id), true)}
+                  className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-fg hover:border-fg-muted text-sm inline-flex items-center justify-center gap-1.5"
+                  title="Reference layer: stays visible and exports, but no longer responds to clicks or drags. Unlock from the Board panel."
+                >
+                  <Lock size={14} /> Lock as reference
+                </button>
+                {selectedNodes.length === 1 &&
+                first?.content.naturalWidth &&
+                first?.content.naturalHeight ? (
+                  <button
+                    onClick={() => {
+                      updateNodes([first.id], (n) => {
+                        n.width = n.content.naturalWidth!;
+                        n.height = n.content.naturalHeight!;
+                      });
+                      commit();
+                    }}
+                    className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-fg hover:border-fg-muted text-sm"
+                    title="Restore the image's intrinsic pixel size, keeping the top-left corner in place"
+                  >
+                    Reset to original size ({first.content.naturalWidth} × {first.content.naturalHeight})
+                  </button>
+                ) : null}
+                <div className="text-xs text-fg-muted pt-1 leading-relaxed">
+                  Hold ⇧ while resizing to keep the aspect ratio.
+                </div>
               </Section>
             ) : null}
             <Section title="Link">
@@ -659,6 +693,13 @@ const BOARD_BG_PALETTE: Array<{ value: string; label: string }> = [
 function BoardPanel() {
   const board = useCanvas((s) => s.board);
   const setBoardBackground = useCanvas((s) => s.setBoardBackground);
+  const nodes = useCanvas((s) => s.nodes);
+  const setLocked = useCanvas((s) => s.setLocked);
+  const select = useCanvas((s) => s.select);
+  const deleteNodes = useCanvas((s) => s.deleteNodes);
+  const lockedNodes = Object.values(nodes)
+    .filter((n) => n.locked)
+    .sort((a, b) => a.zIndex - b.zIndex);
   const writeTimer = useRef<number | null>(null);
 
   const set = (color: string) => {
@@ -714,6 +755,45 @@ function BoardPanel() {
             Transparent exports always ignore it.
           </div>
         </div>
+        {lockedNodes.length > 0 ? (
+          <div className="space-y-2">
+            <div className="text-xs uppercase tracking-wider text-fg font-semibold">
+              Reference images
+            </div>
+            {lockedNodes.map((n) => (
+              <div
+                key={n.id}
+                className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
+              >
+                <Lock size={12} className="text-fg-muted shrink-0" />
+                <span className="flex-1 truncate text-xs text-fg" title={n.id}>
+                  {n.type === 'image' ? 'Image' : n.type}{' '}
+                  {Math.round(n.width)} × {Math.round(n.height)}
+                </span>
+                <button
+                  onClick={() => {
+                    setLocked([n.id], false);
+                    select([n.id]);
+                  }}
+                  title="Unlock and select"
+                  className="p-1 rounded hover:bg-panel-hover text-fg-muted hover:text-fg"
+                >
+                  <Unlock size={12} />
+                </button>
+                <button
+                  onClick={() => deleteNodes([n.id])}
+                  title="Remove"
+                  className="p-1 rounded hover:bg-panel-hover text-fg-muted hover:text-red-400"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+            <div className="text-xs text-fg-muted pt-1 leading-relaxed">
+              Locked images ignore clicks and drags so you can draw over them.
+            </div>
+          </div>
+        ) : null}
       </div>
     </aside>
   );

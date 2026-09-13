@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Board, CanvasEdge, CanvasNode, NodeStyle, Project } from '@shared/types';
+import type { Board, CanvasEdge, CanvasNode, NodeStyle, PickedImageFile, Project } from '@shared/types';
 import { DEFAULT_NODE_STYLE, useCanvas } from '@/store/canvasStore';
 import { combinedBbox, type Point } from '@/util/geometry';
 import { newId } from '@/util/id';
@@ -11,17 +11,28 @@ import Minimap from '@/panels/Minimap';
 import ShortcutHelp from '@/panels/ShortcutHelp';
 import { exportBoardPng, buildExportSvg } from '@/util/exportPng';
 import type { ExportFormat } from '@/panels/ExportMenu';
+import ImportImageModal from '@/panels/ImportImageModal';
+import {
+  DEFAULT_PLACEMENT,
+  decodeAndStore,
+  placeImage,
+  type DecodedImage,
+  type PlacementOptions,
+} from '@/util/importImage';
 
 export default function BoardEditor({
   project,
   board,
   onBack,
   openBoardById,
+  pendingImport,
 }: {
   project: Project;
   board: Board;
   onBack: () => void;
   openBoardById: (id: string) => Promise<boolean>;
+  /** Image chosen in the project picker ("New board from image"); placed once the board is ready. */
+  pendingImport?: PickedImageFile | null;
 }) {
   const [ready, setReady] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
@@ -31,6 +42,11 @@ export default function BoardEditor({
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const saveTimer = useRef<number | null>(null);
+  const [importState, setImportState] = useState<{
+    image: DecodedImage;
+    defaults: PlacementOptions;
+  } | null>(null);
+  const pendingConsumed = useRef(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -137,6 +153,51 @@ export default function BoardEditor({
   const onRequestImageFile = useCallback((file: File, cursor: Point) => {
     onRequestImagePaste(file, cursor);
   }, [onRequestImagePaste]);
+
+  /** Decode a picked file and open the placement dialog. */
+  const beginImport = useCallback(
+    async (picked: PickedImageFile, defaults: Partial<PlacementOptions> = {}) => {
+      try {
+        const image = await decodeAndStore(picked);
+        setImageUrls((m) => ({ ...m, [image.imageId]: image.dataUrl }));
+        setImportState({ image, defaults: { ...DEFAULT_PLACEMENT, ...defaults } });
+      } catch (err) {
+        setToast({ kind: 'err', text: `Import failed: ${(err as Error).message}` });
+      }
+    },
+    []
+  );
+
+  /** File ▸ Import Image… and the toolbar button: pick, then place at view centre. */
+  const importImageFromFile = useCallback(async () => {
+    const picked = await window.haldraw.images.pickFile();
+    if (!picked) return;
+    await beginImport(picked, { position: 'center' });
+  }, [beginImport]);
+
+  const onPlaceImport = useCallback(
+    (opts: PlacementOptions) => {
+      if (!importState) return;
+      placeImage(importState.image, opts);
+      setImportState(null);
+      setToast({ kind: 'ok', text: `Placed ${importState.image.name}` });
+    },
+    [importState]
+  );
+
+  // "New board from image": place once the board has loaded.
+  useEffect(() => {
+    if (!ready || !pendingImport || pendingConsumed.current) return;
+    pendingConsumed.current = true;
+    beginImport(pendingImport, { position: 'origin' });
+  }, [ready, pendingImport, beginImport]);
+
+  // Application menu → File ▸ Import Image…
+  useEffect(() => {
+    return window.haldraw.onMenu('menu:importImage', () => {
+      importImageFromFile();
+    });
+  }, [importImageFromFile]);
 
   const onOpenLink = useCallback(
     async (url: string) => {
@@ -272,7 +333,7 @@ export default function BoardEditor({
       }
       if (meta && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        store.select(Object.keys(store.nodes));
+        store.select(Object.values(store.nodes).filter((n) => !n.locked).map((n) => n.id));
         return;
       }
       if (meta && e.key.toLowerCase() === 'd') {
@@ -470,6 +531,7 @@ export default function BoardEditor({
         title={`${project.name} › ${board.name}`}
         onExport={onExport}
         onOpenIcons={() => setIconPickerOpen(true)}
+        onImportImage={importImageFromFile}
         onBack={onBack}
         onShortcuts={() => setShortcutsOpen(true)}
         theme={theme}
@@ -489,6 +551,12 @@ export default function BoardEditor({
       </div>
       <IconPicker open={iconPickerOpen} onClose={() => setIconPickerOpen(false)} onPick={onPickIcon} />
       <ShortcutHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <ImportImageModal
+        image={importState?.image ?? null}
+        defaults={importState?.defaults ?? DEFAULT_PLACEMENT}
+        onPlace={onPlaceImport}
+        onCancel={() => setImportState(null)}
+      />
       {toast ? (
         <div
           className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-panel text-sm border ${

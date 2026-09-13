@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   Keyboard,
+  ImagePlus,
 } from 'lucide-react';
 import { useCanvas, type Tool } from '@/store/canvasStore';
 import ExportMenu, { type ExportFormat } from './ExportMenu';
@@ -33,11 +34,13 @@ const TOOLS: ToolDef[] = [
   { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
   { id: 'connector', icon: Link2, label: 'Connector (snaps to shapes)', shortcut: 'C' },
   { id: 'icon', icon: Sparkles, label: 'Icon library', shortcut: 'I' },
+  { id: 'image', icon: ImagePlus, label: 'Import image file', shortcut: '⌘⇧I' },
 ];
 
 export default function Toolbar({
   onExport,
   onOpenIcons,
+  onImportImage,
   onBack,
   onShortcuts,
   theme,
@@ -46,6 +49,7 @@ export default function Toolbar({
 }: {
   onExport: (format: ExportFormat) => void;
   onOpenIcons: () => void;
+  onImportImage: () => void;
   onBack: () => void;
   onShortcuts: () => void;
   theme: 'dark' | 'light';
@@ -92,6 +96,18 @@ export default function Toolbar({
                 shortcut={t.shortcut}
                 active={false}
                 onClick={onOpenIcons}
+              />
+            );
+          }
+          if (t.id === 'image') {
+            return (
+              <ToolButton
+                key={t.id}
+                icon={t.icon}
+                label={t.label}
+                shortcut={t.shortcut}
+                active={false}
+                onClick={onImportImage}
               />
             );
           }

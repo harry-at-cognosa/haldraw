@@ -51,6 +51,8 @@ export default function ShortcutHelp({ open, onClose }: { open: boolean; onClose
       title: 'Other',
       items: [
         ['⌘V', 'Paste screenshot as image'],
+        ['⌘⇧I', 'Import image file (placement dialog)'],
+        ['⇧ + resize handle', 'Keep aspect ratio'],
         ['⌘E', 'Export PNG'],
         ['?', 'Show/hide this overlay'],
       ],

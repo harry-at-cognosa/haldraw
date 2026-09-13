@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import type { Board, Project } from '@shared/types';
-import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { Board, PickedImageFile, Project } from '@shared/types';
+import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2, ImagePlus } from 'lucide-react';
+import { fileToPicked } from '@/util/importImage';
 import PromptModal from './PromptModal';
 import { useDialogs } from '@/hooks/useDialogs';
 import { APP_VERSION } from '@/util/version';
@@ -8,12 +9,15 @@ import { APP_VERSION } from '@/util/version';
 export default function ProjectPicker({
   onOpen,
 }: {
-  onOpen: (project: Project, board: Board) => void;
+  onOpen: (project: Project, board: Board, pendingImport?: PickedImageFile | null) => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selected, setSelected] = useState<Project | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const { request, ask, confirm, onResolve } = useDialogs();
+  const [dragOver, setDragOver] = useState(false);
+  const selectedRef = useRef<Project | null>(null);
+  selectedRef.current = selected;
 
   const refreshProjects = async () => {
     const p = await window.haldraw.projects.list();
@@ -82,6 +86,53 @@ export default function ProjectPicker({
     if (!name) return;
     const b = await window.haldraw.boards.create(selected.id, name);
     setBoards([b, ...boards]);
+  };
+
+  /** Create a board named after the image and open it with the image pending placement. */
+  const createBoardFromPicked = async (picked: PickedImageFile) => {
+    const project = selectedRef.current;
+    if (!project) return;
+    const base = picked.name.replace(/\.[^.]+$/, '') || 'Untitled board';
+    const name = await ask({
+      kind: 'prompt',
+      title: 'New board from image',
+      placeholder: 'Board name',
+      initial: base,
+      confirmLabel: 'Create',
+    });
+    if (!name) return;
+    const b = await window.haldraw.boards.create(project.id, name);
+    onOpen(project, b, picked);
+  };
+
+  const createBoardFromImage = async () => {
+    if (!selectedRef.current) return;
+    const picked = await window.haldraw.images.pickFile();
+    if (!picked) return;
+    await createBoardFromPicked(picked);
+  };
+
+  // File ▸ Import Image… while the picker is showing
+  useEffect(() => {
+    return window.haldraw.onMenu('menu:importImage', () => {
+      createBoardFromImage();
+    });
+  }, []);
+
+  const onDragOver = (e: React.DragEvent) => {
+    if (!selected) return;
+    if (Array.from(e.dataTransfer.items).some((i) => i.kind === 'file')) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  };
+  const onDrop = async (e: React.DragEvent) => {
+    setDragOver(false);
+    if (!selected) return;
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
+    if (!file) return;
+    e.preventDefault();
+    await createBoardFromPicked(await fileToPicked(file));
   };
 
   const renameBoard = async (b: Board) => {
@@ -187,25 +238,42 @@ export default function ProjectPicker({
         >
           <div className="text-sm font-medium">{selected?.name ?? 'Select a project'}</div>
           {selected ? (
-            <button
-              onClick={createBoard}
-              className="px-3 h-8 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90"
-              style={{ WebkitAppRegion: 'no-drag' } as any}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Plus size={14} /> New board
-              </span>
-            </button>
+            <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as any}>
+              <button
+                onClick={createBoardFromImage}
+                className="px-3 h-8 rounded-md border border-border text-fg-muted hover:text-fg hover:border-fg-muted text-sm font-medium"
+                title="Create a board with an image placed as a locked reference layer (⌘⇧I)"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <ImagePlus size={14} /> From image…
+                </span>
+              </button>
+              <button
+                onClick={createBoard}
+                className="px-3 h-8 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Plus size={14} /> New board
+                </span>
+              </button>
+            </div>
           ) : null}
         </header>
-        <section className="flex-1 overflow-y-auto scrollbar-thin p-8">
+        <section
+          className={`flex-1 overflow-y-auto scrollbar-thin p-8 transition ${
+            dragOver ? 'ring-2 ring-inset ring-accent bg-accent-soft/30' : ''
+          }`}
+          onDragOver={onDragOver}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+        >
           {!selected ? (
             <div className="text-center text-fg-muted mt-24">
               Create a project on the left to begin.
             </div>
           ) : boards.length === 0 ? (
             <div className="text-center text-fg-muted mt-24">
-              No boards yet. Click "New board" to create one.
+              No boards yet. Click "New board", or drop an image here to trace over it.
             </div>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
