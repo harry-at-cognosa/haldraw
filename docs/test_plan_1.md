@@ -1,4 +1,4 @@
-# haldraw 0.5.0 — manual test scenarios
+# haldraw 0.5.0 — test plan 1: manual scenarios
 
 Seven scenarios, each exercising three to five features in sequence. Every key or click you need is written inline so the help overlay is not required. Estimated time: 30 to 40 minutes for all seven.
 
