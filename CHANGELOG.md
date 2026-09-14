@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.3 — 2026-09-13
+
+### Added
+
+- **Reference view toggles** in the Board panel (nothing selected, at least one locked image): **Normal**, **Hide refs** (check the drawing alone), **Refs only** (check the original alone; connectors hide too). Canvas-only and transient: not saved, resets to Normal on reopen, and exports always render the full board. Selection clears when switching away from Normal; ⌘A and marquee ignore hidden nodes.
+
 ## 0.6.2 — 2026-09-13
 
 ### Added

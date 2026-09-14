@@ -99,6 +99,7 @@ export default function Canvas({
   const gridSize = useCanvas((s) => s.gridSize);
   const background = useCanvas((s) => s.board?.background ?? '#ffffff');
   const dimReferences = useCanvas((s) => s.board?.dimReferences ?? false);
+  const refView = useCanvas((s) => s.refView);
 
   const clientToWorld = useCallback(
     (client: Point): Point => {
@@ -570,6 +571,7 @@ export default function Canvas({
       switch (interaction.kind) {
         case 'marquee': {
           const r = normalizeRect(interaction.start, interaction.current);
+          if (store.refView === 'only') break;
           const hit = Object.values(store.nodes).filter(
             (n) => !n.locked && rectsOverlap(r, { x: n.x, y: n.y, width: n.width, height: n.height })
           );
@@ -673,10 +675,14 @@ export default function Canvas({
   };
 
   const sortedNodes = useMemo(
-    () => Object.values(nodes).sort((a, b) => a.zIndex - b.zIndex),
-    [nodes]
+    () =>
+      Object.values(nodes)
+        .filter((n) => (refView === 'hidden' ? !n.locked : refView === 'only' ? n.locked : true))
+        .sort((a, b) => a.zIndex - b.zIndex),
+    [nodes, refView]
   );
-  const sortedEdges = useMemo(() => Object.values(edges), [edges]);
+  // Connectors belong to the drawing; "References only" hides them too.
+  const sortedEdges = useMemo(() => (refView === 'only' ? [] : Object.values(edges)), [edges, refView]);
   const selectedNodes = useMemo(
     () => [...selection].map((id) => nodes[id]).filter(Boolean),
     [nodes, selection]

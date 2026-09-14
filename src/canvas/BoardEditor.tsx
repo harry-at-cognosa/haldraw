@@ -273,6 +273,20 @@ export default function BoardEditor({
   };
 
   const onExport = async (format: ExportFormat) => {
+    // Reference view is a canvas aid only: export always sees the full board.
+    const savedView = useCanvas.getState().refView;
+    if (savedView !== 'normal') {
+      useCanvas.getState().setRefView('normal');
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+    try {
+      await exportWithFullView(format);
+    } finally {
+      if (savedView !== 'normal') useCanvas.getState().setRefView(savedView);
+    }
+  };
+
+  const exportWithFullView = async (format: ExportFormat) => {
     try {
       const state = useCanvas.getState();
       const nodes = Object.values(state.nodes);
@@ -370,7 +384,8 @@ export default function BoardEditor({
       }
       if (meta && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        store.select(Object.values(store.nodes).filter((n) => !n.locked).map((n) => n.id));
+        if (store.refView !== 'only')
+          store.select(Object.values(store.nodes).filter((n) => !n.locked).map((n) => n.id));
         return;
       }
       if (meta && e.key.toLowerCase() === 'd') {

@@ -845,6 +845,8 @@ function BoardPanel() {
   const board = useCanvas((s) => s.board);
   const setBoardBackground = useCanvas((s) => s.setBoardBackground);
   const setBoardDimReferences = useCanvas((s) => s.setBoardDimReferences);
+  const refView = useCanvas((s) => s.refView);
+  const setRefView = useCanvas((s) => s.setRefView);
   const nodes = useCanvas((s) => s.nodes);
   const setLocked = useCanvas((s) => s.setLocked);
   const select = useCanvas((s) => s.select);
@@ -941,6 +943,32 @@ function BoardPanel() {
                 </button>
               </div>
             ))}
+            <div className="grid grid-cols-3 gap-1 pt-1">
+              {(
+                [
+                  ['normal', 'Normal'],
+                  ['hidden', 'Hide refs'],
+                  ['only', 'Refs only'],
+                ] as Array<[typeof refView, string]>
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => setRefView(v)}
+                  className={`py-1.5 rounded text-xs ${
+                    refView === v ? 'bg-accent text-white' : 'border border-border text-fg-muted hover:bg-panel-hover'
+                  }`}
+                  title={
+                    v === 'normal'
+                      ? 'Show everything'
+                      : v === 'hidden'
+                        ? 'Hide locked reference images to check the drawing'
+                        : 'Show only locked reference images to check the original'
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <label className="flex items-center gap-2 pt-1 cursor-pointer">
               <input
                 type="checkbox"
@@ -953,8 +981,9 @@ function BoardPanel() {
               <span className="text-xs text-fg">Dim references on canvas</span>
             </label>
             <div className="text-xs text-fg-muted pt-1 leading-relaxed">
-              Locked images ignore clicks and drags so you can draw over them. Dimming is a
-              canvas aid only and is never included in exports.
+              Locked images ignore clicks and drags so you can draw over them. The view
+              buttons and dimming are canvas aids only: exports always include everything,
+              and the view resets to Normal when you reopen the board.
             </div>
           </div>
         ) : null}

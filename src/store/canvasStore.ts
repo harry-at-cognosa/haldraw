@@ -26,6 +26,9 @@ export type Tool =
   | 'image'
   | 'pan';
 
+/** Transient canvas-only view of locked reference nodes. Never persisted, never exported. */
+export type RefView = 'normal' | 'hidden' | 'only';
+
 export type SnapshotDelta = {
   upsertNodes: CanvasNode[];
   deleteNodeIds: string[];
@@ -58,6 +61,8 @@ interface CanvasState {
   gridSize: number;
   transientChange: boolean;
   editingNodeId: string | null;
+  refView: RefView;
+  setRefView: (v: RefView) => void;
   lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
   lastEdge: {
     style: EdgeStyle;
@@ -209,6 +214,14 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   gridSize: 10,
   transientChange: false,
   editingNodeId: null,
+  refView: 'normal',
+  setRefView: (v) =>
+    set((s) => ({
+      refView: v,
+      // Nodes hidden by the view must not stay selected.
+      selection: v === 'normal' ? s.selection : new Set<string>(),
+      edgeSelection: v === 'normal' ? s.edgeSelection : new Set<string>(),
+    })),
   lastNodeStyle: {},
   lastEdge: {
     style: { stroke: '#0b0d10', strokeWidth: 2, opacity: 1 },
@@ -240,6 +253,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       nodes,
       edges,
       viewport: s.board.viewport,
+      refView: 'normal',
       selection: new Set(),
       edgeSelection: new Set(),
       history: [],
