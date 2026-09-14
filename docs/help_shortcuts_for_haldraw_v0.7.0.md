@@ -61,6 +61,7 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | `⌘G` / `⌘⇧G` | Group / Ungroup |
 | `⌥`-click | Select single shape inside a group |
 | `⌘A` | Select all (skips locked reference images) |
+| `Tab` / `⇧Tab` | Select next / previous shape in stacking order (pans into view) |
 | `Delete` / `Backspace` | Delete selection |
 | Arrow keys (+ `Shift`) | Nudge 1 px (10 px) |
 | `Esc` | Deselect everything (shows the Board panel) |

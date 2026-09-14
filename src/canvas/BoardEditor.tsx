@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Board, CanvasEdge, CanvasNode, NodeStyle, PickedImageFile, Project } from '@shared/types';
-import { DEFAULT_NODE_STYLE, isNodeInteractive, isNodeVisible, useCanvas } from '@/store/canvasStore';
+import { DEFAULT_NODE_STYLE, isNodeInteractive, isNodeVisible, layerOrder, useCanvas } from '@/store/canvasStore';
 import { combinedBbox, type Point } from '@/util/geometry';
 import { newId } from '@/util/id';
 import Canvas from './Canvas';
@@ -410,6 +410,22 @@ export default function BoardEditor({
         }
       }
 
+      // Tab / ⇧Tab: step through selectable nodes in stacking order (layer, then z).
+      if (e.key === 'Tab' && !meta && !e.altKey) {
+        e.preventDefault();
+        const pos = new Map(layerOrder(store.layers).map((l, i) => [l.id, i]));
+        const order = Object.values(store.nodes)
+          .filter((n) => isNodeInteractive(store, n))
+          .sort((a, b) => (pos.get(a.layerId) ?? 0) - (pos.get(b.layerId) ?? 0) || a.zIndex - b.zIndex);
+        if (!order.length) return;
+        const currentId = [...store.selection].find((id) => order.some((n) => n.id === id));
+        let i = order.findIndex((n) => n.id === currentId);
+        i = e.shiftKey ? (i <= 0 ? order.length - 1 : i - 1) : i >= order.length - 1 ? 0 : i + 1;
+        const next = order[i];
+        store.select([next.id]);
+        ensureInView(next);
+        return;
+      }
       if (meta && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) store.redo();
@@ -671,6 +687,30 @@ export default function BoardEditor({
       ) : null}
     </div>
   );
+}
+
+/** Pan (without zooming) so the node is fully on screen, if it is not already. */
+function ensureInView(n: CanvasNode) {
+  const state = useCanvas.getState();
+  const vp = state.viewport;
+  const el = document.querySelector('svg.haldraw-canvas') as SVGSVGElement | null;
+  const cw = el?.clientWidth ?? 1000;
+  const ch = el?.clientHeight ?? 700;
+  const pad = 40;
+  const left = n.x * vp.zoom + vp.x;
+  const top = n.y * vp.zoom + vp.y;
+  const right = left + n.width * vp.zoom;
+  const bottom = top + n.height * vp.zoom;
+  let dx = 0;
+  let dy = 0;
+  if (left < pad) dx = pad - left;
+  else if (right > cw - pad) dx = cw - pad - right;
+  if (top < pad) dy = pad - top;
+  else if (bottom > ch - pad) dy = ch - pad - bottom;
+  // A node larger than the view: centre it instead of thrashing between edges.
+  if (right - left > cw - pad * 2) dx = cw / 2 - (left + right) / 2;
+  if (bottom - top > ch - pad * 2) dy = ch / 2 - (top + bottom) / 2;
+  if (dx || dy) state.setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom });
 }
 
 function isTyping(): boolean {

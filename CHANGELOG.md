@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.7.1 — 2026-09-14
+
+### Added
+
+- **Tab / ⇧Tab** step the selection through every selectable shape in stacking order (layer, then z-index), wrapping at the ends, and pan the view so the shape is on screen. Skips hidden and locked layers and locked shapes, like ⌘A. Handy for finding empty or near-invisible text boxes.
+
 ## 0.7.0 — 2026-09-14
 
 Object layers. Spec: [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md), "Round 3 — Object layers". Scenario tests: [docs/test_plan_2.md](./docs/test_plan_2.md).

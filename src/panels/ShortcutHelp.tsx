@@ -67,6 +67,7 @@ export default function ShortcutHelp({
         ['⌘G / ⌘⇧G', 'Group / Ungroup'],
         ['⌥-click', 'Select single shape inside a group'],
         ['⌘A', 'Select all'],
+        ['Tab / ⇧Tab', 'Select next / previous shape (pans into view)'],
         ['Delete / Backspace', 'Delete selection'],
         ['Arrow keys (+Shift)', 'Nudge 1px (10px)'],
       ],
