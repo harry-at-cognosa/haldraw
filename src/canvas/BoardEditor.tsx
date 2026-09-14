@@ -413,10 +413,7 @@ export default function BoardEditor({
       // Tab / ⇧Tab: step through selectable nodes in stacking order (layer, then z).
       if (e.key === 'Tab' && !meta && !e.altKey) {
         e.preventDefault();
-        const pos = new Map(layerOrder(store.layers).map((l, i) => [l.id, i]));
-        const order = Object.values(store.nodes)
-          .filter((n) => isNodeInteractive(store, n))
-          .sort((a, b) => (pos.get(a.layerId) ?? 0) - (pos.get(b.layerId) ?? 0) || a.zIndex - b.zIndex);
+        const order = selectableInStackingOrder();
         if (!order.length) return;
         const currentId = [...store.selection].find((id) => order.some((n) => n.id === id));
         let i = order.findIndex((n) => n.id === currentId);
@@ -534,8 +531,20 @@ export default function BoardEditor({
         const selEdges = [...store.edgeSelection];
         if (selNodes.length || selEdges.length) {
           e.preventDefault();
+          // Single node: hand the selection to the next shape in stacking order
+          // so a Tab / Delete sweep keeps its place. Multi-select: clear as before.
+          let successor: CanvasNode | null = null;
+          if (selNodes.length === 1 && !selEdges.length) {
+            const order = selectableInStackingOrder();
+            const i = order.findIndex((n) => n.id === selNodes[0]);
+            if (i >= 0 && order.length > 1) successor = order[(i + 1) % order.length];
+          }
           if (selNodes.length) store.deleteNodes(selNodes);
           if (selEdges.length) store.deleteEdges(selEdges);
+          if (successor && useCanvas.getState().nodes[successor.id]) {
+            useCanvas.getState().select([successor.id]);
+            ensureInView(successor);
+          }
         }
         return;
       }
@@ -687,6 +696,15 @@ export default function BoardEditor({
       ) : null}
     </div>
   );
+}
+
+/** Every node the pointer could select, bottom of the stack first (layer order, then z). */
+function selectableInStackingOrder(): CanvasNode[] {
+  const s = useCanvas.getState();
+  const pos = new Map(layerOrder(s.layers).map((l, i) => [l.id, i]));
+  return Object.values(s.nodes)
+    .filter((n) => isNodeInteractive(s, n))
+    .sort((a, b) => (pos.get(a.layerId) ?? 0) - (pos.get(b.layerId) ?? 0) || a.zIndex - b.zIndex);
 }
 
 /** Pan (without zooming) so the node is fully on screen, if it is not already. */

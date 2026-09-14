@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.7.2 — 2026-09-14
+
+### Changed
+
+- **Delete keeps its place.** Deleting a single selected shape selects the next shape in stacking order (wrapping), so a Tab / Delete sweep over stray boxes flows without restarting. Deleting a multi-selection or a connector still leaves nothing selected.
+
 ## 0.7.1 — 2026-09-14
 
 ### Added
