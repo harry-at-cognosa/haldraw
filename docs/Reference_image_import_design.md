@@ -105,6 +105,8 @@ Explicitly first-frame only. Document it in the placement dialog when the MIME i
 
 ### 8. Hide and exclude from export
 
+If Round 3 layers ship first, implement this as layer visibility only; see the layers spec below.
+
 - `CanvasNode.hidden: boolean` (new column). Hidden nodes do not render on the canvas, are skipped by hit-testing, and are excluded from both exporters and from `combinedBbox` so the export crop ignores them.
 - Board panel reference rows gain a **Hide** toggle. Export menu gains **Exclude reference images** (default on), which treats locked nodes as hidden for that export only.
 
@@ -117,6 +119,82 @@ Explicitly first-frame only. Document it in the placement dialog when the MIME i
 5. Hide a reference: gone from canvas, not selectable, absent from PNG and SVG export, export crop excludes it. Unhide restores it.
 6. Export with Exclude reference images on: locked nodes absent, crop excludes them. Off: present.
 7. Re-run the whole 0.4.0 checklist.
+
+## Round 3 — Object layers
+
+Added 2026-09-13 after discussing the stacking model. Independent of 0.5.0; roughly the size of 0.4.0. Target: 0.6.0.
+
+### Model
+
+haldraw today has one flat stack per board: every node carries a z-index, ties are allowed, and connectors always draw beneath nodes. Layers add a second, coarser level of ordering above that, following the object-layer convention of Inkscape, draw.io and OmniGraffle rather than the pixel-layer model of GIMP and Photoshop.
+
+- A **layer** is an ordered, named container of nodes within one board. Properties: name, order, visible, locked.
+- Every node belongs to exactly one layer. Within a layer, the existing z-index still orders nodes.
+- Render order is layer order first, then z-index. Connectors keep drawing beneath all nodes; a connector belongs to the layer of its `fromNode` (or the current layer when both ends are loose).
+- Exactly one layer per board is **current**. New nodes, pastes, duplicates and imports land in it.
+- Any node on a visible, unlocked layer is editable at any time. Selecting a node makes its layer current. There is no "must switch to layer N to edit layer N" mode; lock a layer to protect it.
+- The view is always top-down. "Only this layer" is a **solo** toggle that temporarily hides every other layer; it is not a separate view mode and is not persisted.
+- Every board has at least one layer. A new board gets one layer named "Layer 1". Deleting the last layer is refused; deleting a non-empty layer asks whether to delete its nodes or move them to the layer below.
+
+### Interaction with the 0.4.0 lock and the 0.5.0 hide
+
+- **New board from image** creates two layers: "Reference" (locked, holding the image) and "Drawing" (current, empty). Import into an existing board places the image on the current layer and offers a "Put on a new locked layer" checkbox, default on.
+- The node-level `locked` flag stays. Layer lock is the normal way to protect a reference; node lock remains for pinning a single shape on an otherwise editable layer. Hit-testing treats a node as locked when either its own flag or its layer's flag is set.
+- The 0.5.0 `hidden` flag and "exclude reference images from export" are subsumed: hidden layers are skipped by the canvas, hit-testing, `combinedBbox` and both exporters. If layers ship before 0.5.0 item 8, implement item 8 as layer visibility only and skip the per-node flag.
+
+### Data model
+
+```
+layers
+  id          TEXT PRIMARY KEY
+  board_id    TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE
+  name        TEXT NOT NULL
+  position    INTEGER NOT NULL          -- 0 = bottom
+  visible     INTEGER NOT NULL DEFAULT 1
+  locked      INTEGER NOT NULL DEFAULT 0
+  created_at, updated_at
+
+nodes.layer_id        TEXT REFERENCES layers(id)   -- migration: NULL
+boards.current_layer  TEXT                          -- migration: NULL
+```
+
+Migration on launch: for every board without layers, insert one layer "Layer 1" at position 0, set every node's `layer_id` to it, set `boards.current_layer`. This runs inside `migrate()` after `addColumnIfMissing`, wrapped in a transaction, and is idempotent.
+
+`BoardSnapshot` gains `layers: Layer[]`. The canvas store gains `layers`, `currentLayerId`, `soloLayerId` (transient), and actions: `addLayer`, `renameLayer`, `deleteLayer(id, mode: 'delete' | 'merge-down')`, `reorderLayer`, `setLayerVisible`, `setLayerLocked`, `setCurrentLayer`, `moveNodesToLayer(ids, layerId)`. Undo covers all of them except solo.
+
+While adding layers, renumber each layer's z-indices densely on load and make Bring forward / Send backward swap with the true neighbour instead of adding or subtracting one. This fixes the existing tie behaviour and keeps ordering deterministic.
+
+### UI
+
+- **Board panel ▸ Layers** (shown when nothing is selected, above Reference images, which this section replaces). One row per layer, top of stack first: eye toggle, padlock toggle, name (double-click to rename), node count. Current layer highlighted. Drag rows to reorder. Buttons: add, duplicate, delete, solo. Right-click row: merge down, select all on layer.
+- **Toolbar breadcrumb** shows the current layer after the board name: `Project › Board · Layer 2`. Clicking it opens a small dropdown to switch.
+- **Properties panel ▸ Layer section** (existing) gains a **Move to layer** dropdown when nodes are selected, alongside the existing z-order buttons.
+- Shortcuts: `⌘⇧L` new layer; `⌘⌥]` / `⌘⌥[` move selection up / down one layer. Existing `⌘]` / `⌘[` stay within-layer.
+- Selecting a node on a non-current layer switches the current layer and flashes the row briefly, so the user sees where they are.
+
+### Export
+
+- PNG and SVG skip hidden layers and, when solo is active, everything but the solo layer. `combinedBbox` follows the same filter so the crop is right.
+- Export menu gains a **Layers…** sub-choice: all visible (default) or pick a subset, for producing per-layer overlays from one board.
+
+### Regression checklist
+
+1. **Migration.** Launch over a 0.4.x database. Every board opens with one "Layer 1" holding all its nodes; boards list the layer as current; nothing moved or reordered.
+2. **New board.** Has "Layer 1", current. New board from image has "Reference" (locked, image) and "Drawing" (current, empty).
+3. **Draw into current.** Draw a rectangle: it lands on the current layer. Switch layers, draw again: lands on the new one. Paste and ⌘D land on the current layer.
+4. **Auto-switch on select.** With Layer 2 current, click a node on Layer 1: Layer 1 becomes current and the row flashes.
+5. **Visibility.** Hide Layer 1: its nodes disappear, cannot be selected or marquee'd, ⌘A skips them, connectors to them vanish. Show: everything returns.
+6. **Lock.** Lock Layer 1: nodes still render, cannot be selected or dragged, connector tool does not snap to them. Node-level lock on an unlocked layer behaves as in 0.4.0.
+7. **Solo.** Solo Layer 2: only Layer 2 visible. Toggle off: previous visibility restored. Solo is not saved; relaunch shows all.
+8. **Reorder.** Drag Layer 1 above Layer 2: Layer 1's nodes now draw on top regardless of z-index. Undo restores.
+9. **Move nodes.** Select two nodes, Move to layer → Layer 2: they render in Layer 2's position and keep their relative order. ⌘⌥] / ⌘⌥[ move them one layer at a time.
+10. **Delete layer.** Non-empty: dialog offers delete nodes or merge down; both work; undo restores. Last layer: refused with a message.
+11. **Rename.** Double-click, rename, persists after relaunch.
+12. **Within-layer order.** Bring forward on a node with a neighbour two z-steps above now moves it visibly above that neighbour. Ties no longer occur after load.
+13. **Export.** Hidden layers absent from PNG and SVG; crop ignores them. Solo export contains only the solo layer. Layers… subset export contains exactly the chosen layers.
+14. **Duplicate board.** Copies layers, order, visibility, lock, and current layer, with node membership intact.
+15. **Persistence.** Everything above survives quit and relaunch.
+16. **Re-run the 0.4.0 checklist** with all nodes on one layer; behaviour must be unchanged.
 
 ## Explicitly out of scope
 

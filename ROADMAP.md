@@ -18,6 +18,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 
 ## Round 3 (heavier features; think about the use cases)
 
+- **Object layers.** Named, ordered layers per board with visibility, lock, solo and a current layer that new shapes land in; Inkscape / draw.io convention, not pixel layers. Subsumes per-node hide and export exclusion. Full spec and checklist: [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md), "Round 3 — Object layers".
 - **Templates / stencils.** A starter library: flowchart, DFD (L0/L1/L2 scaffolds), ERD, system architecture, sequence diagram. Insert a pre-populated group of shapes.
 - **Presentation mode.** Hide chrome, framed "slides" defined by rectangles, step through with arrow keys. Good for walking someone through a DFD hierarchy.
 - **Markdown inside text shapes.** Bold / italic / bullets without leaving the diagram.
