@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.6 — 2026-09-13
+
+### Changed
+
+- **PNG and SVG export exclude locked reference images by default.** The Export menu gains an **Include reference images** checkbox (shown when the board has any locked image; session-only, default off). The export crop follows: with references excluded, the boundary is the drawing's bounding box plus margin. The `.haldraw` file always contains everything. The Normal / Hide refs / Refs only view buttons still never affect export.
+
 ## 0.6.5 — 2026-09-13
 
 ### Added

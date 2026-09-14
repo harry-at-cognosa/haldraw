@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, ChevronDown } from 'lucide-react';
+import { useCanvas } from '@/store/canvasStore';
 
 export type ExportFormat = 'png-transparent' | 'png-solid' | 'svg' | 'haldraw';
 
@@ -17,6 +18,9 @@ const OPTIONS: Array<{ id: ExportFormat; label: string; hint: string }> = [
 export default function ExportMenu({ onExport }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const includeRefs = useCanvas((s) => s.exportIncludeRefs);
+  const setIncludeRefs = useCanvas((s) => s.setExportIncludeRefs);
+  const hasRefs = useCanvas((s) => Object.values(s.nodes).some((n) => n.locked));
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -46,6 +50,25 @@ export default function ExportMenu({ onExport }: Props) {
       </button>
       {open ? (
         <div className="absolute right-0 top-10 w-64 rounded-lg bg-panel border border-border shadow-panel overflow-hidden z-30">
+          {hasRefs ? (
+            <label
+              className="flex items-start gap-2 px-3 py-2 border-b border-border cursor-pointer hover:bg-panel-hover"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={includeRefs}
+                onChange={(e) => setIncludeRefs(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="text-sm text-fg">Include reference images</span>
+                <span className="block text-xs text-fg-muted">
+                  Off: PNG and SVG contain only the drawing. The .haldraw file always keeps everything.
+                </span>
+              </span>
+            </label>
+          ) : null}
           {OPTIONS.map((o) => (
             <button
               key={o.id}

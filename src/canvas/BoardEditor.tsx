@@ -273,33 +273,44 @@ export default function BoardEditor({
   };
 
   const onExport = async (format: ExportFormat) => {
-    // Reference view is a canvas aid only: export always sees the full board.
-    const savedView = useCanvas.getState().refView;
-    if (savedView !== 'normal') {
-      useCanvas.getState().setRefView('normal');
+    // The view buttons are a canvas aid only. For the capture we force the view
+    // that matches the export setting: everything, or everything but locked
+    // reference images (Export menu ▸ Include reference images, session-only).
+    const store = useCanvas.getState();
+    const savedView = store.refView;
+    const includeRefs = format === 'haldraw' || store.exportIncludeRefs;
+    const captureView = includeRefs ? 'normal' : 'hidden';
+    if (savedView !== captureView) {
+      store.setRefView(captureView);
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     }
     try {
-      await exportWithFullView(format);
+      await exportWithView(format, includeRefs);
     } finally {
-      if (savedView !== 'normal') useCanvas.getState().setRefView(savedView);
+      if (savedView !== captureView) useCanvas.getState().setRefView(savedView);
     }
   };
 
-  const exportWithFullView = async (format: ExportFormat) => {
+  const exportWithView = async (format: ExportFormat, includeRefs: boolean) => {
     try {
       const state = useCanvas.getState();
-      const nodes = Object.values(state.nodes);
+      const allNodes = Object.values(state.nodes);
+      const nodes = includeRefs ? allNodes : allNodes.filter((n) => !n.locked);
       const edges = Object.values(state.edges);
       if (!nodes.length && format !== 'haldraw') {
-        setToast({ kind: 'err', text: 'Nothing on the canvas to export.' });
+        setToast({
+          kind: 'err',
+          text: allNodes.length
+            ? 'Only reference images on the board. Tick "Include reference images" in the Export menu.'
+            : 'Nothing on the canvas to export.',
+        });
         return;
       }
       const safeName = board.name.replace(/[^a-z0-9-_]+/gi, '_');
       if (format === 'haldraw') {
         await flushSave();
         const liveBoard = useCanvas.getState().board ?? board;
-        const file = await buildBoardFile(liveBoard, nodes, edges);
+        const file = await buildBoardFile(liveBoard, allNodes, edges);
         const res = await window.haldraw.files.saveText({
           defaultName: `${safeName}.haldraw`,
           text: serializeBoardFile(file),

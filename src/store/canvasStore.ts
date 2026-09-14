@@ -63,6 +63,9 @@ interface CanvasState {
   editingNodeId: string | null;
   refView: RefView;
   setRefView: (v: RefView) => void;
+  /** Session-only: include locked reference images in PNG/SVG export. Default off. */
+  exportIncludeRefs: boolean;
+  setExportIncludeRefs: (v: boolean) => void;
   lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
   lastEdge: {
     style: EdgeStyle;
@@ -214,6 +217,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   gridSize: 10,
   transientChange: false,
   editingNodeId: null,
+  exportIncludeRefs: false,
+  setExportIncludeRefs: (v) => set({ exportIncludeRefs: v }),
   refView: 'normal',
   setRefView: (v) =>
     set((s) => ({
