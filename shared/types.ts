@@ -95,6 +95,8 @@ export interface Board {
   name: string;
   viewport: Viewport;
   background: string;
+  /** Render locked (reference) nodes at reduced opacity on the canvas. Never baked into exports. */
+  dimReferences: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -144,6 +146,7 @@ export interface HaldrawApi {
     load: (id: string) => Promise<BoardSnapshot>;
     setViewport: (id: string, viewport: Viewport) => Promise<void>;
     setBackground: (id: string, background: string) => Promise<void>;
+    setDimReferences: (id: string, dim: boolean) => Promise<void>;
   };
   nodes: {
     upsertMany: (boardId: string, nodes: CanvasNode[]) => Promise<void>;

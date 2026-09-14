@@ -127,6 +127,14 @@ export function buildExportSvg(opts: {
 
   replaceForeignObjects(clone, nodes);
 
+  // Board-level "dim references" is a canvas aid only: restore each dimmed
+  // node's stored opacity so exports never bake the dimming in.
+  clone.querySelectorAll('[data-base-opacity]').forEach((g) => {
+    const base = g.getAttribute('data-base-opacity');
+    g.querySelectorAll('[opacity]').forEach((el) => el.setAttribute('opacity', base ?? '1'));
+    g.removeAttribute('data-base-opacity');
+  });
+
   // Resolve CSS variables to concrete values so the file renders stand-alone.
   const cs = getComputedStyle(document.documentElement);
   const resolve = (v: string) => v.replace(/var\(--([a-z-]+)\)/g, (_m, name) => cs.getPropertyValue(`--${name}`).trim() || '#000');

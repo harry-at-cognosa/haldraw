@@ -289,6 +289,14 @@ export default function PropertiesPanel() {
             ) : null}
             {selectedNodes.some((n) => n.type === 'image') ? (
               <Section title="Image">
+                <SliderRow
+                  label="Opacity"
+                  min={5}
+                  max={100}
+                  step={5}
+                  value={Math.round((first?.style.opacity ?? 1) * 100)}
+                  onChange={(v) => patch({ opacity: v / 100 })}
+                />
                 <button
                   onClick={() => setLocked(selectedNodes.map((n) => n.id), true)}
                   className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-fg hover:border-fg-muted text-sm inline-flex items-center justify-center gap-1.5"
@@ -693,6 +701,7 @@ const BOARD_BG_PALETTE: Array<{ value: string; label: string }> = [
 function BoardPanel() {
   const board = useCanvas((s) => s.board);
   const setBoardBackground = useCanvas((s) => s.setBoardBackground);
+  const setBoardDimReferences = useCanvas((s) => s.setBoardDimReferences);
   const nodes = useCanvas((s) => s.nodes);
   const setLocked = useCanvas((s) => s.setLocked);
   const select = useCanvas((s) => s.select);
@@ -789,8 +798,20 @@ function BoardPanel() {
                 </button>
               </div>
             ))}
+            <label className="flex items-center gap-2 pt-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={board.dimReferences}
+                onChange={(e) => {
+                  setBoardDimReferences(e.target.checked);
+                  window.haldraw.boards.setDimReferences(board.id, e.target.checked);
+                }}
+              />
+              <span className="text-xs text-fg">Dim references on canvas</span>
+            </label>
             <div className="text-xs text-fg-muted pt-1 leading-relaxed">
-              Locked images ignore clicks and drags so you can draw over them.
+              Locked images ignore clicks and drags so you can draw over them. Dimming is a
+              canvas aid only and is never included in exports.
             </div>
           </div>
         ) : null}

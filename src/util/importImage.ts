@@ -37,17 +37,33 @@ export async function fileToPicked(file: File): Promise<PickedImageFile> {
   return { name: file.name, mime: file.type, bytes: await file.arrayBuffer() };
 }
 
+/** Rasters whose long side exceeds this are downsampled before storage. Vector (SVG) is never touched. */
+export const MAX_STORED_SIDE = 4096;
+
 /** Decode dimensions, store the bytes, and return everything the placement dialog needs. */
 export async function decodeAndStore(picked: PickedImageFile): Promise<DecodedImage> {
-  const blob = new Blob([picked.bytes], { type: picked.mime });
-  const { width, height } = await blobDimensions(blob);
+  const original = new Blob([picked.bytes], { type: picked.mime });
+  const { width, height } = await blobDimensions(original);
+  let stored = original;
+  let storedMime = picked.mime;
+  let storedW = width;
+  let storedH = height;
+  const longSide = Math.max(width, height);
+  if (picked.mime !== 'image/svg+xml' && longSide > MAX_STORED_SIDE) {
+    const scale = MAX_STORED_SIDE / longSide;
+    storedW = Math.round(width * scale);
+    storedH = Math.round(height * scale);
+    // JPEG stays JPEG; everything else becomes PNG (drops GIF animation, which we never play anyway).
+    storedMime = picked.mime === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+    stored = await downsample(original, storedW, storedH, storedMime);
+  }
   const imageId = await window.haldraw.images.store({
-    mime: picked.mime,
-    bytes: picked.bytes,
-    width,
-    height,
+    mime: storedMime,
+    bytes: await stored.arrayBuffer(),
+    width: storedW,
+    height: storedH,
   });
-  const dataUrl = await blobToDataUrl(blob);
+  const dataUrl = await blobToDataUrl(stored);
   return {
     name: picked.name,
     mime: picked.mime,
@@ -127,6 +143,23 @@ export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function downsample(blob: Blob, w: number, h: number, mime: string): Promise<Blob> {
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('downsample failed'))), mime, 0.92)
+    );
+  } finally {
+    bitmap.close();
+  }
 }
 
 async function blobDimensions(blob: Blob): Promise<{ width: number; height: number }> {

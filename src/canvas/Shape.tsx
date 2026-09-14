@@ -11,6 +11,8 @@ type Props = {
   editing: boolean;
   onFinishEdit: (text: string) => void;
   imageUrl?: string;
+  /** Board-level dimming of locked reference nodes (canvas only; exporter restores base opacity). */
+  dimmed?: boolean;
 };
 
 function ShapeInner({
@@ -21,6 +23,7 @@ function ShapeInner({
   editing,
   onFinishEdit,
   imageUrl,
+  dimmed,
 }: Props) {
   const centerX = node.x + node.width / 2;
   const centerY = node.y + node.height / 2;
@@ -32,7 +35,8 @@ function ShapeInner({
   const fill = style.fill ?? '#1f2937';
   const stroke = style.stroke ?? '#e6e8eb';
   const strokeWidth = style.strokeWidth ?? 2;
-  const opacity = style.opacity ?? 1;
+  const baseOpacity = style.opacity ?? 1;
+  const opacity = dimmed ? baseOpacity * 0.35 : baseOpacity;
 
   const commonPointer = (e: React.PointerEvent) => onPointerDown(e, node);
 
@@ -165,6 +169,7 @@ function ShapeInner({
     <g
       data-node-id={node.id}
       data-node-type={node.type}
+      data-base-opacity={dimmed ? baseOpacity : undefined}
       onPointerDown={commonPointer}
       onDoubleClick={() => onDoubleClick(node)}
       style={{ cursor: node.locked ? 'default' : 'move' }}

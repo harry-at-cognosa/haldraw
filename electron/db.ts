@@ -92,6 +92,7 @@ function migrate(db: Database.Database) {
   addColumnIfMissing(db, 'edges', 'midpoint', `TEXT`);
   addColumnIfMissing(db, 'edges', 'label_point', `TEXT`);
   addColumnIfMissing(db, 'nodes', 'locked', `INTEGER NOT NULL DEFAULT 0`);
+  addColumnIfMissing(db, 'boards', 'dim_references', `INTEGER NOT NULL DEFAULT 0`);
 }
 
 function addColumnIfMissing(

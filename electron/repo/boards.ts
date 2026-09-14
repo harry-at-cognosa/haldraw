@@ -10,6 +10,7 @@ type BoardRow = {
   name: string;
   viewport: string;
   background: string | null;
+  dim_references: number | null;
   created_at: number;
   updated_at: number;
 };
@@ -21,6 +22,7 @@ function toBoard(row: BoardRow): Board {
     name: row.name,
     viewport: JSON.parse(row.viewport) as Viewport,
     background: row.background ?? '#ffffff',
+    dimReferences: row.dim_references === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -46,6 +48,7 @@ export function createBoard(projectId: string, name: string): Board {
     name,
     viewport: { x: 0, y: 0, zoom: 1 },
     background: '#ffffff',
+    dimReferences: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -73,6 +76,12 @@ export function setBoardViewport(id: string, viewport: Viewport): void {
     .run(JSON.stringify(viewport), Date.now(), id);
 }
 
+export function setBoardDimReferences(id: string, dim: boolean): void {
+  getDb()
+    .prepare('UPDATE boards SET dim_references = ?, updated_at = ? WHERE id = ?')
+    .run(dim ? 1 : 0, Date.now(), id);
+}
+
 export function setBoardBackground(id: string, background: string): void {
   getDb()
     .prepare('UPDATE boards SET background = ?, updated_at = ? WHERE id = ?')
@@ -87,8 +96,8 @@ export function duplicateBoard(id: string, newName: string): Board | null {
   const newId = ulid();
   const tx = db.transaction(() => {
     db.prepare(
-      'INSERT INTO boards (id, project_id, name, viewport, background, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(newId, source.projectId, newName, JSON.stringify(source.viewport), source.background, now, now);
+      'INSERT INTO boards (id, project_id, name, viewport, background, dim_references, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(newId, source.projectId, newName, JSON.stringify(source.viewport), source.background, source.dimReferences ? 1 : 0, now, now);
 
     const nodeRows = db
       .prepare('SELECT * FROM nodes WHERE board_id = ?')

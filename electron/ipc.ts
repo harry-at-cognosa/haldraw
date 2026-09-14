@@ -42,6 +42,9 @@ export function registerIpcHandlers() {
   ipcMain.handle('boards:setViewport', (_e, id: string, viewport: Viewport) =>
     boardsRepo.setBoardViewport(id, viewport)
   );
+  ipcMain.handle('boards:setDimReferences', (_e, id: string, dim: boolean) =>
+    boardsRepo.setBoardDimReferences(id, dim)
+  );
   ipcMain.handle('boards:setBackground', (_e, id: string, background: string) =>
     boardsRepo.setBoardBackground(id, background)
   );

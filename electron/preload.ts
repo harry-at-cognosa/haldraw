@@ -17,6 +17,7 @@ const api: HaldrawApi = {
     load: (id) => ipcRenderer.invoke('boards:load', id),
     setViewport: (id, viewport) => ipcRenderer.invoke('boards:setViewport', id, viewport),
     setBackground: (id, background) => ipcRenderer.invoke('boards:setBackground', id, background),
+    setDimReferences: (id, dim) => ipcRenderer.invoke('boards:setDimReferences', id, dim),
   },
   nodes: {
     upsertMany: (boardId, nodes) => ipcRenderer.invoke('nodes:upsertMany', boardId, nodes),

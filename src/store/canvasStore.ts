@@ -70,6 +70,7 @@ interface CanvasState {
   hydrate: (s: BoardSnapshot) => void;
   clear: () => void;
   setBoardBackground: (bg: string) => void;
+  setBoardDimReferences: (dim: boolean) => void;
   setTool: (t: Tool) => void;
   setViewport: (v: Viewport) => void;
   panBy: (dx: number, dy: number) => void;
@@ -132,6 +133,53 @@ function maxZIndex(nodes: Record<string, CanvasNode>): number {
   return m;
 }
 
+/**
+ * Move each selected node one step in the stack by swapping z with the nearest
+ * unselected neighbour in that direction. Selected nodes are processed from the
+ * leading edge so a contiguous selection moves as a block.
+ */
+function swapWithNeighbour(
+  get: () => CanvasState,
+  set: (partial: Partial<CanvasState> | ((s: CanvasState) => Partial<CanvasState>)) => void,
+  ids: string[],
+  dir: 'up' | 'down'
+) {
+  const prev = snapshot(get());
+  set((s) => {
+    const nodes = { ...s.nodes };
+    const dirty = new Set(s.dirtyNodeIds);
+    const selected = new Set(ids.filter((id) => nodes[id]));
+    if (!selected.size) return {};
+    const order = Object.values(nodes).sort((a, b) => a.zIndex - b.zIndex);
+    const idx = new Map(order.map((n, i) => [n.id, i]));
+    const moving = [...selected].sort((a, b) =>
+      dir === 'up' ? idx.get(b)! - idx.get(a)! : idx.get(a)! - idx.get(b)!
+    );
+    const now = Date.now();
+    for (const id of moving) {
+      const i = order.findIndex((n) => n.id === id);
+      const j = dir === 'up' ? i + 1 : i - 1;
+      if (j < 0 || j >= order.length) continue;
+      const other = order[j];
+      if (selected.has(other.id)) continue;
+      const a = nodes[id];
+      const b = nodes[other.id];
+      nodes[id] = { ...a, zIndex: b.zIndex, updatedAt: now };
+      nodes[other.id] = { ...b, zIndex: a.zIndex, updatedAt: now };
+      dirty.add(id);
+      dirty.add(other.id);
+      order[i] = nodes[other.id];
+      order[j] = nodes[id];
+    }
+    return {
+      nodes,
+      dirtyNodeIds: dirty,
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    };
+  });
+}
+
 function minZIndex(nodes: Record<string, CanvasNode>): number {
   let m = Infinity;
   for (const n of Object.values(nodes)) if (n.zIndex < m) m = n.zIndex;
@@ -172,7 +220,19 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   hydrate: (s) => {
     const nodes: Record<string, CanvasNode> = {};
     const edges: Record<string, CanvasEdge> = {};
-    for (const n of s.nodes) nodes[n.id] = n;
+    // Renumber z-indices densely (0..n-1) in current visual order so that
+    // Bring forward / Send backward can swap with a true neighbour and ties
+    // never survive a load. Only nodes whose value changes are marked dirty.
+    const ordered = [...s.nodes].sort((a, b) => a.zIndex - b.zIndex || a.createdAt - b.createdAt);
+    const dirty = new Set<string>();
+    ordered.forEach((n, i) => {
+      if (n.zIndex !== i) {
+        nodes[n.id] = { ...n, zIndex: i };
+        dirty.add(n.id);
+      } else {
+        nodes[n.id] = n;
+      }
+    });
     for (const e of s.edges) edges[e.id] = e;
     set({
       boardId: s.board.id,
@@ -184,11 +244,15 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       edgeSelection: new Set(),
       history: [],
       future: [],
-      dirtyNodeIds: new Set(),
+      dirtyNodeIds: dirty,
       dirtyEdgeIds: new Set(),
       deletedNodeIds: new Set(),
       deletedEdgeIds: new Set(),
     });
+  },
+
+  setBoardDimReferences: (dim) => {
+    set((s) => (s.board ? { board: { ...s.board, dimReferences: dim } } : {}));
   },
 
   setBoardBackground: (bg: string) => {
@@ -508,42 +572,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       };
     });
   },
-  bringForward: (ids) => {
-    const prev = snapshot(get());
-    set((s) => {
-      const nodes = { ...s.nodes };
-      const dirty = new Set(s.dirtyNodeIds);
-      for (const id of ids) {
-        if (!nodes[id]) continue;
-        nodes[id] = { ...nodes[id], zIndex: nodes[id].zIndex + 1, updatedAt: Date.now() };
-        dirty.add(id);
-      }
-      return {
-        nodes,
-        dirtyNodeIds: dirty,
-        history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
-        future: [],
-      };
-    });
-  },
-  sendBackward: (ids) => {
-    const prev = snapshot(get());
-    set((s) => {
-      const nodes = { ...s.nodes };
-      const dirty = new Set(s.dirtyNodeIds);
-      for (const id of ids) {
-        if (!nodes[id]) continue;
-        nodes[id] = { ...nodes[id], zIndex: nodes[id].zIndex - 1, updatedAt: Date.now() };
-        dirty.add(id);
-      }
-      return {
-        nodes,
-        dirtyNodeIds: dirty,
-        history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
-        future: [],
-      };
-    });
-  },
+  bringForward: (ids) => swapWithNeighbour(get, set, ids, 'up'),
+  sendBackward: (ids) => swapWithNeighbour(get, set, ids, 'down'),
 
   toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
   toggleSnap: () => set((s) => ({ snapToGrid: !s.snapToGrid })),

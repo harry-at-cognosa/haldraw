@@ -2,6 +2,21 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.5.0 — 2026-09-13
+
+Reference-image polish (design doc items 5–7) plus a stacking-order fix. Item 8 (hide / exclude from export) is deferred to the object-layers release, where it becomes layer visibility.
+
+### Added
+
+- **Opacity slider** in the Image section of the properties panel.
+- **Dim references on canvas.** Board panel checkbox renders every locked node at 35 % of its own opacity. Stored per board (`boards.dim_references`, migrated on launch). Canvas aid only: the exporters restore each node's stored opacity, so PNG and SVG output never include the dimming.
+- **Large-image downsampling.** Rasters whose long side exceeds 4096 px are resampled to that size before storage (JPEG stays JPEG, everything else becomes PNG). Placement still uses the original pixel dimensions, so "Original (100 %)" is unchanged. SVG is never touched.
+- GIF imports were already first-frame only; the placement dialog has said so since 0.4.0.
+
+### Fixed
+
+- **Bring forward / Send backward** now swap with the true neighbour in the stack instead of adding or subtracting one, so a single click always produces a visible change. Z-indices are renumbered densely on load and ties no longer survive a reload. Groundwork for object layers.
+
 ## 0.4.1 — 2026-09-13
 
 First-run fixes found while testing 0.4.0 on an empty database.

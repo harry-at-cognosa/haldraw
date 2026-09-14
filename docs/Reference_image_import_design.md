@@ -87,38 +87,39 @@ Setup: a PNG about 1600×900, a small GIF, an SVG.
 15. **Paste and canvas drop unchanged.** ⌘V a screenshot and drop a file onto the canvas: both still insert an unlocked, cursor-centred image with no dialog.
 16. **Existing shortcuts unchanged.** ⌘Z, ⌘C, ⌘V, ⌘A, ⌘0, ⌘1, ⌘D still behave as before (menu change).
 
-## Release 0.5.0 — polish for real tracing sessions (items 5–8)
+## Release 0.5.0 — polish for real tracing sessions (items 5–7) — shipped 2026-09-13
+
+Scope changed from the original plan: item 8 (hide / exclude from export) is deferred to the object-layers release, where it becomes layer visibility and no per-node flag is needed. The dense z-index fix originally listed under layers was pulled forward because it is small and independent.
 
 ### 5. Opacity and dimming
 
-- Expose an **Opacity** slider in the Image section (`style.opacity`, already rendered).
-- Board panel **Dim references** toggle: renders every locked node at 40 % without changing stored opacity. Stored as board-level flag (`boards.dim_references`), so it persists per board and is skipped by export unless the user chooses.
+- **Opacity** slider in the Image section (`style.opacity`, already rendered).
+- Board panel **Dim references on canvas** checkbox: renders every locked node at 35 % of its own opacity without changing stored opacity. Persisted per board as `boards.dim_references`. Canvas aid only: the shape emits `data-base-opacity`, and both exporters restore it, so dimming is never baked into output. (Simplified from the original "unless the user chooses"; nobody wants a dimmed export.)
 
 ### 6. Large images
 
-- Downsample on import when the long side exceeds 4096 px, using an offscreen canvas; keep the original pixel size in `naturalWidth/Height` so the placement math is unchanged.
-- Note the storage cost: bytes are stored raw in SQLite but shipped to the renderer as base64 data URLs, a 33 % inflation per load. If this becomes a problem, switch `images.get` to return a `file://` path under Application Support instead.
+- Import downsamples rasters whose long side exceeds 4096 px, via an offscreen canvas. JPEG stays JPEG at quality 0.92; everything else is stored as PNG. `naturalWidth/Height` keep the original pixel size so placement math is unchanged and "Original (100 %)" still maps canvas units to source pixels. SVG is never resampled.
+- Storage note stands: bytes are raw in SQLite but reach the renderer as base64 data URLs, a 33 % inflation per load. If it bites, return a `file://` path from `images.get` instead.
 
 ### 7. Animated GIF
 
-Explicitly first-frame only. Document it in the placement dialog when the MIME is `image/gif`. Frame selection via `ImageDecoder` is out of scope.
+First frame only; the placement dialog says so for `image/gif` (in place since 0.4.0). Frame selection via `ImageDecoder` remains out of scope.
 
-### 8. Hide and exclude from export
+### Stacking-order fix (pulled forward from layers)
 
-If Round 3 layers ship first, implement this as layer visibility only; see the layers spec below.
-
-- `CanvasNode.hidden: boolean` (new column). Hidden nodes do not render on the canvas, are skipped by hit-testing, and are excluded from both exporters and from `combinedBbox` so the export crop ignores them.
-- Board panel reference rows gain a **Hide** toggle. Export menu gains **Exclude reference images** (default on), which treats locked nodes as hidden for that export only.
+- `hydrate` renumbers z-indices densely (0..n-1) in current visual order, marking only changed nodes dirty.
+- Bring forward / Send backward swap with the nearest unselected neighbour; a contiguous selection moves as a block. Bring to front / Send to back unchanged.
 
 ### 0.5.0 regression checklist
 
-1. Opacity slider changes an image live and persists.
-2. Dim references dims every locked node, persists per board, does not alter stored opacity, and is not baked into export unless chosen.
-3. Import a 6000 px wide PNG: stored image is at most 4096 px on the long side, placement at 100 % still uses the original pixel dimensions.
-4. Import a GIF: dialog notes first-frame only.
-5. Hide a reference: gone from canvas, not selectable, absent from PNG and SVG export, export crop excludes it. Unhide restores it.
-6. Export with Exclude reference images on: locked nodes absent, crop excludes them. Off: present.
-7. Re-run the whole 0.4.0 checklist.
+1. Opacity slider changes an image live and persists across relaunch.
+2. Dim references dims every locked node, persists per board, does not alter the stored opacity (unlock one and check its slider), and is absent from both PNG and SVG exports.
+3. Import a PNG wider than 4096 px: stored image (`SELECT width, height FROM images`) is at most 4096 on the long side; placement at 100 % still uses the original dimensions; Reset to original size restores them.
+4. Import a JPEG wider than 4096 px: stored MIME is still `image/jpeg`.
+5. Import an SVG with a large viewBox: not resampled.
+6. Import a GIF: dialog notes first-frame only.
+7. Open a 0.4.x board: nodes' z-indices become 0..n-1 in the same visual order; nothing visibly moves. Bring forward on a node with a neighbour two z-steps above (only possible on a pre-0.5.0 board before it is reloaded) now moves it visibly. Select two adjacent nodes, Bring forward: they move up as a block. Undo restores.
+8. Re-run the whole 0.4.0 checklist.
 
 ## Round 3 — Object layers
 

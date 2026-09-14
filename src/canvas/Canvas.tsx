@@ -98,6 +98,7 @@ export default function Canvas({
   const snapToGrid = useCanvas((s) => s.snapToGrid);
   const gridSize = useCanvas((s) => s.gridSize);
   const background = useCanvas((s) => s.board?.background ?? '#ffffff');
+  const dimReferences = useCanvas((s) => s.board?.dimReferences ?? false);
 
   const clientToWorld = useCallback(
     (client: Point): Point => {
@@ -811,6 +812,7 @@ export default function Canvas({
                 setEditingNodeId(null);
               }}
               imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
+              dimmed={dimReferences && node.locked}
             />
           ))}
           <g data-ui="true">
