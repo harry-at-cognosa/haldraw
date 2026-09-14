@@ -2,6 +2,18 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.1 — 2026-09-13
+
+### Added
+
+- **Font family picker** in the Text section. Lists the fonts installed on the machine (Chromium local-font query, with a built-in macOS list as fallback) and accepts any typed family name. An empty field means the default (Inter) and stores nothing, so boards and `.haldraw` files that never set a font are unchanged.
+- **Font size entry.** A numeric field beside the size slider accepts 4 to 999 px; the slider still covers 8 to 72 for quick adjustment.
+
+### Notes
+
+- SVG export records the family name only; a machine without that font substitutes. PNG export is rendered in-app and always matches.
+- Text does not auto-grow its box; at large sizes resize the shape (Shift-drag keeps proportions).
+
 ## 0.6.0 — 2026-09-13
 
 Portable board files. Format spec and checklist: [docs/Haldraw_file_format.md](./docs/Haldraw_file_format.md).

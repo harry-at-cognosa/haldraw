@@ -1,6 +1,7 @@
 import { useCanvas } from '@/store/canvasStore';
 import type { Anchor, CanvasEdge, CanvasNode, EdgeRouting, NodeStyle } from '@shared/types';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { listLocalFonts } from '@/util/fonts';
 import {
   ArrowBigLeft,
   ArrowBigRight,
@@ -144,11 +145,11 @@ export default function PropertiesPanel() {
                 value={first?.style.color ?? '#e6e8eb'}
                 onChange={(c) => patch({ color: c })}
               />
-              <SliderRow
-                label="Size"
-                min={8}
-                max={72}
-                step={1}
+              <FontRow
+                value={first?.style.fontFamily ?? ''}
+                onChange={(family) => patch({ fontFamily: family || undefined })}
+              />
+              <SizeRow
                 value={first?.style.fontSize ?? 16}
                 onChange={(v) => patch({ fontSize: v })}
               />
@@ -520,6 +521,108 @@ function ColorRow({
           title={c}
         />
       ))}
+    </div>
+  );
+}
+
+/** Font family combobox: installed families via datalist, free text allowed, empty = default. */
+function FontRow({ value, onChange }: { value: string; onChange: (family: string) => void }) {
+  const [families, setFamilies] = useState<string[] | null>(null);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const load = () => {
+    if (families) return;
+    listLocalFonts().then(setFamilies);
+  };
+  const commit = () => {
+    const v = draft.trim();
+    if (v !== value) onChange(v);
+  };
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-fg-muted text-xs w-12">Font</span>
+      <input
+        type="text"
+        list="haldraw-font-families"
+        value={draft}
+        placeholder="Default (Inter)"
+        onFocus={load}
+        onPointerDown={load}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setDraft(value);
+            (e.target as HTMLInputElement).blur();
+          }
+          e.stopPropagation();
+        }}
+        style={{ fontFamily: draft || undefined }}
+        className="flex-1 min-w-0 bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent text-sm"
+        title="Pick an installed font or type any family name. Clear the field for the default."
+      />
+      <datalist id="haldraw-font-families">
+        {(families ?? []).map((f) => (
+          <option key={f} value={f} />
+        ))}
+      </datalist>
+    </div>
+  );
+}
+
+/** Font size: slider for the common 8–72 range plus a numeric field that accepts 4–999. */
+function SizeRow({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  const commit = () => {
+    const n = Math.round(Number(draft));
+    if (!Number.isFinite(n)) {
+      setDraft(String(value));
+      return;
+    }
+    const clamped = Math.min(999, Math.max(4, n));
+    setDraft(String(clamped));
+    if (clamped !== value) onChange(clamped);
+  };
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-fg-muted text-xs w-12">Size</span>
+      <input
+        type="range"
+        min={8}
+        max={72}
+        step={1}
+        value={Math.min(72, Math.max(8, value))}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="flex-1 accent-sky-400"
+      />
+      <input
+        type="number"
+        min={4}
+        max={999}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setDraft(String(value));
+            (e.target as HTMLInputElement).blur();
+          }
+          e.stopPropagation();
+        }}
+        className="w-14 bg-canvas rounded px-1.5 py-0.5 border border-border outline-none focus:border-accent text-xs tabular-nums text-right"
+        title="Type any size from 4 to 999 px"
+      />
     </div>
   );
 }
