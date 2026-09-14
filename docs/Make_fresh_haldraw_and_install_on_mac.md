@@ -53,9 +53,34 @@ open -a /Applications/haldraw.app
 
 `ditto` overwrites an existing install in place. Quit the running app first if it is open.
 
-## 4. Install on another Mac
+## 4. Update on another Mac (the short version)
 
-Copy `dist/haldraw-<version>-arm64.dmg` over (AirDrop, iCloud, scp), open it, drag `haldraw.app` to Applications. Because the app is unsigned, the first launch needs right-click, Open, then confirm in the Gatekeeper dialog. Alternatively run the `xattr -cr` line above on that machine.
+Two routes. Either works; the first needs no build tooling on the target machine.
+
+**Route A — carry the DMG.** Copy `dist/haldraw-<version>-arm64.dmg` over (AirDrop, iCloud, scp), open it, drag `haldraw.app` to Applications, replacing the old one. Because the app is unsigned, the first launch needs right-click ▸ Open, then confirm in the Gatekeeper dialog. Or clear quarantine from a terminal instead:
+
+```bash
+xattr -cr /Applications/haldraw.app
+```
+
+**Route B — build from the repo.** On a Mac that already has the clone, Node, and Xcode Command Line Tools:
+
+```bash
+cd ~/p33_haldraw_info_and_repo/haldraw     # or wherever the clone lives
+git pull
+npm install                                # only if package.json changed
+npm run package
+osascript -e 'quit app "haldraw"'
+ditto dist/mac-arm64/haldraw.app /Applications/haldraw.app
+xattr -cr /Applications/haldraw.app
+open -a /Applications/haldraw.app
+```
+
+Check the result in the About box or with:
+
+```bash
+defaults read /Applications/haldraw.app/Contents/Info.plist CFBundleShortVersionString
+```
 
 User data lives in the app's SQLite database under `~/Library/Application Support/haldraw/` and is not touched by reinstalling.
 
