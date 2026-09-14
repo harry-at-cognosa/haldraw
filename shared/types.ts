@@ -128,7 +128,30 @@ export interface PickedImageFile {
   bytes: ArrayBuffer;
 }
 
-export type MenuChannel = 'menu:importImage';
+export type MenuChannel = 'menu:importImage' | 'menu:importBoard';
+
+export interface TextFileFilter {
+  name: string;
+  extensions: string[];
+}
+
+/** Portable board file (`.haldraw`). Version 1. */
+export interface HaldrawBoardFile {
+  format: 'haldraw-board';
+  version: 1;
+  app: string;
+  exportedAt: string;
+  board: {
+    name: string;
+    background: string;
+    viewport: Viewport;
+    dimReferences: boolean;
+  };
+  nodes: Array<Omit<CanvasNode, 'boardId'>>;
+  edges: Array<Omit<CanvasEdge, 'boardId'>>;
+  /** Image blobs referenced by nodes, keyed by content-hash id. */
+  images: Record<string, { mime: string; width: number; height: number; base64: string }>;
+}
 
 export interface HaldrawApi {
   projects: {
@@ -161,6 +184,12 @@ export interface HaldrawApi {
     get: (id: string) => Promise<ImageBlob | null>;
     /** Native open dialog filtered to image types. Resolves null on cancel. */
     pickFile: () => Promise<PickedImageFile | null>;
+  };
+  files: {
+    /** Native save dialog, then write UTF-8 text. */
+    saveText: (payload: { defaultName: string; text: string; filters: TextFileFilter[] }) => Promise<{ saved: boolean; path?: string }>;
+    /** Native open dialog, then read UTF-8 text. Resolves null on cancel. */
+    openText: (payload: { filters: TextFileFilter[] }) => Promise<{ name: string; text: string } | null>;
   };
   /** Subscribe to an application-menu command. Returns an unsubscribe function. */
   onMenu: (channel: MenuChannel, cb: () => void) => () => void;

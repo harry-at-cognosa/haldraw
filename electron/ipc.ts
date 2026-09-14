@@ -6,7 +6,7 @@ import * as boardsRepo from './repo/boards';
 import * as elementsRepo from './repo/elements';
 import * as imagesRepo from './repo/images';
 import * as metaRepo from './repo/meta';
-import type { CanvasEdge, CanvasNode, PickedImageFile, Viewport } from '@shared/types';
+import type { CanvasEdge, CanvasNode, PickedImageFile, TextFileFilter, Viewport } from '@shared/types';
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
 const MIME_BY_EXT: Record<string, string> = {
@@ -113,6 +113,31 @@ export function registerIpcHandlers() {
       return { saved: true, path: result.filePath };
     }
   );
+
+  ipcMain.handle(
+    'files:saveText',
+    async (event, payload: { defaultName: string; text: string; filters: TextFileFilter[] }) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const result = await dialog.showSaveDialog(win!, {
+        defaultPath: payload.defaultName,
+        filters: payload.filters,
+      });
+      if (result.canceled || !result.filePath) return { saved: false };
+      await writeFile(result.filePath, payload.text, 'utf-8');
+      return { saved: true, path: result.filePath };
+    }
+  );
+  ipcMain.handle('files:openText', async (event, payload: { filters: TextFileFilter[] }) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win!, {
+      properties: ['openFile'],
+      filters: payload.filters,
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    const path = result.filePaths[0];
+    const text = await readFile(path, 'utf-8');
+    return { name: basename(path), text };
+  });
 
   ipcMain.handle('theme:get', () => (metaRepo.getMeta('theme') ?? 'dark') as 'dark' | 'light');
   ipcMain.handle('theme:set', (_e, theme: 'dark' | 'light') => metaRepo.setMeta('theme', theme));

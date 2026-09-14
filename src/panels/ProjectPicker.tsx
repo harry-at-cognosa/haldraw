@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Board, PickedImageFile, Project } from '@shared/types';
-import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2, ImagePlus, Keyboard } from 'lucide-react';
+import { Plus, Folder, FileText, Trash2, Pencil, Copy, Link2, ImagePlus, Keyboard, FileUp } from 'lucide-react';
 import ShortcutHelp from './ShortcutHelp';
 import { fileToPicked } from '@/util/importImage';
+import {
+  HALDRAW_FILE_FILTERS,
+  importBoardFile,
+  parseBoardFile,
+  suggestedBoardName,
+} from '@/util/haldrawFile';
 import PromptModal from './PromptModal';
 import { useDialogs } from '@/hooks/useDialogs';
 import { APP_VERSION } from '@/util/version';
@@ -18,6 +24,12 @@ export default function ProjectPicker({
   const { request, ask, confirm, onResolve } = useDialogs();
   const [dragOver, setDragOver] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
   const selectedRef = useRef<Project | null>(null);
   selectedRef.current = selected;
 
@@ -137,6 +149,40 @@ export default function ProjectPicker({
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  /** Import a .haldraw file's text as a new board in the selected (or auto-created) project. */
+  const importBoardText = async (text: string, fileName: string) => {
+    try {
+      const file = parseBoardFile(text);
+      const project = await ensureProject();
+      const name = await ask({
+        kind: 'prompt',
+        title: 'Import board',
+        placeholder: 'Board name',
+        initial: suggestedBoardName(file, fileName),
+        confirmLabel: 'Import',
+      });
+      if (!name) return;
+      const b = await importBoardFile(project.id, file, name);
+      const list = await window.haldraw.boards.listByProject(project.id);
+      setBoards(list);
+      onOpen(project, b);
+    } catch (err) {
+      setError(`Import failed: ${(err as Error).message}`);
+    }
+  };
+
+  const importBoardFromFile = async () => {
+    const opened = await window.haldraw.files.openText({ filters: HALDRAW_FILE_FILTERS });
+    if (!opened) return;
+    await importBoardText(opened.text, opened.name);
+  };
+
+  useEffect(() => {
+    return window.haldraw.onMenu('menu:importBoard', () => {
+      importBoardFromFile();
+    });
+  }, []);
+
   // File ▸ Import Image… while the picker is showing
   useEffect(() => {
     return window.haldraw.onMenu('menu:importImage', () => {
@@ -152,7 +198,14 @@ export default function ProjectPicker({
   };
   const onDrop = async (e: React.DragEvent) => {
     setDragOver(false);
-    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
+    const files = Array.from(e.dataTransfer.files);
+    const boardFile = files.find((f) => /\.(haldraw|json)$/i.test(f.name));
+    if (boardFile) {
+      e.preventDefault();
+      await importBoardText(await boardFile.text(), boardFile.name);
+      return;
+    }
+    const file = files.find((f) => f.type.startsWith('image/'));
     if (!file) return;
     e.preventDefault();
     await createBoardFromPicked(await fileToPicked(file));
@@ -269,6 +322,15 @@ export default function ProjectPicker({
                 <Keyboard size={16} />
               </button>
               <button
+                onClick={importBoardFromFile}
+                className="px-3 h-8 rounded-md border border-border text-fg-muted hover:text-fg hover:border-fg-muted text-sm font-medium"
+                title="Import a .haldraw board file (⌘⇧O)"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <FileUp size={14} /> Import…
+                </span>
+              </button>
+              <button
                 onClick={createBoardFromImage}
                 className="px-3 h-8 rounded-md border border-border text-fg-muted hover:text-fg hover:border-fg-muted text-sm font-medium"
                 title="Create a board with an image placed as a locked reference layer (⌘⇧I)"
@@ -299,8 +361,8 @@ export default function ProjectPicker({
             <div className="text-center text-fg-muted mt-24 space-y-2">
               <div>No project selected.</div>
               <div className="text-xs">
-                Click <b>New board</b> or <b>From image…</b> above, or drop an image here — a
-                project is created for you. Press <kbd className="px-1 rounded border border-border">?</kbd> for help.
+                Click <b>New board</b>, <b>From image…</b> or <b>Import…</b> above, or drop an
+                image or a <code>.haldraw</code> file here — a project is created for you. Press <kbd className="px-1 rounded border border-border">?</kbd> for help.
               </div>
             </div>
           ) : boards.length === 0 ? (
@@ -367,6 +429,11 @@ export default function ProjectPicker({
           )}
         </section>
       </main>
+      {error ? (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-panel text-sm border bg-red-500/90 border-red-400 text-white">
+          {error}
+        </div>
+      ) : null}
       <PromptModal request={request} onResolve={onResolve} />
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} variant="picker" />
     </div>

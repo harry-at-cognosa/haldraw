@@ -19,6 +19,14 @@ import {
   type DecodedImage,
   type PlacementOptions,
 } from '@/util/importImage';
+import {
+  HALDRAW_FILE_FILTERS,
+  buildBoardFile,
+  importBoardFile,
+  parseBoardFile,
+  serializeBoardFile,
+  suggestedBoardName,
+} from '@/util/haldrawFile';
 
 export default function BoardEditor({
   project,
@@ -199,6 +207,23 @@ export default function BoardEditor({
     });
   }, [importImageFromFile]);
 
+  // Application menu → File ▸ Import Board… : create in this project and open it.
+  useEffect(() => {
+    return window.haldraw.onMenu('menu:importBoard', async () => {
+      try {
+        const opened = await window.haldraw.files.openText({ filters: HALDRAW_FILE_FILTERS });
+        if (!opened) return;
+        const file = parseBoardFile(opened.text);
+        await flushSave();
+        const created = await importBoardFile(project.id, file, suggestedBoardName(file, opened.name));
+        setToast({ kind: 'ok', text: `Imported ${created.name}` });
+        await openBoardById(created.id);
+      } catch (err) {
+        setToast({ kind: 'err', text: `Import failed: ${(err as Error).message}` });
+      }
+    });
+  }, [project.id, flushSave, openBoardById]);
+
   const onOpenLink = useCallback(
     async (url: string) => {
       try {
@@ -252,11 +277,23 @@ export default function BoardEditor({
       const state = useCanvas.getState();
       const nodes = Object.values(state.nodes);
       const edges = Object.values(state.edges);
-      if (!nodes.length) {
+      if (!nodes.length && format !== 'haldraw') {
         setToast({ kind: 'err', text: 'Nothing on the canvas to export.' });
         return;
       }
       const safeName = board.name.replace(/[^a-z0-9-_]+/gi, '_');
+      if (format === 'haldraw') {
+        await flushSave();
+        const liveBoard = useCanvas.getState().board ?? board;
+        const file = await buildBoardFile(liveBoard, nodes, edges);
+        const res = await window.haldraw.files.saveText({
+          defaultName: `${safeName}.haldraw`,
+          text: serializeBoardFile(file),
+          filters: HALDRAW_FILE_FILTERS,
+        });
+        if (res.saved) setToast({ kind: 'ok', text: `Saved ${res.path}` });
+        return;
+      }
       const boardBg = useCanvas.getState().board?.background ?? '#ffffff';
       const solidBg = boardBg === 'transparent' ? '#ffffff' : boardBg;
       if (format === 'svg') {

@@ -1,4 +1,4 @@
-# haldraw 0.5.0 — help and shortcuts
+# haldraw 0.6.0 — help and shortcuts
 
 Mirrors the two `?` overlays in the app. The library overlay appears on the project picker; the editor overlay appears when a board is open. `D` for Diamond and `⌘E` for Export PNG work in the editor but are not listed in the overlay; they are included here.
 
@@ -13,6 +13,8 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | **From image…** | Board with an image as a locked reference layer |
 | Drop image on grid | Same as From image… |
 | `⌘⇧I` | Import image (creates a project if none exists) |
+| **Import…** / `⌘⇧O` | Import a `.haldraw` board file |
+| Drop `.haldraw` on grid | Same as Import… |
 
 ### Boards
 
@@ -78,6 +80,7 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 |---|---|
 | `⌘V` | Paste screenshot as image |
 | `⌘⇧I` | Import image file (placement dialog) |
+| `⌘⇧O` | Import `.haldraw` board into this project |
 | `Shift` + resize handle | Keep aspect ratio |
 | `⌘E` | Export PNG |
 | `⌘`-click a shape | Open its link |
@@ -90,7 +93,7 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | Toolbar, right side | Grid icon | Show / hide dot grid |
 | Toolbar, right side | Magnet icon | Snap to grid |
 | Toolbar, right side | Sun / Moon | Toggle app theme |
-| Toolbar, right side | Export ▾ | PNG transparent · PNG solid · SVG |
+| Toolbar, right side | Export ▾ | PNG transparent · PNG solid · SVG · haldraw board (.haldraw) |
 | Board panel (nothing selected) | Background swatches | Set this board's paper colour |
 | Board panel | Reference images list | Unlock (selects) · Remove |
 | Board panel | Dim references on canvas | Fade locked images; never exported |

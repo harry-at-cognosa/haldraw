@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, ChevronDown } from 'lucide-react';
 
-export type ExportFormat = 'png-transparent' | 'png-solid' | 'svg';
+export type ExportFormat = 'png-transparent' | 'png-solid' | 'svg' | 'haldraw';
 
 type Props = {
   onExport: (format: ExportFormat) => void;
@@ -11,6 +11,7 @@ const OPTIONS: Array<{ id: ExportFormat; label: string; hint: string }> = [
   { id: 'png-transparent', label: 'PNG — transparent', hint: 'alpha background for overlay' },
   { id: 'png-solid', label: 'PNG — solid background', hint: 'canvas color filled' },
   { id: 'svg', label: 'SVG', hint: 'vector, editable' },
+  { id: 'haldraw', label: 'haldraw board (.haldraw)', hint: 'portable JSON; re-import from the library' },
 ];
 
 export default function ExportMenu({ onExport }: Props) {

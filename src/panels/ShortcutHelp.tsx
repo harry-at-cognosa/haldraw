@@ -7,6 +7,8 @@ const PICKER_SECTIONS: Array<{ title: string; items: Array<[string, string]> }> 
       ['From image…', 'Board with an image as a locked reference layer'],
       ['Drop image on grid', 'Same as From image…'],
       ['⌘⇧I', 'Import image (creates a project if none exists)'],
+      ['Import… / ⌘⇧O', 'Import a .haldraw board file'],
+      ['Drop .haldraw on grid', 'Same as Import…'],
     ],
   },
   {
@@ -83,6 +85,8 @@ export default function ShortcutHelp({
       items: [
         ['⌘V', 'Paste screenshot as image'],
         ['⌘⇧I', 'Import image file (placement dialog)'],
+        ['⌘⇧O', 'Import .haldraw board into this project'],
+        ['Export ▾ › haldraw board', 'Save this board as a .haldraw file'],
         ['⇧ + resize handle', 'Keep aspect ratio'],
         ['⌘E', 'Export PNG'],
         ['?', 'Show/hide this overlay'],

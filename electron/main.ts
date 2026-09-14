@@ -38,6 +38,11 @@ function buildMenu(): void {
           accelerator: 'CmdOrCtrl+Shift+I',
           click: () => sendToFocused('menu:importImage'),
         },
+        {
+          label: 'Import Board (.haldraw)…',
+          accelerator: 'CmdOrCtrl+Shift+O',
+          click: () => sendToFocused('menu:importBoard'),
+        },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
       ],

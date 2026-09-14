@@ -2,6 +2,17 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.0 — 2026-09-13
+
+Portable board files. Format spec and checklist: [docs/Haldraw_file_format.md](./docs/Haldraw_file_format.md).
+
+### Added
+
+- **Export ▾ ▸ haldraw board (.haldraw).** Writes the open board as JSON: board metadata, nodes, edges, and every referenced image as base64. Works on an empty board.
+- **Import.** Library **Import…** button, drop a `.haldraw` file on the board grid, or **File ▸ Import Board (.haldraw)…** (`⌘⇧O`). Creates a new board in the selected project (auto-creating a project if none), prompts for the name, and opens it. In the editor, `⌘⇧O` imports into the current project and opens the result.
+- Node, edge and group ids are remapped on import so repeated imports are independent; image ids are content hashes and are kept. Structural validation with specific error messages.
+- Generic `files.saveText` / `files.openText` IPC for future text formats.
+
 ## 0.5.0 — 2026-09-13
 
 Reference-image polish (design doc items 5–7) plus a stacking-order fix. Item 8 (hide / exclude from export) is deferred to the object-layers release, where it becomes layer visibility.
