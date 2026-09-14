@@ -2,6 +2,13 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.5 — 2026-09-13
+
+### Added
+
+- **Custom colour well** on every colour row (shape fill, stroke, text; connector colour). The rainbow swatch at the end opens the native colour picker; once a custom colour is set the swatch shows it and is highlighted like a palette swatch.
+- **Pure white and pure black** added to the front of the palette. The previous off-white and near-black remain, so existing shapes are unchanged.
+
 ## 0.6.4 — 2026-09-13
 
 ### Fixed

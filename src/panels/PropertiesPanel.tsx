@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 
 const PALETTE = [
+  '#ffffff',
+  '#000000',
   '#e6e8eb',
   '#0b0d10',
   '#ef4444',
@@ -512,8 +514,10 @@ function ColorRow({
   value: string;
   onChange: (c: string) => void;
 }) {
+  const isHex = /^#[0-9a-f]{6}$/i.test(value);
+  const custom = isHex && !options.includes(value.toLowerCase()) && !options.includes(value);
   return (
-    <div className="flex gap-1 flex-wrap">
+    <div className="flex gap-1 flex-wrap items-center">
       {options.map((c) => (
         <button
           key={c}
@@ -526,6 +530,24 @@ function ColorRow({
           title={c === 'transparent' ? 'Transparent (no fill)' : c}
         />
       ))}
+      <label
+        className={`w-6 h-6 rounded overflow-hidden cursor-pointer relative ${
+          custom ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'
+        }`}
+        title={custom ? `Custom ${value}` : 'Custom colour…'}
+        style={{
+          background: custom
+            ? value
+            : 'conic-gradient(#ef4444,#f59e0b,#10b981,#38bdf8,#6366f1,#d946ef,#ef4444)',
+        }}
+      >
+        <input
+          type="color"
+          value={isHex ? value : '#ffffff'}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+        />
+      </label>
     </div>
   );
 }
