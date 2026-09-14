@@ -6,7 +6,8 @@ import * as boardsRepo from './repo/boards';
 import * as elementsRepo from './repo/elements';
 import * as imagesRepo from './repo/images';
 import * as metaRepo from './repo/meta';
-import type { CanvasEdge, CanvasNode, PickedImageFile, TextFileFilter, Viewport } from '@shared/types';
+import * as layersRepo from './repo/layers';
+import type { CanvasEdge, CanvasNode, Layer, PickedImageFile, TextFileFilter, Viewport } from '@shared/types';
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
 const MIME_BY_EXT: Record<string, string> = {
@@ -45,6 +46,13 @@ export function registerIpcHandlers() {
   ipcMain.handle('boards:setDimReferences', (_e, id: string, dim: boolean) =>
     boardsRepo.setBoardDimReferences(id, dim)
   );
+  ipcMain.handle('boards:setCurrentLayer', (_e, id: string, layerId: string) =>
+    boardsRepo.setBoardCurrentLayer(id, layerId)
+  );
+  ipcMain.handle('layers:upsertMany', (_e, boardId: string, layers: Layer[]) =>
+    layersRepo.upsertLayers(boardId, layers)
+  );
+  ipcMain.handle('layers:removeMany', (_e, ids: string[]) => layersRepo.removeLayers(ids));
   ipcMain.handle('boards:setBackground', (_e, id: string, background: string) =>
     boardsRepo.setBoardBackground(id, background)
   );

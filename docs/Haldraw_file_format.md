@@ -26,7 +26,8 @@ Import always creates a **new** board. It never merges into or overwrites an exi
     "viewport": { "x": 0, "y": 0, "zoom": 1 },
     "dimReferences": false
   },
-  "nodes": [ /* CanvasNode without boardId, sorted by zIndex */ ],
+  "layers": [ /* since 0.7.0: Layer without boardId, sorted by position (0 = bottom) */ ],
+  "nodes": [ /* CanvasNode without boardId, sorted by zIndex; each has layerId since 0.7.0 */ ],
   "edges": [ /* CanvasEdge without boardId */ ],
   "images": {
     "<sha256 of bytes>": { "mime": "image/png", "width": 800, "height": 600, "base64": "iVBOR..." }
@@ -39,6 +40,7 @@ Node and edge objects are the in-app shapes from `shared/types.ts` verbatim, min
 ## Rules on import
 
 - **Ids are remapped.** Every node, edge and group id in the file is replaced with a fresh ULID, so importing the same file twice yields two independent boards and hand-written files can use any string as an id.
+- **Layer ids are remapped** like node ids. A file with no `layers` block (written before 0.7.0) puts every node on the new board's single "Layer 1". A node whose `layerId` is absent goes to the top layer. A node referencing a layer not in the file is a validation error.
 - **Image ids are content hashes** and are kept. If a file was hand-edited so the base64 no longer matches its key, the importer stores the bytes under the correct hash and repoints the nodes. Nothing is lost.
 - **Edges must reference nodes in the same file.** An edge whose `fromNode` or `toNode` is absent is a validation error. Loose ends use `fromPoint` / `toPoint` with `fromNode: null`.
 - **Missing optional fields get defaults.** `rotation` 0, `zIndex` array order, `style` `{}`, `content` `{}`, `locked` false, `routing` `"straight"`, `arrowEnd` true.

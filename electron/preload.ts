@@ -18,6 +18,11 @@ const api: HaldrawApi = {
     setViewport: (id, viewport) => ipcRenderer.invoke('boards:setViewport', id, viewport),
     setBackground: (id, background) => ipcRenderer.invoke('boards:setBackground', id, background),
     setDimReferences: (id, dim) => ipcRenderer.invoke('boards:setDimReferences', id, dim),
+    setCurrentLayer: (id, layerId) => ipcRenderer.invoke('boards:setCurrentLayer', id, layerId),
+  },
+  layers: {
+    upsertMany: (boardId, layers) => ipcRenderer.invoke('layers:upsertMany', boardId, layers),
+    removeMany: (ids) => ipcRenderer.invoke('layers:removeMany', ids),
   },
   nodes: {
     upsertMany: (boardId, nodes) => ipcRenderer.invoke('nodes:upsertMany', boardId, nodes),

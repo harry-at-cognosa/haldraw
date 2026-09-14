@@ -1,4 +1,5 @@
-import { useCanvas } from '@/store/canvasStore';
+import { layerOrder, useCanvas } from '@/store/canvasStore';
+import LayersPanel from './LayersPanel';
 import type { Anchor, CanvasEdge, CanvasNode, EdgeRouting, NodeStyle } from '@shared/types';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
@@ -59,6 +60,8 @@ export default function PropertiesPanel() {
   const rememberEdgeAttrs = useCanvas((s) => s.rememberEdgeAttrs);
   const resetNodeStyle = useCanvas((s) => s.resetNodeStyle);
   const setLocked = useCanvas((s) => s.setLocked);
+  const layers = useCanvas((s) => s.layers);
+  const moveNodesToLayer = useCanvas((s) => s.moveNodesToLayer);
 
   const selectedNodes = [...selection].map((id) => nodes[id]).filter(Boolean) as CanvasNode[];
   const selectedEdges = [...edgeSelection].map((id) => edges[id]).filter(Boolean) as CanvasEdge[];
@@ -214,6 +217,27 @@ export default function PropertiesPanel() {
                   onClick={() => sendToBack(selectedNodes.map((n) => n.id))}
                 />
               </div>
+              {Object.keys(layers).length > 1 ? (
+                <Row label="On layer">
+                  <select
+                    value={selectedNodes.every((n) => n.layerId === first?.layerId) ? first?.layerId ?? '' : ''}
+                    onChange={(e) => {
+                      if (e.target.value) moveNodesToLayer(selectedNodes.map((n) => n.id), e.target.value);
+                    }}
+                    className="flex-1 min-w-0 bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent text-xs"
+                    title="Move the selection to another layer (⌘⌥] / ⌘⌥[ step up / down)"
+                  >
+                    {!selectedNodes.every((n) => n.layerId === first?.layerId) ? (
+                      <option value="">Mixed…</option>
+                    ) : null}
+                    {[...layerOrder(layers)].reverse().map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                </Row>
+              ) : null}
             </Section>
             {selectedNodes.some((n) => n.type === 'rect') ? (
               <Section title="Corners">
@@ -932,6 +956,7 @@ function BoardPanel() {
             Transparent exports always ignore it.
           </div>
         </div>
+        <LayersPanel />
         {lockedNodes.length > 0 ? (
           <div className="space-y-2">
             <div className="text-xs uppercase tracking-wider text-fg font-semibold">

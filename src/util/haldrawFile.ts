@@ -3,6 +3,7 @@ import type {
   CanvasEdge,
   CanvasNode,
   HaldrawBoardFile,
+  Layer,
   TextFileFilter,
 } from '@shared/types';
 import { newId } from '@/util/id';
@@ -16,7 +17,8 @@ export const HALDRAW_FILE_FILTERS: TextFileFilter[] = [
 export async function buildBoardFile(
   board: Board,
   nodes: CanvasNode[],
-  edges: CanvasEdge[]
+  edges: CanvasEdge[],
+  layers: Layer[] = []
 ): Promise<HaldrawBoardFile> {
   const images: HaldrawBoardFile['images'] = {};
   const ids = new Set<string>();
@@ -47,6 +49,7 @@ export async function buildBoardFile(
       viewport: board.viewport,
       dimReferences: board.dimReferences,
     },
+    layers: [...layers].sort((a, b) => a.position - b.position).map(strip),
     nodes: [...nodes].sort((a, b) => a.zIndex - b.zIndex).map(strip),
     edges: edges.map(strip),
     images,
@@ -86,6 +89,18 @@ export function parseBoardFile(text: string): HaldrawBoardFile {
     if (e.fromNode && !nodeIds.has(e.fromNode)) throw new Error(`Edge ${i}: fromNode "${e.fromNode}" not in file.`);
     if (e.toNode && !nodeIds.has(e.toNode)) throw new Error(`Edge ${i}: toNode "${e.toNode}" not in file.`);
   });
+  if (f.layers !== undefined) {
+    if (!Array.isArray(f.layers)) throw new Error('layers must be an array.');
+    const layerIds = new Set<string>();
+    f.layers.forEach((l, i) => {
+      if (!l || typeof l.id !== 'string') throw new Error(`Layer ${i}: missing id.`);
+      if (typeof l.name !== 'string') throw new Error(`Layer ${i}: missing name.`);
+      layerIds.add(l.id);
+    });
+    for (const n of f.nodes) {
+      if (n.layerId && !layerIds.has(n.layerId)) throw new Error(`Node ${n.id} references layer "${n.layerId}" which is not in the file.`);
+    }
+  }
   const images = f.images && typeof f.images === 'object' ? f.images : {};
   for (const n of f.nodes) {
     const id = n.content?.imageId;
@@ -120,6 +135,34 @@ export async function importBoardFile(
 
   const board = await window.haldraw.boards.create(projectId, name);
   const now = Date.now();
+
+  // Layers: the new board comes with "Layer 1". Files written before 0.7.0 have
+  // no layers and every node goes there; newer files replace it with their own.
+  const layerIdMap = new Map<string, string>();
+  let defaultLayerId = board.currentLayerId;
+  if (file.layers && file.layers.length) {
+    const layers: Layer[] = [...file.layers]
+      .sort((a, b) => a.position - b.position)
+      .map((l, i) => {
+        const id = newId();
+        layerIdMap.set(l.id, id);
+        return {
+          id,
+          boardId: board.id,
+          name: l.name,
+          position: i,
+          visible: l.visible !== false,
+          locked: Boolean(l.locked),
+          createdAt: l.createdAt ?? now,
+          updatedAt: now,
+        };
+      });
+    await window.haldraw.layers.upsertMany(board.id, layers);
+    if (board.currentLayerId) await window.haldraw.layers.removeMany([board.currentLayerId]);
+    defaultLayerId = layers[layers.length - 1].id;
+    await window.haldraw.boards.setCurrentLayer(board.id, defaultLayerId);
+  }
+
   const nodeIdMap = new Map<string, string>();
   const groupIdMap = new Map<string, string>();
   for (const n of file.nodes) nodeIdMap.set(n.id, newId());
@@ -143,6 +186,7 @@ export async function importBoardFile(
       style: n.style ?? {},
       content: n.content ?? {},
       groupId,
+      layerId: (n.layerId && layerIdMap.get(n.layerId)) || defaultLayerId,
       locked: Boolean(n.locked),
       createdAt: n.createdAt ?? now,
       updatedAt: now,
@@ -179,6 +223,7 @@ export async function importBoardFile(
     background: file.board.background ?? board.background,
     viewport: file.board.viewport ?? board.viewport,
     dimReferences: Boolean(file.board.dimReferences),
+    currentLayerId: defaultLayerId,
   };
 }
 

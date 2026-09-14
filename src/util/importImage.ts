@@ -22,6 +22,8 @@ export interface PlacementOptions {
   lock: boolean;
   sendToBack: boolean;
   fitView: boolean;
+  /** Put the image on a new locked "Reference" layer at the bottom of the stack. */
+  ownLayer: boolean;
 }
 
 export const DEFAULT_PLACEMENT: PlacementOptions = {
@@ -31,6 +33,7 @@ export const DEFAULT_PLACEMENT: PlacementOptions = {
   lock: true,
   sendToBack: true,
   fitView: true,
+  ownLayer: true,
 };
 
 export async function fileToPicked(file: File): Promise<PickedImageFile> {
@@ -105,9 +108,26 @@ export function computePlacement(
 }
 
 /** Add the image node per the options. Returns the node id. */
-export function placeImage(img: DecodedImage, opts: PlacementOptions): string {
-  const store = useCanvas.getState();
+export function placeImage(
+  img: DecodedImage,
+  opts: PlacementOptions,
+  extra: { renameDefaultLayerTo?: string } = {}
+): string {
+  let store = useCanvas.getState();
   const rect = computePlacement(img, opts);
+  let layerId: string | undefined;
+  if (opts.ownLayer) {
+    // Bottom, locked, and not current: drawing continues on the layer the user was on.
+    const keepCurrent = store.currentLayerId;
+    if (extra.renameDefaultLayerTo && keepCurrent) {
+      const cur = store.layers[keepCurrent];
+      const hasNodes = Object.values(store.nodes).some((n) => n.layerId === keepCurrent);
+      if (cur && !hasNodes && /^Layer \d+$/.test(cur.name)) store.renameLayer(keepCurrent, extra.renameDefaultLayerTo);
+    }
+    const layer = store.addLayer({ name: 'Reference', locked: true, atBottom: true, makeCurrent: false });
+    layerId = layer.id;
+    store = useCanvas.getState();
+  }
   // Compute the z-index up front so the whole import is one undo step.
   let zIndex: number | undefined;
   if (opts.sendToBack) {
@@ -123,6 +143,7 @@ export function placeImage(img: DecodedImage, opts: PlacementOptions): string {
     content: { imageId: img.imageId, naturalWidth: img.width, naturalHeight: img.height },
     locked: opts.lock,
     zIndex,
+    layerId,
   });
   if (opts.fitView) fitViewTo(rect);
   return node.id;

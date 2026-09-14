@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CanvasEdge, CanvasNode, NodeType } from '@shared/types';
-import { DEFAULT_NODE_STYLE, useCanvas } from '@/store/canvasStore';
+import { DEFAULT_NODE_STYLE, isNodeInteractive, isNodeVisible, layerOrder, useCanvas } from '@/store/canvasStore';
 import {
   combinedBbox,
   rectsOverlap,
@@ -100,6 +100,8 @@ export default function Canvas({
   const background = useCanvas((s) => s.board?.background ?? '#ffffff');
   const dimReferences = useCanvas((s) => s.board?.dimReferences ?? false);
   const refView = useCanvas((s) => s.refView);
+  const layers = useCanvas((s) => s.layers);
+  const soloLayerId = useCanvas((s) => s.soloLayerId);
 
   const clientToWorld = useCallback(
     (client: Point): Point => {
@@ -161,9 +163,9 @@ export default function Canvas({
         e.stopPropagation();
         return;
       }
-      // Reference layer: let the event bubble to the background so marquee,
-      // shape drawing and panning all work over a locked image.
-      if (node.locked) return;
+      // Locked node or locked layer: let the event bubble to the background so
+      // marquee, shape drawing and panning all work over it.
+      if (!isNodeInteractive(useCanvas.getState(), node)) return;
       if (tool === 'connector') {
         e.stopPropagation();
         const state = useCanvas.getState();
@@ -573,7 +575,7 @@ export default function Canvas({
           const r = normalizeRect(interaction.start, interaction.current);
           if (store.refView === 'only') break;
           const hit = Object.values(store.nodes).filter(
-            (n) => !n.locked && rectsOverlap(r, { x: n.x, y: n.y, width: n.width, height: n.height })
+            (n) => isNodeInteractive(store, n) && rectsOverlap(r, { x: n.x, y: n.y, width: n.width, height: n.height })
           );
           if (hit.length) store.select(hit.map((n) => n.id));
           break;
@@ -674,15 +676,23 @@ export default function Canvas({
     files.forEach((f, i) => onRequestImageFile(f, { x: world.x + i * 30, y: world.y + i * 30 }));
   };
 
-  const sortedNodes = useMemo(
-    () =>
-      Object.values(nodes)
-        .filter((n) => (refView === 'hidden' ? !n.locked : refView === 'only' ? n.locked : true))
-        .sort((a, b) => a.zIndex - b.zIndex),
-    [nodes, refView]
-  );
-  // Connectors belong to the drawing; "References only" hides them too.
-  const sortedEdges = useMemo(() => (refView === 'only' ? [] : Object.values(edges)), [edges, refView]);
+  const sortedNodes = useMemo(() => {
+    const view = { layers, soloLayerId };
+    const pos = new Map(layerOrder(layers).map((l, i) => [l.id, i]));
+    return Object.values(nodes)
+      .filter((n) => isNodeVisible(view, n))
+      .filter((n) => (refView === 'hidden' ? !n.locked : refView === 'only' ? n.locked : true))
+      .sort((a, b) => (pos.get(a.layerId) ?? 0) - (pos.get(b.layerId) ?? 0) || a.zIndex - b.zIndex);
+  }, [nodes, refView, layers, soloLayerId]);
+  // Connectors belong to the drawing: hidden with "References only", and hidden
+  // when either attached node is on a hidden layer.
+  const sortedEdges = useMemo(() => {
+    if (refView === 'only') return [];
+    const shown = new Set(sortedNodes.map((n) => n.id));
+    return Object.values(edges).filter(
+      (e) => (!e.fromNode || shown.has(e.fromNode)) && (!e.toNode || shown.has(e.toNode))
+    );
+  }, [edges, refView, sortedNodes]);
   const selectedNodes = useMemo(
     () => [...selection].map((id) => nodes[id]).filter(Boolean),
     [nodes, selection]
@@ -798,7 +808,7 @@ export default function Canvas({
               selected={selection.has(node.id)}
               onPointerDown={handleNodePointerDown}
               onDoubleClick={(n) => {
-                if (n.locked) return;
+                if (!isNodeInteractive(useCanvas.getState(), n)) return;
                 if (
                   n.type === 'text' ||
                   n.type === 'rect' ||
@@ -955,9 +965,10 @@ function findTopmostNodeAt(
   p: Point,
   excludeId?: string | null
 ): CanvasNode | null {
+  const state = useCanvas.getState();
   const sorted = Object.values(nodes).sort((a, b) => b.zIndex - a.zIndex);
   for (const n of sorted) {
-    if (n.id === excludeId || n.locked) continue;
+    if (n.id === excludeId || !isNodeInteractive(state, n)) continue;
     if (p.x >= n.x && p.x <= n.x + n.width && p.y >= n.y && p.y <= n.y + n.height) {
       return n;
     }

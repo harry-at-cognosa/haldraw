@@ -1,4 +1,4 @@
-# haldraw 0.6.0 — help and shortcuts
+# haldraw 0.7.0 — help and shortcuts
 
 Mirrors the two `?` overlays in the app. The library overlay appears on the project picker; the editor overlay appears when a board is open. `D` for Diamond and `⌘E` for Export PNG work in the editor but are not listed in the overlay; they are included here.
 
@@ -65,10 +65,12 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | Arrow keys (+ `Shift`) | Nudge 1 px (10 px) |
 | `Esc` | Deselect everything (shows the Board panel) |
 
-### Stacking order
+### Stacking & layers
 
 | Key | Action |
 |---|---|
+| `⌘⇧L` | New layer |
+| `⌘⌥]` / `⌘⌥[` | Move selection up / down a layer |
 | `⌘]` | Bring forward |
 | `⌘[` | Send backward |
 | `⌘⇧]` | Bring to front |
@@ -95,7 +97,10 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | Toolbar, right side | Sun / Moon | Toggle app theme |
 | Toolbar, right side | Export ▾ | PNG transparent · PNG solid · SVG · haldraw board (.haldraw) |
 | Board panel (nothing selected) | Background swatches | Set this board's paper colour |
+| Toolbar, centre | Layer dropdown | Current layer (new shapes land here) |
+| Board panel | Layers list | Click row = current · eye = show/hide · padlock = lock · double-click = rename · ▲▼ = reorder · solo · select · delete/merge |
 | Board panel | Reference images list | Unlock (selects) · Remove |
+| Properties panel, Layer section | On layer dropdown | Move selection to a layer |
 | Board panel | Dim references on canvas | Fade locked images; never exported |
 | Properties panel, Image section | Opacity slider | Image opacity |
 | Properties panel, Image section | Lock as reference | Make the image ignore the pointer |

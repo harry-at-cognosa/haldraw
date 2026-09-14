@@ -121,9 +121,9 @@ First frame only; the placement dialog says so for `image/gif` (in place since 0
 7. Open a 0.4.x board: nodes' z-indices become 0..n-1 in the same visual order; nothing visibly moves. Bring forward on a node with a neighbour two z-steps above (only possible on a pre-0.5.0 board before it is reloaded) now moves it visibly. Select two adjacent nodes, Bring forward: they move up as a block. Undo restores.
 8. Re-run the whole 0.4.0 checklist.
 
-## Round 3 — Object layers
+## Round 3 — Object layers — shipped as 0.7.0 (2026-09-14)
 
-Added 2026-09-13 after discussing the stacking model. Independent of 0.5.0; roughly the size of 0.4.0. Target: 0.6.0.
+Added 2026-09-13 after discussing the stacking model. Shipped as specified with these deviations: reorder is by up/down arrows rather than drag; the Export menu has no per-layer subset picker (hide layers instead); no row flash on auto-switch; the 0.6.x node-level lock, reference view buttons and "Include reference images" export checkbox were kept as-is alongside layer lock and visibility. Scenario tests: `docs/test_plan_2.md`.
 
 ### Model
 

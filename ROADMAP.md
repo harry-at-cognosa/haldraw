@@ -18,7 +18,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 
 ## Round 3 (heavier features; think about the use cases)
 
-- **Object layers.** Named, ordered layers per board with visibility, lock, solo and a current layer that new shapes land in; Inkscape / draw.io convention, not pixel layers. Subsumes per-node hide and export exclusion. Full spec and checklist: [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md), "Round 3 — Object layers".
+- ~~**Object layers.**~~ Shipped 0.7.0. Follow-ups: drag-to-reorder rows, per-layer export subset picker, row flash on auto-switch.
 - **Vectorize a raster image into shapes and text.** Send a locked reference PNG/JPG to a vision model and get back a `.haldraw` board file placed on top of it as an editable first draft. Depends on the `.haldraw` JSON format (0.6.0) and a decision on network access and API-key storage. Spec: [docs/Vectorize_raster_design.md](./docs/Vectorize_raster_design.md).
 - **Templates / stencils.** A starter library: flowchart, DFD (L0/L1/L2 scaffolds), ERD, system architecture, sequence diagram. Insert a pre-populated group of shapes.
 - **Presentation mode.** Hide chrome, framed "slides" defined by rectangles, step through with arrow keys. Good for walking someone through a DFD hierarchy.

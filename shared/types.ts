@@ -35,6 +35,19 @@ export interface NodeContent {
   naturalHeight?: number;
 }
 
+/** Ordered, named container of nodes within one board. */
+export interface Layer {
+  id: string;
+  boardId: string;
+  name: string;
+  /** 0 = bottom of the stack. Dense within a board. */
+  position: number;
+  visible: boolean;
+  locked: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface CanvasNode {
   id: string;
   boardId: string;
@@ -48,7 +61,9 @@ export interface CanvasNode {
   style: NodeStyle;
   content: NodeContent;
   groupId: string | null;
-  /** Reference layer: rendered and exported, but ignored by every pointer interaction. */
+  /** Layer this node belongs to. Always set after migration. */
+  layerId: string;
+  /** Node-level lock: rendered and exported, but ignored by every pointer interaction. */
   locked: boolean;
   createdAt: number;
   updatedAt: number;
@@ -97,6 +112,8 @@ export interface Board {
   background: string;
   /** Render locked (reference) nodes at reduced opacity on the canvas. Never baked into exports. */
   dimReferences: boolean;
+  /** Layer new nodes land in. */
+  currentLayerId: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -110,6 +127,7 @@ export interface Project {
 
 export interface BoardSnapshot {
   board: Board;
+  layers: Layer[];
   nodes: CanvasNode[];
   edges: CanvasEdge[];
 }
@@ -147,7 +165,9 @@ export interface HaldrawBoardFile {
     viewport: Viewport;
     dimReferences: boolean;
   };
-  nodes: Array<Omit<CanvasNode, 'boardId'>>;
+  /** Absent in files written before 0.7.0; the importer then puts every node on one layer. */
+  layers?: Array<Omit<Layer, 'boardId'>>;
+  nodes: Array<Omit<CanvasNode, 'boardId' | 'layerId'> & { layerId?: string }>;
   edges: Array<Omit<CanvasEdge, 'boardId'>>;
   /** Image blobs referenced by nodes, keyed by content-hash id. */
   images: Record<string, { mime: string; width: number; height: number; base64: string }>;
@@ -170,6 +190,11 @@ export interface HaldrawApi {
     setViewport: (id: string, viewport: Viewport) => Promise<void>;
     setBackground: (id: string, background: string) => Promise<void>;
     setDimReferences: (id: string, dim: boolean) => Promise<void>;
+    setCurrentLayer: (id: string, layerId: string) => Promise<void>;
+  };
+  layers: {
+    upsertMany: (boardId: string, layers: Layer[]) => Promise<void>;
+    removeMany: (ids: string[]) => Promise<void>;
   };
   nodes: {
     upsertMany: (boardId: string, nodes: CanvasNode[]) => Promise<void>;

@@ -17,7 +17,8 @@ import {
   Keyboard,
   ImagePlus,
 } from 'lucide-react';
-import { useCanvas, type Tool } from '@/store/canvasStore';
+import { layerOrder, useCanvas, type Tool } from '@/store/canvasStore';
+import { Layers } from 'lucide-react';
 import ExportMenu, { type ExportFormat } from './ExportMenu';
 import { APP_VERSION } from '@/util/version';
 
@@ -68,6 +69,10 @@ export default function Toolbar({
   const hasRedo = useCanvas((s) => s.future.length > 0);
   const viewport = useCanvas((s) => s.viewport);
   const setViewport = useCanvas((s) => s.setViewport);
+  const layers = useCanvas((s) => s.layers);
+  const currentLayerId = useCanvas((s) => s.currentLayerId);
+  const setCurrentLayer = useCanvas((s) => s.setCurrentLayer);
+  const layerList = [...layerOrder(layers)].reverse();
 
   return (
     <div
@@ -126,6 +131,26 @@ export default function Toolbar({
 
       <div className="flex-1 text-center truncate px-4 text-fg font-semibold">
         {title}
+        {layerList.length ? (
+          <span
+            className="ml-2 inline-flex items-center gap-1 text-xs font-normal text-fg-muted"
+            style={{ WebkitAppRegion: 'no-drag' } as any}
+            title="Current layer: new shapes land here"
+          >
+            <Layers size={12} />
+            <select
+              value={currentLayerId ?? ''}
+              onChange={(e) => setCurrentLayer(e.target.value)}
+              className="bg-transparent border border-border rounded px-1 py-0.5 text-xs text-fg outline-none focus:border-accent max-w-[160px]"
+            >
+              {layerList.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </span>
+        ) : null}
         <span className="ml-2 text-xs text-fg-muted font-normal tabular-nums">v{APP_VERSION}</span>
       </div>
 

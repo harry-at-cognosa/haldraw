@@ -2,6 +2,7 @@ import { app } from 'electron';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import Database from 'better-sqlite3';
+import crypto from 'node:crypto';
 
 let db: Database.Database | null = null;
 
@@ -82,6 +83,18 @@ function migrate(db: Database.Database) {
       height INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS layers (
+      id         TEXT PRIMARY KEY,
+      board_id   TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      position   INTEGER NOT NULL DEFAULT 0,
+      visible    INTEGER NOT NULL DEFAULT 1,
+      locked     INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS layers_board ON layers(board_id);
+
     CREATE INDEX IF NOT EXISTS nodes_board ON nodes(board_id);
     CREATE INDEX IF NOT EXISTS edges_board ON edges(board_id);
     CREATE INDEX IF NOT EXISTS edges_from  ON edges(from_node);
@@ -93,6 +106,51 @@ function migrate(db: Database.Database) {
   addColumnIfMissing(db, 'edges', 'label_point', `TEXT`);
   addColumnIfMissing(db, 'nodes', 'locked', `INTEGER NOT NULL DEFAULT 0`);
   addColumnIfMissing(db, 'boards', 'dim_references', `INTEGER NOT NULL DEFAULT 0`);
+  addColumnIfMissing(db, 'nodes', 'layer_id', `TEXT`);
+  addColumnIfMissing(db, 'boards', 'current_layer', `TEXT`);
+  migrateLayers(db);
+}
+
+/**
+ * 0.7.0: every board gets at least one layer; every node gets a layer_id.
+ * Idempotent: boards that already have layers are left alone, and stray nodes
+ * without a layer are attached to the board's bottom layer.
+ */
+function migrateLayers(db: Database.Database) {
+  const boards = db.prepare('SELECT id FROM boards').all() as Array<{ id: string }>;
+  const hasLayers = db.prepare('SELECT COUNT(*) AS n FROM layers WHERE board_id = ?');
+  const bottomLayer = db.prepare('SELECT id FROM layers WHERE board_id = ? ORDER BY position ASC LIMIT 1');
+  const insertLayer = db.prepare(
+    'INSERT INTO layers (id, board_id, name, position, visible, locked, created_at, updated_at) VALUES (?, ?, ?, 0, 1, 0, ?, ?)'
+  );
+  const attachNodes = db.prepare('UPDATE nodes SET layer_id = ? WHERE board_id = ? AND layer_id IS NULL');
+  const setCurrent = db.prepare('UPDATE boards SET current_layer = ? WHERE id = ? AND current_layer IS NULL');
+  const tx = db.transaction(() => {
+    const now = Date.now();
+    for (const b of boards) {
+      let layerId: string;
+      const count = (hasLayers.get(b.id) as { n: number }).n;
+      if (count === 0) {
+        layerId = ulidLike(now);
+        insertLayer.run(layerId, b.id, 'Layer 1', now, now);
+      } else {
+        layerId = (bottomLayer.get(b.id) as { id: string }).id;
+      }
+      attachNodes.run(layerId, b.id);
+      setCurrent.run(layerId, b.id);
+    }
+  });
+  tx();
+}
+
+/** ULID-shaped id without pulling the ulid package into the migration path. */
+function ulidLike(now: number): string {
+  const t = now.toString(36).toUpperCase().padStart(10, '0');
+  const r = Array.from(crypto.getRandomValues(new Uint8Array(10)))
+    .map((b) => (b % 32).toString(32))
+    .join('')
+    .toUpperCase();
+  return (t + r).slice(0, 26);
 }
 
 function addColumnIfMissing(

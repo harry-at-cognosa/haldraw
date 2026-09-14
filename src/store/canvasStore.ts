@@ -6,6 +6,7 @@ import type {
   CanvasNode,
   EdgeRouting,
   EdgeStyle,
+  Layer,
   NodeStyle,
   NodeType,
   Viewport,
@@ -39,6 +40,7 @@ export type SnapshotDelta = {
 interface HistoryEntry {
   nodes: Record<string, CanvasNode>;
   edges: Record<string, CanvasEdge>;
+  layers: Record<string, Layer>;
 }
 
 interface CanvasState {
@@ -46,6 +48,13 @@ interface CanvasState {
   board: Board | null;
   nodes: Record<string, CanvasNode>;
   edges: Record<string, CanvasEdge>;
+  layers: Record<string, Layer>;
+  /** Layer new nodes land in. Persisted on the board. */
+  currentLayerId: string | null;
+  /** Transient: when set, only this layer is shown. */
+  soloLayerId: string | null;
+  dirtyLayerIds: Set<string>;
+  deletedLayerIds: Set<string>;
   selection: Set<string>;
   edgeSelection: Set<string>;
   tool: Tool;
@@ -87,7 +96,7 @@ interface CanvasState {
   select: (ids: string[], opts?: { additive?: boolean; edges?: boolean }) => void;
   clearSelection: () => void;
 
-  addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId' | 'locked'> & { zIndex?: number; groupId?: string | null; locked?: boolean }) => CanvasNode;
+  addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId' | 'locked' | 'layerId'> & { zIndex?: number; groupId?: string | null; locked?: boolean; layerId?: string }) => CanvasNode;
   /** Lock (reference layer) or unlock nodes. Locking drops them from the selection. */
   setLocked: (ids: string[], locked: boolean) => void;
   updateNodes: (ids: string[], updater: (n: CanvasNode) => CanvasNode | void) => void;
@@ -123,16 +132,62 @@ interface CanvasState {
   toggleGrid: () => void;
   toggleSnap: () => void;
 
+  // ---- layers ----
+  addLayer: (opts?: { name?: string; locked?: boolean; atBottom?: boolean; makeCurrent?: boolean }) => Layer;
+  renameLayer: (id: string, name: string) => void;
+  setLayerVisible: (id: string, visible: boolean) => void;
+  setLayerLocked: (id: string, locked: boolean) => void;
+  /** Swap with the neighbour above ('up') or below ('down'). */
+  moveLayer: (id: string, dir: 'up' | 'down') => void;
+  /** Refuses to delete the last layer. 'merge' moves the layer's nodes to the neighbour below (or above for the bottom layer). */
+  deleteLayer: (id: string, mode: 'delete' | 'merge') => boolean;
+  setCurrentLayer: (id: string) => void;
+  setSoloLayer: (id: string | null) => void;
+  moveNodesToLayer: (ids: string[], layerId: string) => void;
+  /** Move the selection one layer up or down. */
+  shiftSelectionLayer: (dir: 'up' | 'down') => void;
+
   consumeDirty: () => {
     upserts: CanvasNode[];
     deletions: string[];
     edgeUpserts: CanvasEdge[];
     edgeDeletions: string[];
+    layerUpserts: Layer[];
+    layerDeletions: string[];
   };
 }
 
 function snapshot(state: CanvasState): HistoryEntry {
-  return { nodes: { ...state.nodes }, edges: { ...state.edges } };
+  return { nodes: { ...state.nodes }, edges: { ...state.edges }, layers: { ...state.layers } };
+}
+
+/** Layers bottom-first. */
+export function layerOrder(layers: Record<string, Layer>): Layer[] {
+  return Object.values(layers).sort((a, b) => a.position - b.position || a.createdAt - b.createdAt);
+}
+
+/** Visible on the canvas: layer shown, and not excluded by solo. */
+export function isNodeVisible(s: Pick<CanvasState, 'layers' | 'soloLayerId'>, n: CanvasNode): boolean {
+  const l = s.layers[n.layerId];
+  if (l && !l.visible) return false;
+  if (s.soloLayerId && n.layerId !== s.soloLayerId) return false;
+  return true;
+}
+
+/** Responds to the pointer: visible, and neither the node nor its layer is locked. */
+export function isNodeInteractive(s: Pick<CanvasState, 'layers' | 'soloLayerId'>, n: CanvasNode): boolean {
+  if (!isNodeVisible(s, n)) return false;
+  if (n.locked) return false;
+  const l = s.layers[n.layerId];
+  return !(l && l.locked);
+}
+
+function renumberLayers(layers: Record<string, Layer>): Record<string, Layer> {
+  const out: Record<string, Layer> = {};
+  layerOrder(layers).forEach((l, i) => {
+    out[l.id] = l.position === i ? l : { ...l, position: i };
+  });
+  return out;
 }
 
 function maxZIndex(nodes: Record<string, CanvasNode>): number {
@@ -202,6 +257,11 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   board: null,
   nodes: {},
   edges: {},
+  layers: {},
+  currentLayerId: null,
+  soloLayerId: null,
+  dirtyLayerIds: new Set(),
+  deletedLayerIds: new Set(),
   selection: new Set(),
   edgeSelection: new Set(),
   tool: 'select',
@@ -252,11 +312,30 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       }
     });
     for (const e of s.edges) edges[e.id] = e;
+    const layers: Record<string, Layer> = {};
+    for (const l of s.layers) layers[l.id] = l;
+    const bottom = layerOrder(layers)[0];
+    // Safety net: a node with no layer (should not happen after migration) goes to the bottom layer.
+    if (bottom) {
+      for (const n of Object.values(nodes)) {
+        if (!n.layerId || !layers[n.layerId]) {
+          nodes[n.id] = { ...n, layerId: bottom.id };
+          dirty.add(n.id);
+        }
+      }
+    }
+    const currentLayerId =
+      s.board.currentLayerId && layers[s.board.currentLayerId] ? s.board.currentLayerId : bottom?.id ?? null;
     set({
       boardId: s.board.id,
       board: s.board,
       nodes,
       edges,
+      layers,
+      currentLayerId,
+      soloLayerId: null,
+      dirtyLayerIds: new Set(),
+      deletedLayerIds: new Set(),
       viewport: s.board.viewport,
       refView: 'normal',
       selection: new Set(),
@@ -284,6 +363,11 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       board: null,
       nodes: {},
       edges: {},
+      layers: {},
+      currentLayerId: null,
+      soloLayerId: null,
+      dirtyLayerIds: new Set(),
+      deletedLayerIds: new Set(),
       selection: new Set(),
       edgeSelection: new Set(),
       history: [],
@@ -317,7 +401,15 @@ export const useCanvas = create<CanvasState>((set, get) => ({
         if (opts?.additive && next.has(id)) next.delete(id);
         else next.add(id);
       }
-      return { [field]: next, [other]: opts?.additive ? s[other] : new Set() } as Partial<CanvasState>;
+      const patch = { [field]: next, [other]: opts?.additive ? s[other] : new Set() } as Partial<CanvasState>;
+      if (!opts?.edges) {
+        const firstId = ids.find((id) => next.has(id));
+        const n = firstId ? s.nodes[firstId] : undefined;
+        if (n && n.layerId && s.layers[n.layerId] && n.layerId !== s.currentLayerId) {
+          patch.currentLayerId = n.layerId;
+        }
+      }
+      return patch;
     }),
 
   clearSelection: () => set({ selection: new Set(), edgeSelection: new Set() }),
@@ -333,6 +425,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       zIndex,
       groupId: null,
       locked: false,
+      layerId: get().currentLayerId ?? '',
       ...partial,
     };
     const prev = snapshot(get());
@@ -510,15 +603,23 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     for (const id of Object.keys(s.nodes)) if (!prevNodeIds.has(id)) delN.add(id);
     for (const id of prevEdgeIds) dirtyE.add(id);
     for (const id of Object.keys(s.edges)) if (!prevEdgeIds.has(id)) delE.add(id);
+    const dirtyL = new Set(s.dirtyLayerIds);
+    const delL = new Set(s.deletedLayerIds);
+    for (const id of Object.keys(last.layers)) dirtyL.add(id);
+    for (const id of Object.keys(s.layers)) if (!last.layers[id]) delL.add(id);
     set({
       nodes: { ...last.nodes },
       edges: { ...last.edges },
+      layers: { ...last.layers },
+      currentLayerId: s.currentLayerId && last.layers[s.currentLayerId] ? s.currentLayerId : layerOrder(last.layers)[0]?.id ?? null,
       history: s.history.slice(0, -1),
       future: [...s.future, current],
       dirtyNodeIds: dirtyN,
       dirtyEdgeIds: dirtyE,
       deletedNodeIds: delN,
       deletedEdgeIds: delE,
+      dirtyLayerIds: dirtyL,
+      deletedLayerIds: delL,
       selection: new Set(),
       edgeSelection: new Set(),
     });
@@ -537,15 +638,23 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     for (const id of Object.keys(s.nodes)) if (!next.nodes[id]) delN.add(id);
     for (const id of Object.keys(next.edges)) dirtyE.add(id);
     for (const id of Object.keys(s.edges)) if (!next.edges[id]) delE.add(id);
+    const dirtyL = new Set(s.dirtyLayerIds);
+    const delL = new Set(s.deletedLayerIds);
+    for (const id of Object.keys(next.layers)) dirtyL.add(id);
+    for (const id of Object.keys(s.layers)) if (!next.layers[id]) delL.add(id);
     set({
       nodes: { ...next.nodes },
       edges: { ...next.edges },
+      layers: { ...next.layers },
+      currentLayerId: s.currentLayerId && next.layers[s.currentLayerId] ? s.currentLayerId : layerOrder(next.layers)[0]?.id ?? null,
       history: [...s.history, current],
       future: s.future.slice(0, -1),
       dirtyNodeIds: dirtyN,
       dirtyEdgeIds: dirtyE,
       deletedNodeIds: delN,
       deletedEdgeIds: delE,
+      dirtyLayerIds: dirtyL,
+      deletedLayerIds: delL,
       selection: new Set(),
       edgeSelection: new Set(),
     });
@@ -788,6 +897,208 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     return [...out];
   },
 
+  addLayer: (opts) => {
+    const s = get();
+    const prev = snapshot(s);
+    const now = Date.now();
+    const ordered = layerOrder(s.layers);
+    const existingNames = new Set(ordered.map((l) => l.name));
+    let name = opts?.name ?? `Layer ${ordered.length + 1}`;
+    let k = ordered.length + 1;
+    while (existingNames.has(name)) name = `Layer ${++k}`;
+    const layer: Layer = {
+      id: newId(),
+      boardId: s.boardId!,
+      name,
+      position: opts?.atBottom ? -1 : ordered.length,
+      visible: true,
+      locked: Boolean(opts?.locked),
+      createdAt: now,
+      updatedAt: now,
+    };
+    const layers = renumberLayers({ ...s.layers, [layer.id]: layer });
+    const dirty = new Set(s.dirtyLayerIds);
+    for (const l of Object.values(layers)) if (l !== s.layers[l.id]) dirty.add(l.id);
+    set({
+      layers,
+      dirtyLayerIds: dirty,
+      currentLayerId: opts?.makeCurrent === false ? s.currentLayerId : layer.id,
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+    return layers[layer.id];
+  },
+
+  renameLayer: (id, name) => {
+    const s = get();
+    if (!s.layers[id] || !name.trim()) return;
+    const prev = snapshot(s);
+    set({
+      layers: { ...s.layers, [id]: { ...s.layers[id], name: name.trim(), updatedAt: Date.now() } },
+      dirtyLayerIds: new Set(s.dirtyLayerIds).add(id),
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+  },
+
+  setLayerVisible: (id, visible) => {
+    const s = get();
+    if (!s.layers[id]) return;
+    const prev = snapshot(s);
+    const selection = new Set(s.selection);
+    if (!visible) for (const nid of selection) if (s.nodes[nid]?.layerId === id) selection.delete(nid);
+    set({
+      layers: { ...s.layers, [id]: { ...s.layers[id], visible, updatedAt: Date.now() } },
+      dirtyLayerIds: new Set(s.dirtyLayerIds).add(id),
+      selection,
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+  },
+
+  setLayerLocked: (id, locked) => {
+    const s = get();
+    if (!s.layers[id]) return;
+    const prev = snapshot(s);
+    const selection = new Set(s.selection);
+    if (locked) for (const nid of selection) if (s.nodes[nid]?.layerId === id) selection.delete(nid);
+    set({
+      layers: { ...s.layers, [id]: { ...s.layers[id], locked, updatedAt: Date.now() } },
+      dirtyLayerIds: new Set(s.dirtyLayerIds).add(id),
+      selection,
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+  },
+
+  moveLayer: (id, dir) => {
+    const s = get();
+    const ordered = layerOrder(s.layers);
+    const i = ordered.findIndex((l) => l.id === id);
+    const j = dir === 'up' ? i + 1 : i - 1;
+    if (i < 0 || j < 0 || j >= ordered.length) return;
+    const prev = snapshot(s);
+    const now = Date.now();
+    const a = ordered[i];
+    const b = ordered[j];
+    set({
+      layers: {
+        ...s.layers,
+        [a.id]: { ...a, position: b.position, updatedAt: now },
+        [b.id]: { ...b, position: a.position, updatedAt: now },
+      },
+      dirtyLayerIds: new Set(s.dirtyLayerIds).add(a.id).add(b.id),
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+  },
+
+  deleteLayer: (id, mode) => {
+    const s = get();
+    const ordered = layerOrder(s.layers);
+    if (ordered.length <= 1 || !s.layers[id]) return false;
+    const prev = snapshot(s);
+    const i = ordered.findIndex((l) => l.id === id);
+    const target = ordered[i - 1] ?? ordered[i + 1];
+    const nodes = { ...s.nodes };
+    const edges = { ...s.edges };
+    const dirtyN = new Set(s.dirtyNodeIds);
+    const delN = new Set(s.deletedNodeIds);
+    const delE = new Set(s.deletedEdgeIds);
+    const selection = new Set(s.selection);
+    const now = Date.now();
+    for (const n of Object.values(s.nodes)) {
+      if (n.layerId !== id) continue;
+      if (mode === 'merge') {
+        nodes[n.id] = { ...n, layerId: target.id, updatedAt: now };
+        dirtyN.add(n.id);
+      } else {
+        delete nodes[n.id];
+        delN.add(n.id);
+        selection.delete(n.id);
+        for (const e of Object.values(edges)) {
+          if (e.fromNode === n.id || e.toNode === n.id) {
+            delete edges[e.id];
+            delE.add(e.id);
+          }
+        }
+      }
+    }
+    const rest = { ...s.layers };
+    delete rest[id];
+    const layers = renumberLayers(rest);
+    const dirtyL = new Set(s.dirtyLayerIds);
+    for (const l of Object.values(layers)) if (l !== s.layers[l.id]) dirtyL.add(l.id);
+    dirtyL.delete(id);
+    set({
+      nodes,
+      edges,
+      layers,
+      currentLayerId: s.currentLayerId === id ? target.id : s.currentLayerId,
+      soloLayerId: s.soloLayerId === id ? null : s.soloLayerId,
+      selection,
+      dirtyNodeIds: dirtyN,
+      deletedNodeIds: delN,
+      deletedEdgeIds: delE,
+      dirtyLayerIds: dirtyL,
+      deletedLayerIds: new Set(s.deletedLayerIds).add(id),
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+    return true;
+  },
+
+  setCurrentLayer: (id) => {
+    if (!get().layers[id]) return;
+    set({ currentLayerId: id });
+  },
+
+  setSoloLayer: (id) => {
+    const s = get();
+    const soloLayerId = id && s.layers[id] ? id : null;
+    const selection = new Set(s.selection);
+    if (soloLayerId) for (const nid of selection) if (s.nodes[nid]?.layerId !== soloLayerId) selection.delete(nid);
+    set({ soloLayerId, selection });
+  },
+
+  moveNodesToLayer: (ids, layerId) => {
+    const s = get();
+    if (!s.layers[layerId]) return;
+    const prev = snapshot(s);
+    const nodes = { ...s.nodes };
+    const dirty = new Set(s.dirtyNodeIds);
+    const now = Date.now();
+    let changed = false;
+    for (const id of ids) {
+      const n = nodes[id];
+      if (!n || n.layerId === layerId) continue;
+      nodes[id] = { ...n, layerId, updatedAt: now };
+      dirty.add(id);
+      changed = true;
+    }
+    if (!changed) return;
+    set({
+      nodes,
+      dirtyNodeIds: dirty,
+      currentLayerId: layerId,
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+  },
+
+  shiftSelectionLayer: (dir) => {
+    const s = get();
+    const ids = [...s.selection];
+    if (!ids.length) return;
+    const ordered = layerOrder(s.layers);
+    const first = s.nodes[ids[0]];
+    if (!first) return;
+    const i = ordered.findIndex((l) => l.id === first.layerId);
+    const target = ordered[dir === 'up' ? i + 1 : i - 1];
+    if (!target) return;
+    get().moveNodesToLayer(ids, target.id);
+  },
+
   consumeDirty: () => {
     const s = get();
     const upserts: CanvasNode[] = [];
@@ -802,13 +1113,21 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     }
     const deletions = [...s.deletedNodeIds];
     const edgeDeletions = [...s.deletedEdgeIds];
+    const layerUpserts: Layer[] = [];
+    for (const id of s.dirtyLayerIds) {
+      const l = s.layers[id];
+      if (l) layerUpserts.push(l);
+    }
+    const layerDeletions = [...s.deletedLayerIds];
     set({
       dirtyNodeIds: new Set(),
       dirtyEdgeIds: new Set(),
       deletedNodeIds: new Set(),
       deletedEdgeIds: new Set(),
+      dirtyLayerIds: new Set(),
+      deletedLayerIds: new Set(),
     });
-    return { upserts, deletions, edgeUpserts, edgeDeletions };
+    return { upserts, deletions, edgeUpserts, edgeDeletions, layerUpserts, layerDeletions };
   },
 }));
 

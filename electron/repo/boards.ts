@@ -3,6 +3,7 @@ import { getDb } from '../db';
 import type { Board, BoardSnapshot, Viewport } from '@shared/types';
 import { listNodesByBoard } from './elements';
 import { listEdgesByBoard } from './elements';
+import { listLayersByBoard } from './layers';
 
 type BoardRow = {
   id: string;
@@ -11,6 +12,7 @@ type BoardRow = {
   viewport: string;
   background: string | null;
   dim_references: number | null;
+  current_layer: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -23,6 +25,7 @@ function toBoard(row: BoardRow): Board {
     viewport: JSON.parse(row.viewport) as Viewport,
     background: row.background ?? '#ffffff',
     dimReferences: row.dim_references === 1,
+    currentLayerId: row.current_layer ?? '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -42,6 +45,7 @@ export function getBoard(id: string): Board | null {
 
 export function createBoard(projectId: string, name: string): Board {
   const now = Date.now();
+  const layerId = ulid();
   const b: Board = {
     id: ulid(),
     projectId,
@@ -49,15 +53,27 @@ export function createBoard(projectId: string, name: string): Board {
     viewport: { x: 0, y: 0, zoom: 1 },
     background: '#ffffff',
     dimReferences: false,
+    currentLayerId: layerId,
     createdAt: now,
     updatedAt: now,
   };
-  getDb()
-    .prepare(
-      'INSERT INTO boards (id, project_id, name, viewport, background, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    )
-    .run(b.id, b.projectId, b.name, JSON.stringify(b.viewport), b.background, b.createdAt, b.updatedAt);
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare(
+      'INSERT INTO boards (id, project_id, name, viewport, background, current_layer, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(b.id, b.projectId, b.name, JSON.stringify(b.viewport), b.background, layerId, b.createdAt, b.updatedAt);
+    db.prepare(
+      'INSERT INTO layers (id, board_id, name, position, visible, locked, created_at, updated_at) VALUES (?, ?, ?, 0, 1, 0, ?, ?)'
+    ).run(layerId, b.id, 'Layer 1', now, now);
+  });
+  tx();
   return b;
+}
+
+export function setBoardCurrentLayer(id: string, layerId: string): void {
+  getDb()
+    .prepare('UPDATE boards SET current_layer = ?, updated_at = ? WHERE id = ?')
+    .run(layerId, Date.now(), id);
 }
 
 export function renameBoard(id: string, name: string): void {
@@ -99,6 +115,21 @@ export function duplicateBoard(id: string, newName: string): Board | null {
       'INSERT INTO boards (id, project_id, name, viewport, background, dim_references, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(newId, source.projectId, newName, JSON.stringify(source.viewport), source.background, source.dimReferences ? 1 : 0, now, now);
 
+    const layerIdMap = new Map<string, string>();
+    const insertLayer = db.prepare(
+      'INSERT INTO layers (id, board_id, name, position, visible, locked, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    for (const l of listLayersByBoard(id)) {
+      const lid = ulid();
+      layerIdMap.set(l.id, lid);
+      insertLayer.run(lid, newId, l.name, l.position, l.visible ? 1 : 0, l.locked ? 1 : 0, now, now);
+    }
+    const fallbackLayer = layerIdMap.values().next().value as string | undefined;
+    db.prepare('UPDATE boards SET current_layer = ? WHERE id = ?').run(
+      (source.currentLayerId && layerIdMap.get(source.currentLayerId)) ?? fallbackLayer ?? null,
+      newId
+    );
+
     const nodeRows = db
       .prepare('SELECT * FROM nodes WHERE board_id = ?')
       .all(id) as Array<{
@@ -113,14 +144,15 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         style: string;
         content: string;
         group_id: string | null;
+        layer_id: string | null;
         locked: number;
       }>;
 
     const idMap = new Map<string, string>();
     const groupIdMap = new Map<string, string>();
     const insertNode = db.prepare(`
-      INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, locked, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO nodes (id, board_id, type, x, y, width, height, rotation, z_index, style, content, group_id, layer_id, locked, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const n of nodeRows) {
       const nid = ulid();
@@ -146,6 +178,7 @@ export function duplicateBoard(id: string, newName: string): Board | null {
         n.style,
         n.content,
         gid,
+        (n.layer_id && layerIdMap.get(n.layer_id)) ?? fallbackLayer ?? null,
         n.locked ?? 0,
         now,
         now
@@ -206,6 +239,7 @@ export function loadBoard(id: string): BoardSnapshot | null {
   if (!board) return null;
   return {
     board,
+    layers: listLayersByBoard(id),
     nodes: listNodesByBoard(id),
     edges: listEdgesByBoard(id),
   };

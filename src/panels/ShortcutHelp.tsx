@@ -72,8 +72,10 @@ export default function ShortcutHelp({
       ],
     },
     {
-      title: 'Layers',
+      title: 'Stacking & layers',
       items: [
+        ['⌘⇧L', 'New layer'],
+        ['⌘⌥] / ⌘⌥[', 'Move selection up / down a layer'],
         ['⌘]', 'Bring forward'],
         ['⌘[', 'Send backward'],
         ['⌘⇧]', 'Bring to front'],

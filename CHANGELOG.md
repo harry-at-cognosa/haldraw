@@ -2,6 +2,29 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.7.0 — 2026-09-14
+
+Object layers. Spec: [docs/Reference_image_import_design.md](./docs/Reference_image_import_design.md), "Round 3 — Object layers". Scenario tests: [docs/test_plan_2.md](./docs/test_plan_2.md).
+
+### Added
+
+- **Layers per board.** Named, ordered containers with visibility and lock. Render order is layer order first, then z-index within the layer. Connectors draw beneath nodes and hide when either end is on a hidden layer.
+- **Current layer.** New shapes, pastes, duplicates and imports land on it. Selecting a shape switches the current layer to that shape's layer. Shown as a dropdown in the toolbar title; also set by clicking a row in the Layers list.
+- **Layers list** in the Board panel (nothing selected): eye and padlock per row, double-click to rename, shape count, up / down reorder, solo (view only, not saved), select-all-on-layer, and delete with a merge-down option for non-empty layers. The last layer cannot be deleted.
+- **Move to layer** dropdown in the properties panel's Layer section; `⌘⌥]` / `⌘⌥[` step the selection up / down a layer; `⌘⇧L` adds a layer.
+- **Import on its own layer.** The placement dialog's new "Place on its own locked layer" option (default on) creates a locked "Reference" layer at the bottom. New board from image names the drawing layer "Drawing".
+- **Export** skips hidden layers and respects solo; the crop follows. `.haldraw` files carry layers (format still v1; files without a `layers` block import onto one layer).
+- **Migration.** `layers` table, `nodes.layer_id`, `boards.current_layer`. Every existing board gets "Layer 1" holding all its nodes; idempotent.
+
+### Kept from 0.6.x
+
+- Node-level lock (Lock as reference) still works for pinning a single shape; hit-testing treats a node as locked when either its own flag or its layer's flag is set.
+- The Normal / Hide refs / Refs only buttons and "Include reference images" export checkbox still act on node-level lock.
+
+### Not in this release
+
+- Drag-to-reorder rows (use the arrows). Per-layer subset picker in the Export menu (hide layers instead). Row flash on auto-switch.
+
 ## 0.6.6 — 2026-09-13
 
 ### Changed

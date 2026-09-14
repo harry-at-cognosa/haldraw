@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Board, CanvasEdge, CanvasNode, NodeStyle, PickedImageFile, Project } from '@shared/types';
-import { DEFAULT_NODE_STYLE, useCanvas } from '@/store/canvasStore';
+import { DEFAULT_NODE_STYLE, isNodeInteractive, isNodeVisible, useCanvas } from '@/store/canvasStore';
 import { combinedBbox, type Point } from '@/util/geometry';
 import { newId } from '@/util/id';
 import Canvas from './Canvas';
@@ -55,6 +55,7 @@ export default function BoardEditor({
     defaults: PlacementOptions;
   } | null>(null);
   const pendingConsumed = useRef(false);
+  const lastSavedLayer = useRef<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -96,19 +97,34 @@ export default function BoardEditor({
       window.clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
-    const { upserts, deletions, edgeUpserts, edgeDeletions } = useCanvas.getState().consumeDirty();
+    const state = useCanvas.getState();
+    const { upserts, deletions, edgeUpserts, edgeDeletions, layerUpserts, layerDeletions } = state.consumeDirty();
+    // Layers first so node.layer_id always points at an existing row.
+    if (layerUpserts.length) await window.haldraw.layers.upsertMany(board.id, layerUpserts);
     if (upserts.length) await window.haldraw.nodes.upsertMany(board.id, upserts);
     if (deletions.length) await window.haldraw.nodes.removeMany(deletions);
     if (edgeUpserts.length) await window.haldraw.edges.upsertMany(board.id, edgeUpserts);
     if (edgeDeletions.length) await window.haldraw.edges.removeMany(edgeDeletions);
-    await window.haldraw.boards.setViewport(board.id, useCanvas.getState().viewport);
+    if (layerDeletions.length) await window.haldraw.layers.removeMany(layerDeletions);
+    await window.haldraw.boards.setViewport(board.id, state.viewport);
+    if (state.currentLayerId && state.currentLayerId !== lastSavedLayer.current) {
+      lastSavedLayer.current = state.currentLayerId;
+      await window.haldraw.boards.setCurrentLayer(board.id, state.currentLayerId);
+    }
   }, [board.id]);
 
   // Autosave
   useEffect(() => {
     if (!ready) return;
     const unsub = useCanvas.subscribe((s, prev) => {
-      if (s.nodes === prev.nodes && s.edges === prev.edges && s.viewport === prev.viewport) return;
+      if (
+        s.nodes === prev.nodes &&
+        s.edges === prev.edges &&
+        s.viewport === prev.viewport &&
+        s.layers === prev.layers &&
+        s.currentLayerId === prev.currentLayerId
+      )
+        return;
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
       saveTimer.current = window.setTimeout(() => {
         flushSave();
@@ -120,11 +136,15 @@ export default function BoardEditor({
   // Flush on unmount
   useEffect(() => {
     return () => {
-      const { upserts, deletions, edgeUpserts, edgeDeletions } = useCanvas.getState().consumeDirty();
+      const state = useCanvas.getState();
+      const { upserts, deletions, edgeUpserts, edgeDeletions, layerUpserts, layerDeletions } = state.consumeDirty();
+      if (layerUpserts.length) window.haldraw.layers.upsertMany(board.id, layerUpserts);
       if (upserts.length) window.haldraw.nodes.upsertMany(board.id, upserts);
       if (deletions.length) window.haldraw.nodes.removeMany(deletions);
       if (edgeUpserts.length) window.haldraw.edges.upsertMany(board.id, edgeUpserts);
       if (edgeDeletions.length) window.haldraw.edges.removeMany(edgeDeletions);
+      if (layerDeletions.length) window.haldraw.layers.removeMany(layerDeletions);
+      if (state.currentLayerId) window.haldraw.boards.setCurrentLayer(board.id, state.currentLayerId);
     };
   }, [board.id]);
 
@@ -186,11 +206,13 @@ export default function BoardEditor({
   const onPlaceImport = useCallback(
     (opts: PlacementOptions) => {
       if (!importState) return;
-      placeImage(importState.image, opts);
+      placeImage(importState.image, opts, {
+        renameDefaultLayerTo: pendingImport && opts.ownLayer ? 'Drawing' : undefined,
+      });
       setImportState(null);
       setToast({ kind: 'ok', text: `Placed ${importState.image.name}` });
     },
-    [importState]
+    [importState, pendingImport]
   );
 
   // "New board from image": place once the board has loaded.
@@ -295,7 +317,8 @@ export default function BoardEditor({
     try {
       const state = useCanvas.getState();
       const allNodes = Object.values(state.nodes);
-      const nodes = includeRefs ? allNodes : allNodes.filter((n) => !n.locked);
+      const shownNodes = allNodes.filter((n) => isNodeVisible(state, n));
+      const nodes = includeRefs ? shownNodes : shownNodes.filter((n) => !n.locked);
       const edges = Object.values(state.edges);
       if (!nodes.length && format !== 'haldraw') {
         setToast({
@@ -310,7 +333,7 @@ export default function BoardEditor({
       if (format === 'haldraw') {
         await flushSave();
         const liveBoard = useCanvas.getState().board ?? board;
-        const file = await buildBoardFile(liveBoard, allNodes, edges);
+        const file = await buildBoardFile(liveBoard, allNodes, edges, Object.values(state.layers));
         const res = await window.haldraw.files.saveText({
           defaultName: `${safeName}.haldraw`,
           text: serializeBoardFile(file),
@@ -396,7 +419,7 @@ export default function BoardEditor({
       if (meta && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         if (store.refView !== 'only')
-          store.select(Object.values(store.nodes).filter((n) => !n.locked).map((n) => n.id));
+          store.select(Object.values(store.nodes).filter((n) => isNodeInteractive(store, n)).map((n) => n.id));
         return;
       }
       if (meta && e.key.toLowerCase() === 'd') {
@@ -438,6 +461,21 @@ export default function BoardEditor({
       if (meta && e.key === '1') {
         e.preventDefault();
         zoomToFit();
+        return;
+      }
+      if (meta && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        store.addLayer();
+        return;
+      }
+      if (meta && e.altKey && (e.key === ']' || e.code === 'BracketRight')) {
+        e.preventDefault();
+        store.shiftSelectionLayer('up');
+        return;
+      }
+      if (meta && e.altKey && (e.key === '[' || e.code === 'BracketLeft')) {
+        e.preventDefault();
+        store.shiftSelectionLayer('down');
         return;
       }
       if (meta && e.key === ']') {

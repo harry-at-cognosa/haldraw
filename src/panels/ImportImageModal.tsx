@@ -120,6 +120,12 @@ export default function ImportImageModal({ image, defaults, onPlace, onCancel }:
             hint="Ignores clicks and drags so you can draw over it. Unlock later from the Board panel."
           />
           <Check
+            checked={opts.ownLayer}
+            onChange={(ownLayer) => set({ ownLayer })}
+            label="Place on its own locked layer"
+            hint='Creates a "Reference" layer at the bottom of the stack; your drawing stays on the current layer.'
+          />
+          <Check
             checked={opts.sendToBack}
             onChange={(sendToBack) => set({ sendToBack })}
             label="Send to back"
