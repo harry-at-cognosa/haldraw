@@ -520,9 +520,10 @@ function ColorRow({
           onClick={() => onChange(c)}
           className={`w-6 h-6 rounded ${value === c ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'}`}
           style={{
-            background: c === 'transparent' ? 'repeating-linear-gradient(45deg,#444 0 3px,#222 3px 6px)' : c,
+            background:
+              c === 'transparent' ? 'repeating-linear-gradient(45deg,#999 0 3px,#ddd 3px 6px)' : c,
           }}
-          title={c}
+          title={c === 'transparent' ? 'Transparent (no fill)' : c}
         />
       ))}
     </div>

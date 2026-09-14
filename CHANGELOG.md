@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.4 — 2026-09-13
+
+### Fixed
+
+- The **Transparent** fill swatch used a dark-on-dark hatch that looked like a solid charcoal square on the light theme. It now uses the same grey-and-white hatch as the board background palette, with a "Transparent (no fill)" tooltip.
+
 ## 0.6.3 — 2026-09-13
 
 ### Added
