@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.6.2 — 2026-09-13
+
+### Added
+
+- **Stroke width numeric entry** for shapes and connectors, beside the existing sliders. Sliders keep their ranges (0–12 for shapes, 0.5–10 for connectors); the field accepts up to 100.
+
 ## 0.6.1 — 2026-09-13
 
 ### Added

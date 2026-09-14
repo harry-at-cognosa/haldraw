@@ -119,11 +119,13 @@ export default function PropertiesPanel() {
                 value={first?.style.stroke ?? '#e6e8eb'}
                 onChange={(c) => patch({ stroke: c })}
               />
-              <SliderRow
+              <NumericSliderRow
                 label="Width"
-                min={0}
-                max={12}
+                sliderMin={0}
+                sliderMax={12}
                 step={0.5}
+                min={0}
+                max={100}
                 value={first?.style.strokeWidth ?? 2}
                 onChange={(v) => patch({ strokeWidth: v })}
               />
@@ -431,11 +433,13 @@ export default function PropertiesPanel() {
               />
             </Section>
             <Section title="Stroke">
-              <SliderRow
+              <NumericSliderRow
                 label="Width"
-                min={0.5}
-                max={10}
+                sliderMin={0.5}
+                sliderMax={10}
                 step={0.5}
+                min={0.5}
+                max={100}
                 value={firstEdge?.style.strokeWidth ?? 2}
                 onChange={(v) => patchEdges({ style: { strokeWidth: v } })}
               />
@@ -575,36 +579,57 @@ function FontRow({ value, onChange }: { value: string; onChange: (family: string
   );
 }
 
-/** Font size: slider for the common 8–72 range plus a numeric field that accepts 4–999. */
-function SizeRow({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+/** Slider for the common range plus a numeric field for anything within [min, max]. */
+function NumericSliderRow({
+  label,
+  sliderMin,
+  sliderMax,
+  step,
+  min,
+  max,
+  value,
+  onChange,
+}: {
+  label: string;
+  sliderMin: number;
+  sliderMax: number;
+  step: number;
+  min: number;
+  max: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
   const [draft, setDraft] = useState(String(value));
   useEffect(() => setDraft(String(value)), [value]);
+  const decimals = step < 1 ? 1 : 0;
   const commit = () => {
-    const n = Math.round(Number(draft));
+    const n = Number(draft);
     if (!Number.isFinite(n)) {
       setDraft(String(value));
       return;
     }
-    const clamped = Math.min(999, Math.max(4, n));
+    const rounded = Number(n.toFixed(decimals));
+    const clamped = Math.min(max, Math.max(min, rounded));
     setDraft(String(clamped));
     if (clamped !== value) onChange(clamped);
   };
   return (
     <div className="flex items-center gap-2">
-      <span className="text-fg-muted text-xs w-12">Size</span>
+      <span className="text-fg-muted text-xs w-12">{label}</span>
       <input
         type="range"
-        min={8}
-        max={72}
-        step={1}
-        value={Math.min(72, Math.max(8, value))}
+        min={sliderMin}
+        max={sliderMax}
+        step={step}
+        value={Math.min(sliderMax, Math.max(sliderMin, value))}
         onChange={(e) => onChange(Number(e.target.value))}
         className="flex-1 accent-sky-400"
       />
       <input
         type="number"
-        min={4}
-        max={999}
+        min={min}
+        max={max}
+        step={step}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
@@ -621,9 +646,24 @@ function SizeRow({ value, onChange }: { value: number; onChange: (v: number) => 
           e.stopPropagation();
         }}
         className="w-14 bg-canvas rounded px-1.5 py-0.5 border border-border outline-none focus:border-accent text-xs tabular-nums text-right"
-        title="Type any size from 4 to 999 px"
+        title={`Type any value from ${min} to ${max}`}
       />
     </div>
+  );
+}
+
+function SizeRow({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <NumericSliderRow
+      label="Size"
+      sliderMin={8}
+      sliderMax={72}
+      step={1}
+      min={4}
+      max={999}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 
