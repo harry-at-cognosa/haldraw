@@ -83,11 +83,14 @@ export default function PropertiesPanel() {
   };
 
   const patchEdges = (p: Partial<CanvasEdge>) => {
+    // Merge style fields into the existing style; assigning `p` wholesale would
+    // replace the style object and drop every field not in the patch.
+    const { style, ...rest } = p;
     updateEdges(
       selectedEdges.map((e) => e.id),
       (edge) => {
-        Object.assign(edge, p);
-        if (p.style) edge.style = { ...edge.style, ...p.style };
+        Object.assign(edge, rest);
+        if (style) edge.style = { ...edge.style, ...style };
       }
     );
     rememberEdgeAttrs({
@@ -494,7 +497,7 @@ export default function PropertiesPanel() {
               <NumericSliderRow
                 label="Width"
                 sliderMin={0.5}
-                sliderMax={10}
+                sliderMax={12}
                 step={0.5}
                 min={0.5}
                 max={100}

@@ -2,6 +2,13 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.8.1 — 2026-09-15
+
+### Fixed
+
+- **Line colour and width no longer reset each other.** Changing any one style field of a line (colour, width, dash) replaced its whole style, so the other fields fell back to defaults: setting a width turned the line light grey, and picking a colour set the width back to 2. Present since 0.1.0; the properties panel now merges the field into the existing style.
+- The line width slider goes to 12, matching the shape stroke slider (the text field still accepts up to 100).
+
 ## 0.8.0 — 2026-09-15
 
 Edges on layers, head styles, no-snap drawing. Spec: [docs/Edge_layers_design.md](./docs/Edge_layers_design.md) (section 13 lists the deviations). Shortcuts: [docs/help_shortcuts_for_haldraw_v0.8.0.md](./docs/help_shortcuts_for_haldraw_v0.8.0.md).
