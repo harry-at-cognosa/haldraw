@@ -1,5 +1,5 @@
 import { getDb } from '../db';
-import type { CanvasEdge, CanvasNode, EdgeRouting, NodeType } from '@shared/types';
+import type { CanvasEdge, CanvasNode, EdgeHead, EdgeRouting, NodeType } from '@shared/types';
 
 type NodeRow = {
   id: string;
@@ -32,6 +32,9 @@ type EdgeRow = {
   routing: string;
   arrow_start: number;
   arrow_end: number;
+  head_start: string | null;
+  head_end: string | null;
+  layer_id: string | null;
   style: string;
   label: string | null;
   midpoint: string | null;
@@ -39,6 +42,12 @@ type EdgeRow = {
   created_at: number;
   updated_at: number;
 };
+
+const HEADS = new Set<string>(['none', 'arrow', 'open', 'dot', 'diamond', 'crow']);
+function toHead(v: string | null, legacy: number): EdgeHead {
+  if (v && HEADS.has(v)) return v as EdgeHead;
+  return legacy === 1 ? 'arrow' : 'none';
+}
 
 function toNode(row: NodeRow): CanvasNode {
   return {
@@ -72,12 +81,13 @@ function toEdge(row: EdgeRow): CanvasEdge {
     toAnchor: (row.to_anchor ?? null) as CanvasEdge['toAnchor'],
     toPoint: row.to_point ? JSON.parse(row.to_point) : null,
     routing: row.routing as EdgeRouting,
-    arrowStart: row.arrow_start === 1,
-    arrowEnd: row.arrow_end === 1,
+    headStart: toHead(row.head_start, row.arrow_start),
+    headEnd: toHead(row.head_end, row.arrow_end),
     style: JSON.parse(row.style),
     label: row.label ?? undefined,
     midpoint: row.midpoint ? JSON.parse(row.midpoint) : null,
     labelPoint: row.label_point ? JSON.parse(row.label_point) : null,
+    layerId: row.layer_id ?? '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -157,8 +167,8 @@ export function removeNodes(ids: string[]): void {
 export function upsertEdges(boardId: string, edges: CanvasEdge[]): void {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO edges (id, board_id, from_node, from_anchor, from_point, to_node, to_anchor, to_point, routing, arrow_start, arrow_end, style, label, midpoint, label_point, created_at, updated_at)
-    VALUES (@id, @board_id, @from_node, @from_anchor, @from_point, @to_node, @to_anchor, @to_point, @routing, @arrow_start, @arrow_end, @style, @label, @midpoint, @label_point, @created_at, @updated_at)
+    INSERT INTO edges (id, board_id, from_node, from_anchor, from_point, to_node, to_anchor, to_point, routing, arrow_start, arrow_end, head_start, head_end, layer_id, style, label, midpoint, label_point, created_at, updated_at)
+    VALUES (@id, @board_id, @from_node, @from_anchor, @from_point, @to_node, @to_anchor, @to_point, @routing, @arrow_start, @arrow_end, @head_start, @head_end, @layer_id, @style, @label, @midpoint, @label_point, @created_at, @updated_at)
     ON CONFLICT(id) DO UPDATE SET
       from_node = excluded.from_node,
       from_anchor = excluded.from_anchor,
@@ -169,6 +179,9 @@ export function upsertEdges(boardId: string, edges: CanvasEdge[]): void {
       routing = excluded.routing,
       arrow_start = excluded.arrow_start,
       arrow_end = excluded.arrow_end,
+      head_start = excluded.head_start,
+      head_end = excluded.head_end,
+      layer_id = excluded.layer_id,
       style = excluded.style,
       label = excluded.label,
       midpoint = excluded.midpoint,
@@ -188,8 +201,12 @@ export function upsertEdges(boardId: string, edges: CanvasEdge[]): void {
         to_anchor: e.toAnchor,
         to_point: e.toPoint ? JSON.stringify(e.toPoint) : null,
         routing: e.routing,
-        arrow_start: e.arrowStart ? 1 : 0,
-        arrow_end: e.arrowEnd ? 1 : 0,
+        // Legacy booleans kept as mirrors so a 0.7.x build still shows heads.
+        arrow_start: e.headStart !== 'none' ? 1 : 0,
+        arrow_end: e.headEnd !== 'none' ? 1 : 0,
+        head_start: e.headStart,
+        head_end: e.headEnd,
+        layer_id: e.layerId || null,
         style: JSON.stringify(e.style ?? {}),
         label: e.label ?? null,
         midpoint: e.midpoint ? JSON.stringify(e.midpoint) : null,

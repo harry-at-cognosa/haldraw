@@ -109,6 +109,7 @@ function migrate(db: Database.Database) {
   addColumnIfMissing(db, 'nodes', 'layer_id', `TEXT`);
   addColumnIfMissing(db, 'boards', 'current_layer', `TEXT`);
   migrateLayers(db);
+  migrateEdges(db);
 }
 
 /**
@@ -139,6 +140,46 @@ function migrateLayers(db: Database.Database) {
       attachNodes.run(layerId, b.id);
       setCurrent.run(layerId, b.id);
     }
+  });
+  tx();
+}
+
+/**
+ * 0.8.0: edges get a layer and two head styles.
+ * - `layer_id`: from the from-node, else the to-node, else the board's current
+ *   layer (a loose line was drawn while that layer was current; the bottom layer
+ *   is usually a locked reference and would keep the line hidden), else bottom.
+ * - `head_start` / `head_end`: seeded from the old `arrow_start` / `arrow_end`
+ *   booleans only when the head columns are first added, so a later "none" set
+ *   by the user is never overridden on relaunch. The boolean columns stay (and
+ *   are still written as mirrors) so a 0.7.x build can open the same database.
+ */
+function migrateEdges(db: Database.Database) {
+  const cols = db.prepare('PRAGMA table_info(edges)').all() as Array<{ name: string }>;
+  const hadHeads = cols.some((c) => c.name === 'head_end');
+  addColumnIfMissing(db, 'edges', 'layer_id', `TEXT`);
+  addColumnIfMissing(db, 'edges', 'head_start', `TEXT NOT NULL DEFAULT 'none'`);
+  addColumnIfMissing(db, 'edges', 'head_end', `TEXT NOT NULL DEFAULT 'none'`);
+  db.exec('CREATE INDEX IF NOT EXISTS edges_layer ON edges(layer_id)');
+  const tx = db.transaction(() => {
+    if (!hadHeads) {
+      db.exec(`UPDATE edges SET head_start = 'arrow' WHERE arrow_start = 1 AND head_start = 'none'`);
+      db.exec(`UPDATE edges SET head_end = 'arrow' WHERE arrow_end = 1 AND head_end = 'none'`);
+    }
+    db.exec(`
+      UPDATE edges SET layer_id = (SELECT layer_id FROM nodes WHERE nodes.id = edges.from_node)
+        WHERE layer_id IS NULL AND from_node IS NOT NULL;
+      UPDATE edges SET layer_id = (SELECT layer_id FROM nodes WHERE nodes.id = edges.to_node)
+        WHERE layer_id IS NULL AND to_node IS NOT NULL;
+      UPDATE edges SET layer_id = (
+          SELECT b.current_layer FROM boards b JOIN layers l ON l.id = b.current_layer WHERE b.id = edges.board_id
+        )
+        WHERE layer_id IS NULL;
+      UPDATE edges SET layer_id = (
+          SELECT id FROM layers WHERE layers.board_id = edges.board_id ORDER BY position ASC LIMIT 1
+        )
+        WHERE layer_id IS NULL;
+    `);
   });
   tx();
 }

@@ -31,7 +31,7 @@ Packaging uses `build/icon.png` for the app icon. For full build & distribution 
 - **Infinite canvas** — pan with `Space`+drag or middle-mouse, zoom with `⌘`+scroll.
 - **Shapes** — rectangle, square (1:1 lock), ellipse/circle, line, arrow, text. All resizable, rotatable through a full 360°.
 - **Text** — rotatable to any angle (uphill, downhill, upside-down), double-click to edit, works on shapes too as a centered label.
-- **Connectors** — `C` to drag from one shape to another; endpoints track shapes when moved. Pick routing (straight, right-angle, curved) and arrowheads on either or both ends in the properties panel.
+- **Connectors** — `C` to drag from one shape to another; endpoints track shapes when moved. Pick routing (straight, right-angle, curved) and a head style for each end (none, arrow, open arrow, dot, diamond, crow's foot) in the properties panel. Lines and connectors live on layers like shapes; hold `⌥` while drawing a line or arrow to keep it from snapping to shapes.
 - **Icons** — `I` opens the full Lucide icon library with search; icons are movable, resizable, rotatable, recolorable.
 - **Screenshots / images** — `⌘+V` to paste a screenshot, or drag-drop image files. Stored deduped by SHA-256 in the local DB.
 - **Styles** — per-shape fill, stroke color/width/dash, font size/weight/alignment, opacity.

@@ -6,6 +6,7 @@ import { layerOrder, useCanvas } from '@/store/canvasStore';
 export default function LayersPanel() {
   const layers = useCanvas((s) => s.layers);
   const nodes = useCanvas((s) => s.nodes);
+  const edges = useCanvas((s) => s.edges);
   const currentLayerId = useCanvas((s) => s.currentLayerId);
   const soloLayerId = useCanvas((s) => s.soloLayerId);
   const addLayer = useCanvas((s) => s.addLayer);
@@ -26,6 +27,14 @@ export default function LayersPanel() {
   const topFirst = [...ordered].reverse();
   const counts = new Map<string, number>();
   for (const n of Object.values(nodes)) counts.set(n.layerId, (counts.get(n.layerId) ?? 0) + 1);
+  const edgeCounts = new Map<string, number>();
+  for (const e of Object.values(edges)) edgeCounts.set(e.layerId, (edgeCounts.get(e.layerId) ?? 0) + 1);
+  const describe = (shapes: number, lines: number) => {
+    const parts: string[] = [];
+    if (shapes || !lines) parts.push(`${shapes} shape${shapes === 1 ? '' : 's'}`);
+    if (lines) parts.push(`${lines} line${lines === 1 ? '' : 's'}`);
+    return parts.join(' · ');
+  };
 
   return (
     <div className="space-y-2">
@@ -44,6 +53,8 @@ export default function LayersPanel() {
           const isCurrent = l.id === currentLayerId;
           const isSolo = l.id === soloLayerId;
           const count = counts.get(l.id) ?? 0;
+          const lineCount = edgeCounts.get(l.id) ?? 0;
+          const total = count + lineCount;
           const isTop = idx === 0;
           const isBottom = idx === topFirst.length - 1;
           return (
@@ -109,8 +120,8 @@ export default function LayersPanel() {
                     {l.name}
                   </span>
                 )}
-                <span className="text-[10px] text-fg-muted tabular-nums" title="Shapes on this layer">
-                  {count}
+                <span className="text-[10px] text-fg-muted tabular-nums whitespace-nowrap" title="Shapes · lines on this layer">
+                  {lineCount ? `${count} · ${lineCount}` : count}
                 </span>
               </div>
               <div className="flex items-center gap-0.5 mt-1 pl-1 opacity-0 group-hover:opacity-100">
@@ -151,13 +162,18 @@ export default function LayersPanel() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (l.locked) return;
                     const ids = Object.values(nodes)
-                      .filter((n) => n.layerId === l.id && !n.locked && !l.locked)
+                      .filter((n) => n.layerId === l.id && !n.locked)
                       .map((n) => n.id);
+                    const eids = Object.values(edges)
+                      .filter((e) => e.layerId === l.id)
+                      .map((e) => e.id);
                     if (ids.length) select(ids);
+                    if (eids.length) select(eids, { edges: true, additive: ids.length > 0 });
                   }}
                   className="p-0.5 rounded text-[10px] px-1 text-fg-muted hover:text-fg hover:bg-panel-hover"
-                  title="Select every unlocked shape on this layer"
+                  title="Select every unlocked shape and line on this layer"
                 >
                   select
                 </button>
@@ -165,14 +181,14 @@ export default function LayersPanel() {
                 {ordered.length > 1 ? (
                   confirmId === l.id ? (
                     <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      {count > 0 ? (
+                      {total > 0 ? (
                         <button
                           onClick={() => {
                             deleteLayer(l.id, 'merge');
                             setConfirmId(null);
                           }}
                           className="px-1 rounded text-[10px] border border-border text-fg-muted hover:text-fg"
-                          title="Move its shapes to the layer below, then delete"
+                          title="Move its shapes and lines to the layer below, then delete"
                         >
                           merge
                         </button>
@@ -183,7 +199,7 @@ export default function LayersPanel() {
                           setConfirmId(null);
                         }}
                         className="px-1 rounded text-[10px] bg-red-500 text-white"
-                        title={count > 0 ? `Delete the layer and its ${count} shape(s)` : 'Delete the empty layer'}
+                        title={total > 0 ? `Delete the layer and its ${describe(count, lineCount)}` : 'Delete the empty layer'}
                       >
                         delete
                       </button>
@@ -213,8 +229,8 @@ export default function LayersPanel() {
         })}
       </div>
       <div className="text-xs text-fg-muted leading-relaxed">
-        New shapes go on the highlighted layer. Clicking a shape switches to its layer. Hidden
-        layers are left out of exports; Solo is a view aid and is not saved.
+        New shapes and lines go on the highlighted layer. Clicking one switches to its layer.
+        Hidden layers are left out of exports; Solo is a view aid and is not saved.
       </div>
     </div>
   );

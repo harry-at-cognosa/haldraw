@@ -228,3 +228,17 @@ Assumes test plans 1 and 2 pass on 0.7.2. Use a board with a locked reference im
 12. **File round trip.** Export `.haldraw`, import into a fresh project: layers, edge layers and heads all match. Import a `.haldraw` written by 0.7.x: every edge lands on its from-node's layer, arrowheads map to `arrow` / `none`.
 13. **Old binary on new database.** Optional: launch the 0.7.2 bundle from `dist/` against the migrated database. It opens, edges draw beneath everything as before, arrowheads still show. Quit; relaunch 0.8.0; nothing was lost.
 14. **Re-run test plan 2 scenarios 3–6** to confirm layer behaviour for nodes is unchanged.
+
+## 13. Implementation notes (0.8.0, M2, 2026-09-15)
+
+Shipped as specified with these deviations, each agreed before implementation:
+
+- **Section 3.3, deprecated booleans.** `arrowStart` / `arrowEnd` were removed from `CanvasEdge` rather than kept as derived fields; nothing in the renderer read them. They survive in two places only: the SQLite columns, which `upsertEdges` still writes as mirrors of "head is not `none`" so a 0.7.x build shows heads on edges created by 0.8.0; and the `.haldraw` writer, for the same reason. The file type declares them optional.
+- **Section 7.3, export.** `buildExportSvg` clones the live canvas SVG, so the new markers reach PNG and SVG export without a separate emitter. The shared module `src/canvas/edgeHeads.ts` exists, but for the canvas and the properties-panel glyphs, not for export.
+- **Section 7.1, marker geometry.** `refX` follows the stated principle (line ends at the visual tip) rather than the listed numbers: `arrow` 8, `open` 8, `dot` 8.5, `diamond` 10, `crow` 10. With `dot` and `diamond` at 5, half the head would sit past the endpoint and be hidden under an opaque attached shape. The crow's foot is drawn with its trunk on the line and the three prongs touching the endpoint (the shape border), the ER-diagram convention; the note's geometry had the prongs pointing back along the line.
+- **Section 7.2, glyphs.** The six head buttons are small inline SVGs built from the same marker definitions, not Unicode characters, so the panel matches the canvas in every font.
+- **Selection.** Selecting an edge switches the current layer to the edge's layer, as selecting a node already did.
+- **Layer delete.** Deleting a layer with "delete" still cascades to edges on *other* layers whose attached node was on the deleted layer, as node deletion does; section 5.4's rule adds the layer's own edges on top of that.
+- **Sections 3.2 and 9, loose edges.** An edge with no attached node migrates to the board's *current* layer, not the bottom layer; the bottom layer is normally the locked "Reference" layer, which would have left the triggering case (a free arrow over a reference image) hidden and unselectable after migration. The bottom layer remains the last resort. On `.haldraw` import the same case goes to the top layer, the default a node without `layerId` already gets.
+- **Out of scope, confirmed:** marquee and `⌘A` still select nodes only; `Tab` cycling and Delete-selects-next still skip edges; no z-index for edges (section 10).
+

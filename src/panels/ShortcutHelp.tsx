@@ -45,6 +45,7 @@ export default function ShortcutHelp({
         ['A', 'Arrow'],
         ['T', 'Text'],
         ['C', 'Connector'],
+        ['⌥-drag (L / A)', 'Draw without snapping to shapes'],
         ['I', 'Icon library'],
       ],
     },
@@ -76,7 +77,7 @@ export default function ShortcutHelp({
       title: 'Stacking & layers',
       items: [
         ['⌘⇧L', 'New layer'],
-        ['⌘⌥] / ⌘⌥[', 'Move selection up / down a layer'],
+        ['⌘⌥] / ⌘⌥[', 'Move selection (shapes and lines) up / down a layer'],
         ['⌘]', 'Bring forward'],
         ['⌘[', 'Send backward'],
         ['⌘⇧]', 'Bring to front'],

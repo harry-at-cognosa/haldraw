@@ -1,11 +1,10 @@
 import { layerOrder, useCanvas } from '@/store/canvasStore';
 import LayersPanel from './LayersPanel';
-import type { Anchor, CanvasEdge, CanvasNode, EdgeRouting, NodeStyle } from '@shared/types';
+import { EDGE_HEADS, type Anchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type NodeStyle } from '@shared/types';
+import { HEAD_LABELS, HeadGlyph } from '@/canvas/edgeHeads';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
 import {
-  ArrowBigLeft,
-  ArrowBigRight,
   Minus,
   Spline,
   CornerDownRight,
@@ -61,7 +60,7 @@ export default function PropertiesPanel() {
   const resetNodeStyle = useCanvas((s) => s.resetNodeStyle);
   const setLocked = useCanvas((s) => s.setLocked);
   const layers = useCanvas((s) => s.layers);
-  const moveNodesToLayer = useCanvas((s) => s.moveNodesToLayer);
+  const moveToLayer = useCanvas((s) => s.moveToLayer);
 
   const selectedNodes = [...selection].map((id) => nodes[id]).filter(Boolean) as CanvasNode[];
   const selectedEdges = [...edgeSelection].map((id) => edges[id]).filter(Boolean) as CanvasEdge[];
@@ -94,8 +93,8 @@ export default function PropertiesPanel() {
     rememberEdgeAttrs({
       style: p.style,
       routing: p.routing,
-      arrowStart: p.arrowStart,
-      arrowEnd: p.arrowEnd,
+      headStart: p.headStart,
+      headEnd: p.headEnd,
     });
     commit();
   };
@@ -106,7 +105,13 @@ export default function PropertiesPanel() {
   return (
     <aside className="w-64 shrink-0 border-l border-border bg-panel flex flex-col text-sm">
       <div className="p-3 border-b border-border text-sm text-fg font-semibold uppercase tracking-wide">
-        {selectedEdges.length > 0 ? 'Connector' : `${selectedNodes.length} shape${selectedNodes.length > 1 ? 's' : ''}`}
+        {selectedEdges.length > 0
+          ? selectedEdges.length > 1
+            ? `${selectedEdges.length} lines`
+            : firstEdge?.fromNode || firstEdge?.toNode
+              ? 'Connector'
+              : 'Line'
+          : `${selectedNodes.length} shape${selectedNodes.length > 1 ? 's' : ''}`}
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-4">
         {selectedNodes.length > 0 ? (
@@ -222,7 +227,7 @@ export default function PropertiesPanel() {
                   <select
                     value={selectedNodes.every((n) => n.layerId === first?.layerId) ? first?.layerId ?? '' : ''}
                     onChange={(e) => {
-                      if (e.target.value) moveNodesToLayer(selectedNodes.map((n) => n.id), e.target.value);
+                      if (e.target.value) moveToLayer({ nodeIds: selectedNodes.map((n) => n.id) }, e.target.value);
                     }}
                     className="flex-1 min-w-0 bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent text-xs"
                     title="Move the selection to another layer (⌘⌥] / ⌘⌥[ step up / down)"
@@ -435,21 +440,48 @@ export default function PropertiesPanel() {
                 />
               </div>
             </Section>
-            <Section title="Arrowheads">
-              <div className="grid grid-cols-2 gap-1">
-                <ToggleBtn
-                  active={firstEdge?.arrowStart ?? false}
-                  onClick={() => patchEdges({ arrowStart: !firstEdge?.arrowStart })}
-                  icon={ArrowBigLeft}
-                  label="Start"
-                />
-                <ToggleBtn
-                  active={firstEdge?.arrowEnd ?? false}
-                  onClick={() => patchEdges({ arrowEnd: !firstEdge?.arrowEnd })}
-                  icon={ArrowBigRight}
-                  label="End"
-                />
+            <Section title="Heads">
+              <HeadRow
+                label="Start"
+                end="start"
+                value={firstEdge?.headStart ?? 'none'}
+                onChange={(h) => patchEdges({ headStart: h })}
+              />
+              <HeadRow
+                label="End"
+                end="end"
+                value={firstEdge?.headEnd ?? 'none'}
+                onChange={(h) => patchEdges({ headEnd: h })}
+              />
+            </Section>
+            <Section title="Layer">
+              <div className="grid grid-cols-4 gap-1 opacity-40" title="Lines draw beneath the shapes on their layer; stacking within a layer is not yet available">
+                <IconBtn icon={ChevronsUp} label="Front" onClick={() => {}} disabled />
+                <IconBtn icon={ChevronUp} label="Forward" onClick={() => {}} disabled />
+                <IconBtn icon={ChevronDown} label="Backward" onClick={() => {}} disabled />
+                <IconBtn icon={ChevronsDown} label="Back" onClick={() => {}} disabled />
               </div>
+              {Object.keys(layers).length > 1 ? (
+                <Row label="On layer">
+                  <select
+                    value={selectedEdges.every((e) => e.layerId === firstEdge?.layerId) ? firstEdge?.layerId ?? '' : ''}
+                    onChange={(e) => {
+                      if (e.target.value) moveToLayer({ edgeIds: selectedEdges.map((ed) => ed.id) }, e.target.value);
+                    }}
+                    className="flex-1 min-w-0 bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent text-xs"
+                    title="Move the line to another layer (⌘⌥] / ⌘⌥[ step up / down)"
+                  >
+                    {!selectedEdges.every((e) => e.layerId === firstEdge?.layerId) ? (
+                      <option value="">Mixed…</option>
+                    ) : null}
+                    {[...layerOrder(layers)].reverse().map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                </Row>
+              ) : null}
             </Section>
             <Section title="Color">
               <ColorRow
@@ -772,6 +804,38 @@ function Segmented<T>({
   );
 }
 
+/** Six head styles as small line previews; the marker sits at the row's own end. */
+function HeadRow({
+  label,
+  end,
+  value,
+  onChange,
+}: {
+  label: string;
+  end: 'start' | 'end';
+  value: EdgeHead;
+  onChange: (h: EdgeHead) => void;
+}) {
+  return (
+    <Row label={label}>
+      <div className="flex flex-1 rounded border border-border overflow-hidden">
+        {EDGE_HEADS.map((h) => (
+          <button
+            key={h}
+            onClick={() => onChange(h)}
+            title={HEAD_LABELS[h]}
+            className={`flex-1 py-1 flex items-center justify-center ${
+              value === h ? 'bg-accent text-white' : 'hover:bg-panel-hover text-fg-muted'
+            }`}
+          >
+            <HeadGlyph kind={h} end={end} />
+          </button>
+        ))}
+      </div>
+    </Row>
+  );
+}
+
 function RouteBtn({
   active,
   onClick,
@@ -797,43 +861,23 @@ function RouteBtn({
   );
 }
 
-function ToggleBtn({
-  active,
-  onClick,
-  icon: Icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ComponentType<any>;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`py-2 rounded flex items-center justify-center gap-1.5 text-xs ${
-        active ? 'bg-accent text-white' : 'hover:bg-panel-hover text-fg-muted border border-border'
-      }`}
-    >
-      <Icon size={14} /> {label}
-    </button>
-  );
-}
-
 function IconBtn({
   icon: Icon,
   label,
   onClick,
+  disabled,
 }: {
   icon: React.ComponentType<any>;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={label}
-      className="py-1.5 rounded border border-border hover:bg-panel-hover flex items-center justify-center text-fg-muted"
+      disabled={disabled}
+      className="py-1.5 rounded border border-border hover:bg-panel-hover flex items-center justify-center text-fg-muted disabled:hover:bg-transparent disabled:cursor-default"
     >
       <Icon size={14} />
     </button>

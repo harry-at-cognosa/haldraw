@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CanvasEdge, CanvasNode, NodeType } from '@shared/types';
-import { DEFAULT_NODE_STYLE, isNodeInteractive, isNodeVisible, layerOrder, useCanvas } from '@/store/canvasStore';
+import {
+  DEFAULT_NODE_STYLE,
+  isEdgeInteractive,
+  isEdgeVisible,
+  isNodeInteractive,
+  isNodeVisible,
+  layerOrder,
+  useCanvas,
+} from '@/store/canvasStore';
 import {
   combinedBbox,
   rectsOverlap,
@@ -180,8 +188,8 @@ export default function Canvas({
           toAnchor: null,
           toPoint: { x: cursorWorld.x, y: cursorWorld.y },
           routing: le.routing,
-          arrowStart: le.arrowStart,
-          arrowEnd: true,
+          headStart: le.headStart,
+          headEnd: le.headEnd === 'none' ? 'arrow' : le.headEnd,
           style: { ...le.style, stroke: edgeStroke },
         }).id;
         setInteraction({ kind: 'draw-connector', fromNodeId: node.id, edgeId });
@@ -223,8 +231,11 @@ export default function Canvas({
   const handleEdgePointerDown = useCallback(
     (e: React.PointerEvent, edge: CanvasEdge) => {
       if (tool !== 'select') return;
+      const state = useCanvas.getState();
+      // Edge on a locked layer: let the event bubble like a locked node does.
+      if (!isEdgeInteractive(state, edge, state.nodes)) return;
       e.stopPropagation();
-      useCanvas.getState().select([edge.id], { edges: true, additive: e.shiftKey || e.metaKey });
+      state.select([edge.id], { edges: true, additive: e.shiftKey || e.metaKey });
     },
     [tool]
   );
@@ -306,7 +317,8 @@ export default function Canvas({
       }
       if (tool === 'line' || tool === 'arrow') {
         const snapped = maybeSnap(world);
-        const startNode = findTopmostNodeAt(store.nodes, world);
+        // ⌥ (Alt): draw without snapping the endpoints to shapes.
+        const startNode = e.altKey ? null : findTopmostNodeAt(store.nodes, world);
         const le = store.lastEdge;
         const edgeStroke = le.style.stroke ?? defaultEdgeStrokeForBackground(background);
         const edge = store.addEdge({
@@ -317,8 +329,8 @@ export default function Canvas({
           toAnchor: null,
           toPoint: { x: snapped.x, y: snapped.y },
           routing: le.routing,
-          arrowStart: tool === 'line' ? le.arrowStart : le.arrowStart,
-          arrowEnd: tool === 'arrow' ? true : le.arrowEnd,
+          headStart: le.headStart,
+          headEnd: tool === 'arrow' && le.headEnd === 'none' ? 'arrow' : le.headEnd,
           style: { ...le.style, stroke: edgeStroke },
         });
         setInteraction({
@@ -487,7 +499,7 @@ export default function Canvas({
         }
         case 'draw-line': {
           const snapped = maybeSnap(world);
-          const target = findTopmostNodeAt(store.nodes, world, interaction.startNodeId);
+          const target = e.altKey ? null : findTopmostNodeAt(store.nodes, world, interaction.startNodeId);
           setHoveredNodeId(target?.id ?? null);
           store.updateEdges([interaction.edgeId], (edge) => {
             if (target) {
@@ -535,7 +547,8 @@ export default function Canvas({
           const edge = store.edges[interaction.edgeId];
           if (!edge) return;
           const otherId = interaction.which === 'from' ? edge.toNode : edge.fromNode;
-          const target = findTopmostNodeAt(store.nodes, world, otherId);
+          // ⌥-drag detaches: the end follows the pointer instead of snapping.
+          const target = e.altKey ? null : findTopmostNodeAt(store.nodes, world, otherId);
           setHoveredNodeId(target?.id ?? null);
           store.updateEdges([interaction.edgeId], (ed) => {
             if (interaction.which === 'from') {
@@ -676,23 +689,37 @@ export default function Canvas({
     files.forEach((f, i) => onRequestImageFile(f, { x: world.x + i * 30, y: world.y + i * 30 }));
   };
 
+  const orderedLayers = useMemo(() => layerOrder(layers), [layers]);
   const sortedNodes = useMemo(() => {
     const view = { layers, soloLayerId };
-    const pos = new Map(layerOrder(layers).map((l, i) => [l.id, i]));
+    const pos = new Map(orderedLayers.map((l, i) => [l.id, i]));
     return Object.values(nodes)
       .filter((n) => isNodeVisible(view, n))
       .filter((n) => (refView === 'hidden' ? !n.locked : refView === 'only' ? n.locked : true))
       .sort((a, b) => (pos.get(a.layerId) ?? 0) - (pos.get(b.layerId) ?? 0) || a.zIndex - b.zIndex);
-  }, [nodes, refView, layers, soloLayerId]);
-  // Connectors belong to the drawing: hidden with "References only", and hidden
-  // when either attached node is on a hidden layer.
+  }, [nodes, refView, layers, soloLayerId, orderedLayers]);
+  // Edges belong to the drawing: hidden with "References only", and hidden when
+  // their own layer is hidden or either attached node is not shown.
   const sortedEdges = useMemo(() => {
     if (refView === 'only') return [];
+    const view = { layers, soloLayerId };
     const shown = new Set(sortedNodes.map((n) => n.id));
     return Object.values(edges).filter(
-      (e) => (!e.fromNode || shown.has(e.fromNode)) && (!e.toNode || shown.has(e.toNode))
+      (e) =>
+        isEdgeVisible(view, e, nodes) &&
+        (!e.fromNode || shown.has(e.fromNode)) &&
+        (!e.toNode || shown.has(e.toNode))
     );
-  }, [edges, refView, sortedNodes]);
+  }, [edges, nodes, refView, layers, soloLayerId, sortedNodes]);
+  // Paint order: layer by layer, each layer's edges beneath its nodes.
+  const byLayer = useMemo(() => {
+    const fallback = orderedLayers[0]?.id ?? '';
+    const out = new Map<string, { edges: CanvasEdge[]; nodes: CanvasNode[] }>();
+    for (const l of orderedLayers) out.set(l.id, { edges: [], nodes: [] });
+    for (const e of sortedEdges) (out.get(e.layerId) ?? out.get(fallback))?.edges.push(e);
+    for (const n of sortedNodes) (out.get(n.layerId) ?? out.get(fallback))?.nodes.push(n);
+    return out;
+  }, [orderedLayers, sortedEdges, sortedNodes]);
   const selectedNodes = useMemo(
     () => [...selection].map((id) => nodes[id]).filter(Boolean),
     [nodes, selection]
@@ -701,8 +728,10 @@ export default function Canvas({
   const selectedEdge = selectedEdgeId ? edges[selectedEdgeId] : null;
   const selectedEdgeEndpoints = useMemo(() => {
     if (!selectedEdge) return null;
+    // No handles for an edge that cannot be interacted with (locked / hidden layer).
+    if (!isEdgeInteractive({ layers, soloLayerId }, selectedEdge, nodes)) return null;
     return edgeEndpoints(selectedEdge, nodes);
-  }, [selectedEdge, nodes]);
+  }, [selectedEdge, nodes, layers, soloLayerId]);
 
   const startEndpointDrag = (which: 'from' | 'to', e: React.PointerEvent) => {
     if (!selectedEdge) return;
@@ -786,51 +815,59 @@ export default function Canvas({
         style={{ touchAction: 'none' }}
       >
         <g data-root="true" transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`}>
-          {sortedEdges.map((edge) => (
-            <Edge
-              key={edge.id}
-              edge={edge}
-              nodes={nodes}
-              selected={edgeSelection.has(edge.id)}
-              onPointerDown={handleEdgePointerDown}
-              onLabelPointerDown={(e) => {
-                if (edgeSelection.has(edge.id)) {
-                  useCanvas.getState().select([edge.id], { edges: true });
-                  startLabelDrag(e);
-                }
-              }}
-            />
-          ))}
-          {sortedNodes.map((node) => (
-            <Shape
-              key={node.id}
-              node={node}
-              selected={selection.has(node.id)}
-              onPointerDown={handleNodePointerDown}
-              onDoubleClick={(n) => {
-                if (!isNodeInteractive(useCanvas.getState(), n)) return;
-                if (
-                  n.type === 'text' ||
-                  n.type === 'rect' ||
-                  n.type === 'ellipse' ||
-                  n.type === 'diamond'
-                ) {
-                  setEditingNodeId(n.id);
-                  useCanvas.getState().select([n.id]);
-                }
-              }}
-              editing={editingNodeId === node.id}
-              onFinishEdit={(text) => {
-                useCanvas.getState().updateNodes([node.id], (n) => {
-                  n.content = { ...n.content, text };
-                });
-                useCanvas.getState().commit();
-                setEditingNodeId(null);
-              }}
-              imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
-              dimmed={dimReferences && node.locked}
-            />
-          ))}
+          {orderedLayers.map((layer) => {
+            const bucket = byLayer.get(layer.id);
+            if (!bucket || (!bucket.edges.length && !bucket.nodes.length)) return null;
+            return (
+              <g key={layer.id} data-layer={layer.id}>
+                {bucket.edges.map((edge) => (
+                  <Edge
+                    key={edge.id}
+                    edge={edge}
+                    nodes={nodes}
+                    selected={edgeSelection.has(edge.id)}
+                    onPointerDown={handleEdgePointerDown}
+                    onLabelPointerDown={(e) => {
+                      if (edgeSelection.has(edge.id)) {
+                        useCanvas.getState().select([edge.id], { edges: true });
+                        startLabelDrag(e);
+                      }
+                    }}
+                  />
+                ))}
+                {bucket.nodes.map((node) => (
+                  <Shape
+                    key={node.id}
+                    node={node}
+                    selected={selection.has(node.id)}
+                    onPointerDown={handleNodePointerDown}
+                    onDoubleClick={(n) => {
+                      if (!isNodeInteractive(useCanvas.getState(), n)) return;
+                      if (
+                        n.type === 'text' ||
+                        n.type === 'rect' ||
+                        n.type === 'ellipse' ||
+                        n.type === 'diamond'
+                      ) {
+                        setEditingNodeId(n.id);
+                        useCanvas.getState().select([n.id]);
+                      }
+                    }}
+                    editing={editingNodeId === node.id}
+                    onFinishEdit={(text) => {
+                      useCanvas.getState().updateNodes([node.id], (n) => {
+                        n.content = { ...n.content, text };
+                      });
+                      useCanvas.getState().commit();
+                      setEditingNodeId(null);
+                    }}
+                    imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
+                    dimmed={dimReferences && node.locked}
+                  />
+                ))}
+              </g>
+            );
+          })}
           <g data-ui="true">
             {sortedNodes
               .filter((n) => !!n.content.link)

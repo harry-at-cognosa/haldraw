@@ -1,10 +1,12 @@
-import type {
-  Board,
-  CanvasEdge,
-  CanvasNode,
-  HaldrawBoardFile,
-  Layer,
-  TextFileFilter,
+import {
+  EDGE_HEADS,
+  type Board,
+  type CanvasEdge,
+  type CanvasNode,
+  type EdgeHead,
+  type HaldrawBoardFile,
+  type Layer,
+  type TextFileFilter,
 } from '@shared/types';
 import { newId } from '@/util/id';
 import { APP_VERSION } from '@/util/version';
@@ -51,7 +53,12 @@ export async function buildBoardFile(
     },
     layers: [...layers].sort((a, b) => a.position - b.position).map(strip),
     nodes: [...nodes].sort((a, b) => a.zIndex - b.zIndex).map(strip),
-    edges: edges.map(strip),
+    // arrowStart / arrowEnd are mirrors of the heads so pre-0.8.0 builds can read the file.
+    edges: edges.map((e) => ({
+      ...strip(e),
+      arrowStart: e.headStart !== 'none',
+      arrowEnd: e.headEnd !== 'none',
+    })),
     images,
   };
 }
@@ -84,10 +91,14 @@ export function parseBoardFile(text: string): HaldrawBoardFile {
     }
   });
   const nodeIds = new Set(f.nodes.map((n) => n.id));
+  const HEADS = new Set<string>(EDGE_HEADS);
   f.edges.forEach((e, i) => {
     if (!e || typeof e.id !== 'string') throw new Error(`Edge ${i}: missing id.`);
     if (e.fromNode && !nodeIds.has(e.fromNode)) throw new Error(`Edge ${i}: fromNode "${e.fromNode}" not in file.`);
     if (e.toNode && !nodeIds.has(e.toNode)) throw new Error(`Edge ${i}: toNode "${e.toNode}" not in file.`);
+    for (const k of ['headStart', 'headEnd'] as const) {
+      if (e[k] !== undefined && !HEADS.has(String(e[k]))) throw new Error(`Edge ${e.id}: unknown ${k} "${String(e[k])}".`);
+    }
   });
   if (f.layers !== undefined) {
     if (!Array.isArray(f.layers)) throw new Error('layers must be an array.');
@@ -99,6 +110,9 @@ export function parseBoardFile(text: string): HaldrawBoardFile {
     });
     for (const n of f.nodes) {
       if (n.layerId && !layerIds.has(n.layerId)) throw new Error(`Node ${n.id} references layer "${n.layerId}" which is not in the file.`);
+    }
+    for (const e of f.edges) {
+      if (e.layerId && !layerIds.has(e.layerId)) throw new Error(`Edge ${e.id} references layer "${e.layerId}" which is not in the file.`);
     }
   }
   const images = f.images && typeof f.images === 'object' ? f.images : {};
@@ -192,25 +206,40 @@ export async function importBoardFile(
       updatedAt: now,
     };
   });
-  const edges: CanvasEdge[] = file.edges.map((e) => ({
-    id: newId(),
-    boardId: board.id,
-    fromNode: e.fromNode ? nodeIdMap.get(e.fromNode) ?? null : null,
-    fromAnchor: e.fromAnchor ?? null,
-    fromPoint: e.fromPoint ?? null,
-    toNode: e.toNode ? nodeIdMap.get(e.toNode) ?? null : null,
-    toAnchor: e.toAnchor ?? null,
-    toPoint: e.toPoint ?? null,
-    routing: e.routing ?? 'straight',
-    arrowStart: Boolean(e.arrowStart),
-    arrowEnd: e.arrowEnd !== false,
-    style: e.style ?? {},
-    label: e.label,
-    midpoint: e.midpoint ?? null,
-    labelPoint: e.labelPoint ?? null,
-    createdAt: e.createdAt ?? now,
-    updatedAt: now,
-  }));
+  const nodeLayer = new Map(nodes.map((n) => [n.id, n.layerId]));
+  const head = (h: EdgeHead | undefined, legacy: boolean | undefined, legacyDefault: boolean): EdgeHead =>
+    h ?? ((legacy ?? legacyDefault) ? 'arrow' : 'none');
+  const edges: CanvasEdge[] = file.edges.map((e) => {
+    const fromNode = e.fromNode ? nodeIdMap.get(e.fromNode) ?? null : null;
+    const toNode = e.toNode ? nodeIdMap.get(e.toNode) ?? null : null;
+    // Pre-0.8.0 files: an edge follows its from-node, else its to-node, else the
+    // top layer, the same default a node without layerId gets.
+    const layerId =
+      (e.layerId && layerIdMap.get(e.layerId)) ||
+      (fromNode && nodeLayer.get(fromNode)) ||
+      (toNode && nodeLayer.get(toNode)) ||
+      defaultLayerId;
+    return {
+      id: newId(),
+      boardId: board.id,
+      fromNode,
+      fromAnchor: e.fromAnchor ?? null,
+      fromPoint: e.fromPoint ?? null,
+      toNode,
+      toAnchor: e.toAnchor ?? null,
+      toPoint: e.toPoint ?? null,
+      routing: e.routing ?? 'straight',
+      headStart: head(e.headStart, e.arrowStart, false),
+      headEnd: head(e.headEnd, e.arrowEnd, true),
+      style: e.style ?? {},
+      label: e.label,
+      midpoint: e.midpoint ?? null,
+      labelPoint: e.labelPoint ?? null,
+      layerId,
+      createdAt: e.createdAt ?? now,
+      updatedAt: now,
+    };
+  });
 
   if (nodes.length) await window.haldraw.nodes.upsertMany(board.id, nodes);
   if (edges.length) await window.haldraw.edges.upsertMany(board.id, edges);

@@ -28,7 +28,7 @@ Import always creates a **new** board. It never merges into or overwrites an exi
   },
   "layers": [ /* since 0.7.0: Layer without boardId, sorted by position (0 = bottom) */ ],
   "nodes": [ /* CanvasNode without boardId, sorted by zIndex; each has layerId since 0.7.0 */ ],
-  "edges": [ /* CanvasEdge without boardId */ ],
+  "edges": [ /* CanvasEdge without boardId; each has layerId, headStart, headEnd since 0.8.0 */ ],
   "images": {
     "<sha256 of bytes>": { "mime": "image/png", "width": 800, "height": 600, "base64": "iVBOR..." }
   }
@@ -37,18 +37,22 @@ Import always creates a **new** board. It never merges into or overwrites an exi
 
 Node and edge objects are the in-app shapes from `shared/types.ts` verbatim, minus `boardId`. All coordinates are canvas units (pixels at 100 % zoom), origin top-left. Rotation is radians.
 
+Edge fields since 0.8.0: `layerId` (the edge's own layer), `headStart` and `headEnd` (one of `none`, `arrow`, `open`, `dot`, `diamond`, `crow`). The writer also emits `arrowStart` / `arrowEnd` booleans, mirrors of "head is not `none`", so that 0.6.x–0.7.x builds can still read the file; 0.8.0 ignores them when the head fields are present.
+
 ## Rules on import
 
 - **Ids are remapped.** Every node, edge and group id in the file is replaced with a fresh ULID, so importing the same file twice yields two independent boards and hand-written files can use any string as an id.
 - **Layer ids are remapped** like node ids. A file with no `layers` block (written before 0.7.0) puts every node on the new board's single "Layer 1". A node whose `layerId` is absent goes to the top layer. A node referencing a layer not in the file is a validation error.
+- **Edges have layers too** (0.8.0). An edge's `layerId` is remapped like a node's. When it is absent (files written before 0.8.0) the edge goes to the layer of its `fromNode`, else of its `toNode`, else the top layer (the same default as a node without `layerId`). An edge referencing a layer not in the file is a validation error.
+- **Head styles** (0.8.0). `headStart` / `headEnd` absent → derived from the old booleans: `arrowStart ? "arrow" : "none"` and `arrowEnd !== false ? "arrow" : "none"`. An unknown head string is a validation error.
 - **Image ids are content hashes** and are kept. If a file was hand-edited so the base64 no longer matches its key, the importer stores the bytes under the correct hash and repoints the nodes. Nothing is lost.
 - **Edges must reference nodes in the same file.** An edge whose `fromNode` or `toNode` is absent is a validation error. Loose ends use `fromPoint` / `toPoint` with `fromNode: null`.
-- **Missing optional fields get defaults.** `rotation` 0, `zIndex` array order, `style` `{}`, `content` `{}`, `locked` false, `routing` `"straight"`, `arrowEnd` true.
+- **Missing optional fields get defaults.** `rotation` 0, `zIndex` array order, `style` `{}`, `content` `{}`, `locked` false, `routing` `"straight"`, `headEnd` `"arrow"` (via `arrowEnd` true).
 - Board name is taken from the file, offered in a prompt, and can be changed before import.
 
 ## Validation errors
 
-Each of these aborts the import with the message shown in a toast: not JSON; missing or wrong `format`; `version` other than 1; missing board name; `nodes` or `edges` not arrays; a node with no id, an unknown `type`, or a non-numeric `x`/`y`/`width`/`height`; an edge referencing a node not in the file; a node referencing an image not in the file.
+Each of these aborts the import with the message shown in a toast: not JSON; missing or wrong `format`; `version` other than 1; missing board name; `nodes` or `edges` not arrays; a node with no id, an unknown `type`, or a non-numeric `x`/`y`/`width`/`height`; an edge referencing a node not in the file; an edge with an unknown `headStart` / `headEnd`; a node or edge referencing a layer not in the file; a node referencing an image not in the file.
 
 ## Not in v1
 

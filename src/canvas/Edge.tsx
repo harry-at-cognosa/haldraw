@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { CanvasEdge, CanvasNode } from '@shared/types';
 import { buildPath, edgeEndpoints } from './routing';
+import { headMarker } from './edgeHeads';
 
 type Props = {
   edge: CanvasEdge;
@@ -38,8 +39,8 @@ function EdgeInner({ edge, nodes, selected, onPointerDown, onLabelPointerDown }:
         strokeWidth={strokeWidth}
         strokeDasharray={dasharray}
         opacity={opacity}
-        markerStart={edge.arrowStart ? `url(#arrow-start-${edge.id})` : undefined}
-        markerEnd={edge.arrowEnd ? `url(#arrow-end-${edge.id})` : undefined}
+        markerStart={edge.headStart !== 'none' ? `url(#head-start-${edge.id})` : undefined}
+        markerEnd={edge.headEnd !== 'none' ? `url(#head-end-${edge.id})` : undefined}
         pointerEvents="none"
       />
       {selected ? (
@@ -73,30 +74,12 @@ function EdgeInner({ edge, nodes, selected, onPointerDown, onLabelPointerDown }:
         </foreignObject>
       ) : null}
 
-      <defs>
-        <marker
-          id={`arrow-end-${edge.id}`}
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={stroke} />
-        </marker>
-        <marker
-          id={`arrow-start-${edge.id}`}
-          viewBox="0 0 10 10"
-          refX="2"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 10 0 L 0 5 L 10 10 z" fill={stroke} />
-        </marker>
-      </defs>
+      {edge.headStart !== 'none' || edge.headEnd !== 'none' ? (
+        <defs>
+          {headMarker(edge.headStart, `head-start-${edge.id}`, stroke)}
+          {headMarker(edge.headEnd, `head-end-${edge.id}`, stroke)}
+        </defs>
+      ) : null}
     </g>
   );
 }

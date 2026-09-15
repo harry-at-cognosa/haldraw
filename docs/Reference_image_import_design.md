@@ -131,7 +131,7 @@ haldraw today has one flat stack per board: every node carries a z-index, ties a
 
 - A **layer** is an ordered, named container of nodes within one board. Properties: name, order, visible, locked.
 - Every node belongs to exactly one layer. Within a layer, the existing z-index still orders nodes.
-- Render order is layer order first, then z-index. Connectors keep drawing beneath all nodes; a connector belongs to the layer of its `fromNode` (or the current layer when both ends are loose).
+- Render order is layer order first, then z-index. ~~Connectors keep drawing beneath all nodes; a connector belongs to the layer of its `fromNode` (or the current layer when both ends are loose).~~ Superseded in 0.8.0: edges have their own layer, land on the current layer like nodes, and draw beneath the nodes of that layer only. See [Edge_layers_design.md](./Edge_layers_design.md).
 - Exactly one layer per board is **current**. New nodes, pastes, duplicates and imports land in it.
 - Any node on a visible, unlocked layer is editable at any time. Selecting a node makes its layer current. There is no "must switch to layer N to edit layer N" mode; lock a layer to protect it.
 - The view is always top-down. "Only this layer" is a **solo** toggle that temporarily hides every other layer; it is not a separate view mode and is not persisted.

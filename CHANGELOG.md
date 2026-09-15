@@ -2,6 +2,27 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.8.0 — 2026-09-15
+
+Edges on layers, head styles, no-snap drawing. Spec: [docs/Edge_layers_design.md](./docs/Edge_layers_design.md) (section 13 lists the deviations). Shortcuts: [docs/help_shortcuts_for_haldraw_v0.8.0.md](./docs/help_shortcuts_for_haldraw_v0.8.0.md).
+
+### Added
+
+- **Lines, arrows and connectors belong to a layer.** A new edge lands on the current layer, like a new shape. Each layer paints its edges beneath its own shapes, so an arrow on a layer above "Reference" now draws over the locked image instead of under it. Layer visibility, lock and solo apply to edges; the Layers list count reads `12 · 3` (shapes · lines) when a layer has both, and "select" on a row picks up its lines too.
+- **Move edges between layers.** The properties panel's Layer section (On layer dropdown) and `⌘⌥]` / `⌘⌥[` work on a selected line. When shapes are moved to a layer, every edge attached at *both* ends to moved shapes moves with them; an edge with one end elsewhere stays.
+- **Six head styles per end:** none, arrow, open arrow, dot, diamond, crow's foot. The properties panel's Arrowheads toggles are replaced by two rows of line previews (Start, End). The last-used heads are remembered for the next line; `A` still guarantees an arrow at the end.
+- **`⌥`-drag with `L` / `A`** draws without snapping either end to a shape. `⌥`-drag an endpoint handle to detach it from its shape.
+
+### Changed
+
+- **Layer delete / merge** now delete or move the layer's edges along with its shapes.
+- **Selecting a line** switches the current layer to the line's layer, as selecting a shape did.
+- **`.haldraw` files** (still format v1) carry `layerId`, `headStart` and `headEnd` on each edge. Older files import with each edge on its from-node's layer and the old arrow booleans mapped to `arrow` / `none`. The writer still emits `arrowStart` / `arrowEnd` as mirrors so older builds can read new files.
+
+### Migration
+
+- `edges.layer_id`, `edges.head_start`, `edges.head_end`. Every existing edge is placed on the layer of its from-node (else its to-node, else the board's current layer, else the bottom layer) and its arrow booleans are copied into the head columns once. `arrow_start` / `arrow_end` stay in the table and are still written as mirrors, so a 0.7.x build can open the migrated database; heads changed from within 0.7.x are not picked up by 0.8.0 afterwards.
+
 ## 0.7.2 — 2026-09-14
 
 ### Changed

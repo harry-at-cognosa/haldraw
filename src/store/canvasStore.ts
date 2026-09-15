@@ -4,6 +4,7 @@ import type {
   BoardSnapshot,
   CanvasEdge,
   CanvasNode,
+  EdgeHead,
   EdgeRouting,
   EdgeStyle,
   Layer,
@@ -79,8 +80,8 @@ interface CanvasState {
   lastEdge: {
     style: EdgeStyle;
     routing: EdgeRouting;
-    arrowStart: boolean;
-    arrowEnd: boolean;
+    headStart: EdgeHead;
+    headEnd: EdgeHead;
   };
   setEditingNodeId: (id: string | null) => void;
 
@@ -102,7 +103,8 @@ interface CanvasState {
   updateNodes: (ids: string[], updater: (n: CanvasNode) => CanvasNode | void) => void;
   deleteNodes: (ids: string[]) => void;
 
-  addEdge: (partial: Omit<CanvasEdge, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'midpoint' | 'labelPoint'> & { midpoint?: { x: number; y: number } | null; labelPoint?: { x: number; y: number } | null }) => CanvasEdge;
+  /** New edges land on the current layer unless `layerId` is given. */
+  addEdge: (partial: Omit<CanvasEdge, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'midpoint' | 'labelPoint' | 'layerId'> & { midpoint?: { x: number; y: number } | null; labelPoint?: { x: number; y: number } | null; layerId?: string }) => CanvasEdge;
   updateEdges: (ids: string[], updater: (e: CanvasEdge) => CanvasEdge | void) => void;
   deleteEdges: (ids: string[]) => void;
 
@@ -139,12 +141,16 @@ interface CanvasState {
   setLayerLocked: (id: string, locked: boolean) => void;
   /** Swap with the neighbour above ('up') or below ('down'). */
   moveLayer: (id: string, dir: 'up' | 'down') => void;
-  /** Refuses to delete the last layer. 'merge' moves the layer's nodes to the neighbour below (or above for the bottom layer). */
+  /** Refuses to delete the last layer. 'merge' moves the layer's nodes and edges to the neighbour below (or above for the bottom layer). */
   deleteLayer: (id: string, mode: 'delete' | 'merge') => boolean;
   setCurrentLayer: (id: string) => void;
   setSoloLayer: (id: string | null) => void;
-  moveNodesToLayer: (ids: string[], layerId: string) => void;
-  /** Move the selection one layer up or down. */
+  /**
+   * Move nodes and edges to a layer. An edge not listed in `edgeIds` moves too
+   * when both of its attached ends are among `nodeIds`; one attached end is not enough.
+   */
+  moveToLayer: (sel: { nodeIds?: string[]; edgeIds?: string[] }, layerId: string) => void;
+  /** Move the selection (nodes and edges) one layer up or down. */
   shiftSelectionLayer: (dir: 'up' | 'down') => void;
 
   consumeDirty: () => {
@@ -179,6 +185,37 @@ export function isNodeInteractive(s: Pick<CanvasState, 'layers' | 'soloLayerId'>
   if (!isNodeVisible(s, n)) return false;
   if (n.locked) return false;
   const l = s.layers[n.layerId];
+  return !(l && l.locked);
+}
+
+/**
+ * An edge shows when its own layer shows (and solo allows it) and every attached
+ * node is visible. Reference-view filtering of attached nodes is applied by the
+ * caller, as before.
+ */
+export function isEdgeVisible(
+  s: Pick<CanvasState, 'layers' | 'soloLayerId'>,
+  e: CanvasEdge,
+  nodes: Record<string, CanvasNode>
+): boolean {
+  const l = s.layers[e.layerId];
+  if (l && !l.visible) return false;
+  if (s.soloLayerId && e.layerId !== s.soloLayerId) return false;
+  const a = e.fromNode ? nodes[e.fromNode] : null;
+  const b = e.toNode ? nodes[e.toNode] : null;
+  if (a && !isNodeVisible(s, a)) return false;
+  if (b && !isNodeVisible(s, b)) return false;
+  return true;
+}
+
+/** Responds to the pointer: visible and its layer is not locked. */
+export function isEdgeInteractive(
+  s: Pick<CanvasState, 'layers' | 'soloLayerId'>,
+  e: CanvasEdge,
+  nodes: Record<string, CanvasNode>
+): boolean {
+  if (!isEdgeVisible(s, e, nodes)) return false;
+  const l = s.layers[e.layerId];
   return !(l && l.locked);
 }
 
@@ -291,8 +328,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
   lastEdge: {
     style: { stroke: '#0b0d10', strokeWidth: 2, opacity: 1 },
     routing: 'straight',
-    arrowStart: false,
-    arrowEnd: true,
+    headStart: 'none',
+    headEnd: 'arrow',
   },
 
   hydrate: (s) => {
@@ -315,12 +352,21 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     const layers: Record<string, Layer> = {};
     for (const l of s.layers) layers[l.id] = l;
     const bottom = layerOrder(layers)[0];
-    // Safety net: a node with no layer (should not happen after migration) goes to the bottom layer.
+    const dirtyE = new Set<string>();
+    // Safety net: an element with no layer (should not happen after migration)
+    // goes to its from-node's layer (edges), else the bottom layer.
     if (bottom) {
       for (const n of Object.values(nodes)) {
         if (!n.layerId || !layers[n.layerId]) {
           nodes[n.id] = { ...n, layerId: bottom.id };
           dirty.add(n.id);
+        }
+      }
+      for (const e of Object.values(edges)) {
+        if (!e.layerId || !layers[e.layerId]) {
+          const host = (e.fromNode && nodes[e.fromNode]) || (e.toNode && nodes[e.toNode]) || null;
+          edges[e.id] = { ...e, layerId: host ? host.layerId : bottom.id };
+          dirtyE.add(e.id);
         }
       }
     }
@@ -343,7 +389,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       history: [],
       future: [],
       dirtyNodeIds: dirty,
-      dirtyEdgeIds: new Set(),
+      dirtyEdgeIds: dirtyE,
       deletedNodeIds: new Set(),
       deletedEdgeIds: new Set(),
     });
@@ -402,12 +448,11 @@ export const useCanvas = create<CanvasState>((set, get) => ({
         else next.add(id);
       }
       const patch = { [field]: next, [other]: opts?.additive ? s[other] : new Set() } as Partial<CanvasState>;
-      if (!opts?.edges) {
-        const firstId = ids.find((id) => next.has(id));
-        const n = firstId ? s.nodes[firstId] : undefined;
-        if (n && n.layerId && s.layers[n.layerId] && n.layerId !== s.currentLayerId) {
-          patch.currentLayerId = n.layerId;
-        }
+      // Selecting an element switches the current layer to its layer.
+      const firstId = ids.find((id) => next.has(id));
+      const el = firstId ? (opts?.edges ? s.edges[firstId] : s.nodes[firstId]) : undefined;
+      if (el && el.layerId && s.layers[el.layerId] && el.layerId !== s.currentLayerId) {
+        patch.currentLayerId = el.layerId;
       }
       return patch;
     }),
@@ -522,6 +567,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       updatedAt: now,
       midpoint: null,
       labelPoint: null,
+      layerId: get().currentLayerId ?? '',
       ...partial,
     };
     const prev = snapshot(get());
@@ -806,8 +852,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       lastEdge: {
         style: patch.style ? { ...s.lastEdge.style, ...patch.style } : s.lastEdge.style,
         routing: patch.routing ?? s.lastEdge.routing,
-        arrowStart: patch.arrowStart ?? s.lastEdge.arrowStart,
-        arrowEnd: patch.arrowEnd ?? s.lastEdge.arrowEnd,
+        headStart: patch.headStart ?? s.lastEdge.headStart,
+        headEnd: patch.headEnd ?? s.lastEdge.headEnd,
       },
     }));
   },
@@ -946,11 +992,16 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     if (!s.layers[id]) return;
     const prev = snapshot(s);
     const selection = new Set(s.selection);
-    if (!visible) for (const nid of selection) if (s.nodes[nid]?.layerId === id) selection.delete(nid);
+    const edgeSelection = new Set(s.edgeSelection);
+    if (!visible) {
+      for (const nid of selection) if (s.nodes[nid]?.layerId === id) selection.delete(nid);
+      for (const eid of edgeSelection) if (s.edges[eid]?.layerId === id) edgeSelection.delete(eid);
+    }
     set({
       layers: { ...s.layers, [id]: { ...s.layers[id], visible, updatedAt: Date.now() } },
       dirtyLayerIds: new Set(s.dirtyLayerIds).add(id),
       selection,
+      edgeSelection,
       history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
       future: [],
     });
@@ -961,11 +1012,16 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     if (!s.layers[id]) return;
     const prev = snapshot(s);
     const selection = new Set(s.selection);
-    if (locked) for (const nid of selection) if (s.nodes[nid]?.layerId === id) selection.delete(nid);
+    const edgeSelection = new Set(s.edgeSelection);
+    if (locked) {
+      for (const nid of selection) if (s.nodes[nid]?.layerId === id) selection.delete(nid);
+      for (const eid of edgeSelection) if (s.edges[eid]?.layerId === id) edgeSelection.delete(eid);
+    }
     set({
       layers: { ...s.layers, [id]: { ...s.layers[id], locked, updatedAt: Date.now() } },
       dirtyLayerIds: new Set(s.dirtyLayerIds).add(id),
       selection,
+      edgeSelection,
       history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
       future: [],
     });
@@ -1003,10 +1059,18 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     const nodes = { ...s.nodes };
     const edges = { ...s.edges };
     const dirtyN = new Set(s.dirtyNodeIds);
+    const dirtyE = new Set(s.dirtyEdgeIds);
     const delN = new Set(s.deletedNodeIds);
     const delE = new Set(s.deletedEdgeIds);
     const selection = new Set(s.selection);
+    const edgeSelection = new Set(s.edgeSelection);
     const now = Date.now();
+    const dropEdge = (eid: string) => {
+      delete edges[eid];
+      delE.add(eid);
+      dirtyE.delete(eid);
+      edgeSelection.delete(eid);
+    };
     for (const n of Object.values(s.nodes)) {
       if (n.layerId !== id) continue;
       if (mode === 'merge') {
@@ -1016,12 +1080,19 @@ export const useCanvas = create<CanvasState>((set, get) => ({
         delete nodes[n.id];
         delN.add(n.id);
         selection.delete(n.id);
+        // Cascade to attached edges on any layer, as node deletion does.
         for (const e of Object.values(edges)) {
-          if (e.fromNode === n.id || e.toNode === n.id) {
-            delete edges[e.id];
-            delE.add(e.id);
-          }
+          if (e.fromNode === n.id || e.toNode === n.id) dropEdge(e.id);
         }
+      }
+    }
+    for (const e of Object.values(s.edges)) {
+      if (e.layerId !== id || !edges[e.id]) continue;
+      if (mode === 'merge') {
+        edges[e.id] = { ...e, layerId: target.id, updatedAt: now };
+        dirtyE.add(e.id);
+      } else {
+        dropEdge(e.id);
       }
     }
     const rest = { ...s.layers };
@@ -1037,7 +1108,9 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       currentLayerId: s.currentLayerId === id ? target.id : s.currentLayerId,
       soloLayerId: s.soloLayerId === id ? null : s.soloLayerId,
       selection,
+      edgeSelection,
       dirtyNodeIds: dirtyN,
+      dirtyEdgeIds: dirtyE,
       deletedNodeIds: delN,
       deletedEdgeIds: delE,
       dirtyLayerIds: dirtyL,
@@ -1057,29 +1130,52 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     const s = get();
     const soloLayerId = id && s.layers[id] ? id : null;
     const selection = new Set(s.selection);
-    if (soloLayerId) for (const nid of selection) if (s.nodes[nid]?.layerId !== soloLayerId) selection.delete(nid);
-    set({ soloLayerId, selection });
+    const edgeSelection = new Set(s.edgeSelection);
+    if (soloLayerId) {
+      for (const nid of selection) if (s.nodes[nid]?.layerId !== soloLayerId) selection.delete(nid);
+      for (const eid of edgeSelection) if (s.edges[eid]?.layerId !== soloLayerId) edgeSelection.delete(eid);
+    }
+    set({ soloLayerId, selection, edgeSelection });
   },
 
-  moveNodesToLayer: (ids, layerId) => {
+  moveToLayer: ({ nodeIds = [], edgeIds = [] }, layerId) => {
     const s = get();
     if (!s.layers[layerId]) return;
     const prev = snapshot(s);
     const nodes = { ...s.nodes };
-    const dirty = new Set(s.dirtyNodeIds);
+    const edges = { ...s.edges };
+    const dirtyN = new Set(s.dirtyNodeIds);
+    const dirtyE = new Set(s.dirtyEdgeIds);
     const now = Date.now();
     let changed = false;
-    for (const id of ids) {
+    const movingNodes = new Set(nodeIds.filter((id) => nodes[id]));
+    for (const id of movingNodes) {
       const n = nodes[id];
-      if (!n || n.layerId === layerId) continue;
+      if (n.layerId === layerId) continue;
       nodes[id] = { ...n, layerId, updatedAt: now };
-      dirty.add(id);
+      dirtyN.add(id);
+      changed = true;
+    }
+    const movingEdges = new Set(edgeIds.filter((id) => edges[id]));
+    // Both-ends rule: an edge strung between two moving nodes travels with them.
+    if (movingNodes.size) {
+      for (const e of Object.values(edges)) {
+        if (e.fromNode && e.toNode && movingNodes.has(e.fromNode) && movingNodes.has(e.toNode)) movingEdges.add(e.id);
+      }
+    }
+    for (const id of movingEdges) {
+      const e = edges[id];
+      if (e.layerId === layerId) continue;
+      edges[id] = { ...e, layerId, updatedAt: now };
+      dirtyE.add(id);
       changed = true;
     }
     if (!changed) return;
     set({
       nodes,
-      dirtyNodeIds: dirty,
+      edges,
+      dirtyNodeIds: dirtyN,
+      dirtyEdgeIds: dirtyE,
       currentLayerId: layerId,
       history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
       future: [],
@@ -1088,15 +1184,15 @@ export const useCanvas = create<CanvasState>((set, get) => ({
 
   shiftSelectionLayer: (dir) => {
     const s = get();
-    const ids = [...s.selection];
-    if (!ids.length) return;
-    const ordered = layerOrder(s.layers);
-    const first = s.nodes[ids[0]];
+    const nodeIds = [...s.selection];
+    const edgeIds = [...s.edgeSelection];
+    const first = (nodeIds[0] && s.nodes[nodeIds[0]]) || (edgeIds[0] && s.edges[edgeIds[0]]) || null;
     if (!first) return;
+    const ordered = layerOrder(s.layers);
     const i = ordered.findIndex((l) => l.id === first.layerId);
     const target = ordered[dir === 'up' ? i + 1 : i - 1];
     if (!target) return;
-    get().moveNodesToLayer(ids, target.id);
+    get().moveToLayer({ nodeIds, edgeIds }, target.id);
   },
 
   consumeDirty: () => {

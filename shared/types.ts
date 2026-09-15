@@ -2,6 +2,10 @@ export type NodeType = 'rect' | 'ellipse' | 'diamond' | 'text' | 'icon' | 'image
 
 export type EdgeRouting = 'straight' | 'orthogonal' | 'curved';
 
+/** Marker drawn at one end of an edge. */
+export type EdgeHead = 'none' | 'arrow' | 'open' | 'dot' | 'diamond' | 'crow';
+export const EDGE_HEADS: readonly EdgeHead[] = ['none', 'arrow', 'open', 'dot', 'diamond', 'crow'];
+
 export type Anchor =
   | 'auto'
   | 'top'
@@ -88,12 +92,14 @@ export interface CanvasEdge {
   toAnchor: Anchor | null;
   toPoint: { x: number; y: number } | null;
   routing: EdgeRouting;
-  arrowStart: boolean;
-  arrowEnd: boolean;
+  headStart: EdgeHead;
+  headEnd: EdgeHead;
   style: EdgeStyle;
   label?: string;
   midpoint: { x: number; y: number } | null;
   labelPoint: { x: number; y: number } | null;
+  /** Layer this edge belongs to. Always set after migration. */
+  layerId: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -168,7 +174,20 @@ export interface HaldrawBoardFile {
   /** Absent in files written before 0.7.0; the importer then puts every node on one layer. */
   layers?: Array<Omit<Layer, 'boardId'>>;
   nodes: Array<Omit<CanvasNode, 'boardId' | 'layerId'> & { layerId?: string }>;
-  edges: Array<Omit<CanvasEdge, 'boardId'>>;
+  /**
+   * `layerId`, `headStart` and `headEnd` are absent in files written before 0.8.0;
+   * `arrowStart` / `arrowEnd` are the pre-0.8.0 head booleans, still written as
+   * mirrors of the heads so older builds can read the file.
+   */
+  edges: Array<
+    Omit<CanvasEdge, 'boardId' | 'layerId' | 'headStart' | 'headEnd'> & {
+      layerId?: string;
+      headStart?: EdgeHead;
+      headEnd?: EdgeHead;
+      arrowStart?: boolean;
+      arrowEnd?: boolean;
+    }
+  >;
   /** Image blobs referenced by nodes, keyed by content-hash id. */
   images: Record<string, { mime: string; width: number; height: number; base64: string }>;
 }

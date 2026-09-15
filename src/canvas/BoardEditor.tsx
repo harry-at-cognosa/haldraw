@@ -634,8 +634,8 @@ export default function BoardEditor({
         toAnchor: e.toAnchor,
         toPoint: e.toPoint,
         routing: e.routing,
-        arrowStart: e.arrowStart,
-        arrowEnd: e.arrowEnd,
+        headStart: e.headStart,
+        headEnd: e.headEnd,
         style: { ...e.style },
         label: e.label,
       });
