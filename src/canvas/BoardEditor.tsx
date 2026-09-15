@@ -731,12 +731,15 @@ function ensureInView(n: CanvasNode) {
   if (dx || dy) state.setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom });
 }
 
+/** True when keystrokes belong to a text field. Sliders, checkboxes and buttons keep the shortcuts live. */
 function isTyping(): boolean {
   const el = document.activeElement;
   if (!el) return false;
   const tag = el.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable;
+  if (tag === 'INPUT') return !NON_TEXT_INPUTS.has((el as HTMLInputElement).type);
+  return tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable;
 }
+const NON_TEXT_INPUTS = new Set(['range', 'checkbox', 'radio', 'button', 'submit', 'color', 'file']);
 
 async function blobToImage(blob: Blob): Promise<{ width: number; height: number }> {
   const url = URL.createObjectURL(blob);

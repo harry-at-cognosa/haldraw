@@ -863,10 +863,13 @@ export default function Canvas({
                         setEditingNodeId(null);
                         return;
                       }
+                      // A box created empty a moment ago already has its "before add"
+                      // entry on the stack, so one ⌘Z removes the whole box; an edit of
+                      // existing text gets its own undo point.
+                      if (!(node.type === 'text' && !(node.content.text ?? '').trim())) store.checkpoint();
                       store.updateNodes([node.id], (n) => {
                         n.content = { ...n.content, text };
                       });
-                      store.commit();
                       setEditingNodeId(null);
                     }}
                     imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
@@ -1033,9 +1036,12 @@ function isBgDark(c: string): boolean {
   return lum < 128;
 }
 
+/** True when keystrokes belong to a text field. Sliders, checkboxes and buttons keep the shortcuts live. */
 function isTyping(): boolean {
   const el = document.activeElement;
   if (!el) return false;
   const tag = el.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable;
+  if (tag === 'INPUT') return !NON_TEXT_INPUTS.has((el as HTMLInputElement).type);
+  return tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable;
 }
+const NON_TEXT_INPUTS = new Set(['range', 'checkbox', 'radio', 'button', 'submit', 'color', 'file']);

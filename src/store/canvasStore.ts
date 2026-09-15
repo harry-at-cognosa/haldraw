@@ -110,7 +110,12 @@ interface CanvasState {
 
   beginTransient: () => void;
   endTransient: () => void;
-  commit: () => void;
+  /**
+   * Record the current state as the undo point for the change about to be
+   * made. Call it BEFORE mutating; the plain update functions record nothing.
+   * A checkpoint identical to the top of the stack is not recorded twice.
+   */
+  checkpoint: () => void;
   undo: () => void;
   redo: () => void;
 
@@ -165,6 +170,18 @@ interface CanvasState {
 
 function snapshot(state: CanvasState): HistoryEntry {
   return { nodes: { ...state.nodes }, edges: { ...state.edges }, layers: { ...state.layers } };
+}
+
+function sameRecord<T>(a: Record<string, T>, b: Record<string, T>): boolean {
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  for (const k of ka) if (a[k] !== b[k]) return false;
+  return true;
+}
+
+/** True when two entries hold the very same node, edge and layer objects. */
+function sameSnapshot(a: HistoryEntry, b: HistoryEntry): boolean {
+  return sameRecord(a.nodes, b.nodes) && sameRecord(a.edges, b.edges) && sameRecord(a.layers, b.layers);
 }
 
 /** Layers bottom-first. */
@@ -629,16 +646,27 @@ export const useCanvas = create<CanvasState>((set, get) => ({
 
   endTransient: () => set({ transientChange: false, future: [] }),
 
-  commit: () => {
+  checkpoint: () => {
     const prev = snapshot(get());
-    set((s) => ({ history: [...s.history.slice(-HISTORY_LIMIT + 1), prev], future: [] }));
+    set((s) => {
+      const top = s.history[s.history.length - 1];
+      if (top && sameSnapshot(top, prev)) return { future: [] };
+      return { history: [...s.history.slice(-HISTORY_LIMIT + 1), prev], future: [] };
+    });
   },
 
   undo: () => {
     const s = get();
-    const last = s.history[s.history.length - 1];
-    if (!last) return;
     const current = snapshot(s);
+    // Skip entries that equal the present state (a checkpoint nothing followed),
+    // so one ⌘Z always reverses one visible change.
+    let history = s.history;
+    while (history.length && sameSnapshot(history[history.length - 1], current)) history = history.slice(0, -1);
+    const last = history[history.length - 1];
+    if (!last) {
+      if (history.length !== s.history.length) set({ history });
+      return;
+    }
     const prevNodeIds = new Set(Object.keys(last.nodes));
     const prevEdgeIds = new Set(Object.keys(last.edges));
     const dirtyN = new Set(s.dirtyNodeIds);
@@ -658,7 +686,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       edges: { ...last.edges },
       layers: { ...last.layers },
       currentLayerId: s.currentLayerId && last.layers[s.currentLayerId] ? s.currentLayerId : layerOrder(last.layers)[0]?.id ?? null,
-      history: s.history.slice(0, -1),
+      history: history.slice(0, -1),
       future: [...s.future, current],
       dirtyNodeIds: dirtyN,
       dirtyEdgeIds: dirtyE,

@@ -2,6 +2,16 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.8.3 — 2026-09-15
+
+### Fixed
+
+- **One ⌘Z reverses one change.** Style, rotation, link, label and text edits made from the properties panel recorded their undo point *after* the change, so the first ⌘Z appeared to do nothing and a second was needed. The undo point is now recorded before the change (`checkpoint` replaces `commit` in the store). Undo also skips entries identical to the present state, so a stale checkpoint can never show up as a dead ⌘Z.
+- **Sliders undo as one step.** Width, font size, opacity, corner radius and rotation sliders recorded a step per tick; a drag is now one undo step (the undo point is taken at pointer-down or the first arrow key). The typed value boxes are one step per committed value.
+- **Shortcuts work after a slider drag.** A slider kept keyboard focus after a drag and every shortcut, ⌘Z included, was ignored until you clicked elsewhere. Only text fields now capture the keyboard.
+- **Typed fields undo per session.** The link and label fields record one undo point when focused instead of one per keystroke.
+- **New text boxes undo in one step.** After typing into a freshly placed text box, one ⌘Z removes the box; previously the first ⌘Z only blanked it and left the invisible rectangle behind. Editing existing text still undoes to the previous text.
+
 ## 0.8.2 — 2026-09-15
 
 ### Added

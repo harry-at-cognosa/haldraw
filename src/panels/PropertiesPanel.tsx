@@ -46,7 +46,7 @@ export default function PropertiesPanel() {
   const edges = useCanvas((s) => s.edges);
   const updateNodes = useCanvas((s) => s.updateNodes);
   const updateEdges = useCanvas((s) => s.updateEdges);
-  const commit = useCanvas((s) => s.commit);
+  const checkpoint = useCanvas((s) => s.checkpoint);
   const bringToFront = useCanvas((s) => s.bringToFront);
   const sendToBack = useCanvas((s) => s.sendToBack);
   const bringForward = useCanvas((s) => s.bringForward);
@@ -69,7 +69,9 @@ export default function PropertiesPanel() {
     return <BoardPanel />;
   }
 
-  const patch = (p: Partial<NodeStyle>) => {
+  // `record` = false for per-tick slider changes; the slider checkpoints once at gesture start.
+  const patch = (p: Partial<NodeStyle>, record = true) => {
+    if (record) checkpoint();
     updateNodes(
       selectedNodes.map((n) => n.id),
       (n) => {
@@ -79,10 +81,10 @@ export default function PropertiesPanel() {
     for (const n of selectedNodes) {
       rememberNodeStyle(n.type, { ...n.style, ...p });
     }
-    commit();
   };
 
-  const patchEdges = (p: Partial<CanvasEdge>) => {
+  const patchEdges = (p: Partial<CanvasEdge>, record = true) => {
+    if (record) checkpoint();
     // Merge style fields into the existing style; assigning `p` wholesale would
     // replace the style object and drop every field not in the patch.
     const { style, ...rest } = p;
@@ -99,7 +101,6 @@ export default function PropertiesPanel() {
       headStart: p.headStart,
       headEnd: p.headEnd,
     });
-    commit();
   };
 
   const first = selectedNodes[0];
@@ -132,7 +133,8 @@ export default function PropertiesPanel() {
                 min={0}
                 max={100}
                 value={first?.style.strokeWidth ?? 2}
-                onChange={(v) => patch({ strokeWidth: v })}
+                onBegin={checkpoint}
+                onChange={(v) => patch({ strokeWidth: v }, false)}
               />
               <Row label="Style">
                 <Segmented
@@ -158,7 +160,8 @@ export default function PropertiesPanel() {
               />
               <SizeRow
                 value={first?.style.fontSize ?? 16}
-                onChange={(v) => patch({ fontSize: v })}
+                onBegin={checkpoint}
+                onChange={(v) => patch({ fontSize: v }, false)}
               />
               <Row label="Weight">
                 <Segmented
@@ -247,7 +250,8 @@ export default function PropertiesPanel() {
                   max={48}
                   step={1}
                   value={first?.style.cornerRadius ?? 8}
-                  onChange={(v) => patch({ cornerRadius: v })}
+                  onBegin={checkpoint}
+                  onChange={(v) => patch({ cornerRadius: v }, false)}
                 />
               </Section>
             ) : null}
@@ -259,6 +263,10 @@ export default function PropertiesPanel() {
                   max={360}
                   step={1}
                   value={Math.round(((first?.rotation ?? 0) * 180) / Math.PI) % 360}
+                  onPointerDown={checkpoint}
+                  onKeyDown={(e) => {
+                    if (!e.repeat && SLIDER_KEYS.has(e.key)) checkpoint();
+                  }}
                   onChange={(e) => {
                     const deg = Number(e.target.value);
                     updateNodes(
@@ -268,7 +276,6 @@ export default function PropertiesPanel() {
                       }
                     );
                   }}
-                  onMouseUp={commit}
                   className="flex-1 accent-sky-400"
                 />
                 <input
@@ -276,6 +283,7 @@ export default function PropertiesPanel() {
                   min={0}
                   max={360}
                   value={Math.round(((first?.rotation ?? 0) * 180) / Math.PI) % 360}
+                  onFocus={checkpoint}
                   onChange={(e) => {
                     const deg = Number(e.target.value);
                     updateNodes(
@@ -284,7 +292,6 @@ export default function PropertiesPanel() {
                         n.rotation = (deg * Math.PI) / 180;
                       }
                     );
-                    commit();
                   }}
                   className="w-16 text-right bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent"
                 />
@@ -324,7 +331,8 @@ export default function PropertiesPanel() {
                   max={100}
                   step={5}
                   value={Math.round((first?.style.opacity ?? 1) * 100)}
-                  onChange={(v) => patch({ opacity: v / 100 })}
+                  onBegin={checkpoint}
+                  onChange={(v) => patch({ opacity: v / 100 }, false)}
                 />
                 <button
                   onClick={() => setLocked(selectedNodes.map((n) => n.id), true)}
@@ -338,11 +346,11 @@ export default function PropertiesPanel() {
                 first?.content.naturalHeight ? (
                   <button
                     onClick={() => {
+                      checkpoint();
                       updateNodes([first.id], (n) => {
                         n.width = n.content.naturalWidth!;
                         n.height = n.content.naturalHeight!;
                       });
-                      commit();
                     }}
                     className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-fg hover:border-fg-muted text-sm"
                     title="Restore the image's intrinsic pixel size, keeping the top-left corner in place"
@@ -359,6 +367,7 @@ export default function PropertiesPanel() {
               <input
                 type="text"
                 value={first?.content.link ?? ''}
+                onFocus={checkpoint}
                 onChange={(e) => {
                   const v = e.target.value;
                   updateNodes(
@@ -368,7 +377,6 @@ export default function PropertiesPanel() {
                     }
                   );
                 }}
-                onBlur={commit}
                 placeholder="https://… or haldraw://board/ID"
                 className="w-full bg-canvas rounded px-2 py-1.5 border border-border outline-none focus:border-accent text-sm"
               />
@@ -494,7 +502,8 @@ export default function PropertiesPanel() {
                 min={0.5}
                 max={100}
                 value={firstEdge?.style.strokeWidth ?? 2}
-                onChange={(v) => patchEdges({ style: { strokeWidth: v } })}
+                onBegin={checkpoint}
+                onChange={(v) => patchEdges({ style: { strokeWidth: v } }, false)}
               />
               <Row label="Style">
                 <Segmented
@@ -512,6 +521,7 @@ export default function PropertiesPanel() {
               <input
                 type="text"
                 value={firstEdge?.label ?? ''}
+                onFocus={checkpoint}
                 onChange={(e) => {
                   updateEdges(
                     selectedEdges.map((ed) => ed.id),
@@ -520,7 +530,6 @@ export default function PropertiesPanel() {
                     }
                   );
                 }}
-                onBlur={commit}
                 placeholder="optional"
                 className="w-full bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent"
               />
@@ -741,6 +750,9 @@ function FontRow({ value, onChange }: { value: string; onChange: (family: string
 }
 
 /** Slider for the common range plus a numeric field for anything within [min, max]. */
+/** Keys that move a focused range input; the first press of one starts a gesture. */
+const SLIDER_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End']);
+
 function NumericSliderRow({
   label,
   sliderMin,
@@ -749,6 +761,7 @@ function NumericSliderRow({
   min,
   max,
   value,
+  onBegin,
   onChange,
 }: {
   label: string;
@@ -758,6 +771,8 @@ function NumericSliderRow({
   min: number;
   max: number;
   value: number;
+  /** Called once at the start of a slider drag / key press and before a typed commit; the undo point. */
+  onBegin?: () => void;
   onChange: (v: number) => void;
 }) {
   const [draft, setDraft] = useState(String(value));
@@ -772,7 +787,10 @@ function NumericSliderRow({
     const rounded = Number(n.toFixed(decimals));
     const clamped = Math.min(max, Math.max(min, rounded));
     setDraft(String(clamped));
-    if (clamped !== value) onChange(clamped);
+    if (clamped !== value) {
+      onBegin?.();
+      onChange(clamped);
+    }
   };
   return (
     <div className="flex items-center gap-2">
@@ -783,6 +801,10 @@ function NumericSliderRow({
         max={sliderMax}
         step={step}
         value={Math.min(sliderMax, Math.max(sliderMin, value))}
+        onPointerDown={onBegin}
+        onKeyDown={(e) => {
+          if (!e.repeat && SLIDER_KEYS.has(e.key)) onBegin?.();
+        }}
         onChange={(e) => onChange(Number(e.target.value))}
         className="flex-1 accent-sky-400"
       />
@@ -813,7 +835,7 @@ function NumericSliderRow({
   );
 }
 
-function SizeRow({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function SizeRow({ value, onBegin, onChange }: { value: number; onBegin?: () => void; onChange: (v: number) => void }) {
   return (
     <NumericSliderRow
       label="Size"
@@ -823,6 +845,7 @@ function SizeRow({ value, onChange }: { value: number; onChange: (v: number) => 
       min={4}
       max={999}
       value={value}
+      onBegin={onBegin}
       onChange={onChange}
     />
   );
@@ -834,6 +857,7 @@ function SliderRow({
   max,
   step,
   value,
+  onBegin,
   onChange,
 }: {
   label: string;
@@ -841,6 +865,7 @@ function SliderRow({
   max: number;
   step: number;
   value: number;
+  onBegin?: () => void;
   onChange: (v: number) => void;
 }) {
   return (
@@ -852,6 +877,10 @@ function SliderRow({
         max={max}
         step={step}
         value={value}
+        onPointerDown={onBegin}
+        onKeyDown={(e) => {
+          if (!e.repeat && SLIDER_KEYS.has(e.key)) onBegin?.();
+        }}
         onChange={(e) => onChange(Number(e.target.value))}
         className="flex-1 accent-sky-400"
       />
