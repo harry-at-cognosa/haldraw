@@ -855,10 +855,18 @@ export default function Canvas({
                     }}
                     editing={editingNodeId === node.id}
                     onFinishEdit={(text) => {
-                      useCanvas.getState().updateNodes([node.id], (n) => {
+                      const store = useCanvas.getState();
+                      if (node.type === 'text' && !text.trim()) {
+                        // A text box left empty renders nothing; drop it instead of leaving
+                        // an invisible, selectable rectangle behind.
+                        store.deleteNodes([node.id]);
+                        setEditingNodeId(null);
+                        return;
+                      }
+                      store.updateNodes([node.id], (n) => {
                         n.content = { ...n.content, text };
                       });
-                      useCanvas.getState().commit();
+                      store.commit();
                       setEditingNodeId(null);
                     }}
                     imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}

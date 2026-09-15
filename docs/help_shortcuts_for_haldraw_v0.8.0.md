@@ -102,6 +102,7 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | Toolbar, centre | Layer dropdown | Current layer (new shapes land here) |
 | Board panel | Layers list | Click row = current · eye = show/hide · padlock = lock · double-click = rename · ▲▼ = reorder · solo · select · delete/merge |
 | Board panel | Reference images list | Unlock (selects) · Remove |
+| Properties panel, header | Selection readout (0.8.2) | Type · content, then layer · z-rank · size at position |
 | Properties panel, Layer section | On layer dropdown | Move selection (shapes or lines) to a layer |
 | Properties panel, Heads section | Start / End rows | Head style per end: none · arrow · open · dot · diamond · crow's foot |
 | Board panel | Dim references on canvas | Fade locked images; never exported |

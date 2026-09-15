@@ -1,6 +1,6 @@
 import { layerOrder, useCanvas } from '@/store/canvasStore';
 import LayersPanel from './LayersPanel';
-import { EDGE_HEADS, type Anchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type NodeStyle } from '@shared/types';
+import { EDGE_HEADS, type Anchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type Layer, type NodeStyle } from '@shared/types';
 import { HEAD_LABELS, HeadGlyph } from '@/canvas/edgeHeads';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
@@ -107,15 +107,7 @@ export default function PropertiesPanel() {
 
   return (
     <aside className="w-64 shrink-0 border-l border-border bg-panel flex flex-col text-sm">
-      <div className="p-3 border-b border-border text-sm text-fg font-semibold uppercase tracking-wide">
-        {selectedEdges.length > 0
-          ? selectedEdges.length > 1
-            ? `${selectedEdges.length} lines`
-            : firstEdge?.fromNode || firstEdge?.toNode
-              ? 'Connector'
-              : 'Line'
-          : `${selectedNodes.length} shape${selectedNodes.length > 1 ? 's' : ''}`}
-      </div>
+      <SelectionReadout nodes={selectedNodes} edges={selectedEdges} allNodes={nodes} layers={layers} />
       <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-4">
         {selectedNodes.length > 0 ? (
           <>
@@ -543,6 +535,93 @@ export default function PropertiesPanel() {
         ) : null}
       </div>
     </aside>
+  );
+}
+
+const TYPE_LABEL: Record<CanvasNode['type'], string> = {
+  rect: 'Rectangle',
+  ellipse: 'Ellipse',
+  diamond: 'Diamond',
+  text: 'Text',
+  icon: 'Icon',
+  image: 'Image',
+};
+
+function snippet(text: string | undefined, max = 28): string {
+  const t = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (!t) return 'empty';
+  return `“${t.length > max ? t.slice(0, max - 1) + '…' : t}”`;
+}
+
+const r0 = (v: number) => String(Math.round(v));
+
+/**
+ * Two-line description of the selection: what it is (type and content), then
+ * where it is (layer, z-rank within that layer, size and position). Exists so an
+ * accidental sliver or an empty text box can be identified from the panel alone.
+ */
+function SelectionReadout({
+  nodes: sel,
+  edges: selEdges,
+  allNodes,
+  layers,
+}: {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  allNodes: Record<string, CanvasNode>;
+  layers: Record<string, Layer>;
+}) {
+  const layerName = (id: string) => layers[id]?.name ?? '—';
+  const zRank = (n: CanvasNode) => {
+    const stack = Object.values(allNodes)
+      .filter((o) => o.layerId === n.layerId)
+      .sort((a, b) => a.zIndex - b.zIndex);
+    return `z ${stack.findIndex((o) => o.id === n.id) + 1}/${stack.length}`;
+  };
+  let what: string;
+  let where: string;
+  if (selEdges.length > 0 && sel.length === 0) {
+    if (selEdges.length > 1) {
+      what = `${selEdges.length} lines`;
+      const ls = new Set(selEdges.map((e) => e.layerId));
+      where = ls.size === 1 ? layerName(selEdges[0].layerId) : 'mixed layers';
+    } else {
+      const e = selEdges[0];
+      const a = e.fromNode ? allNodes[e.fromNode] : null;
+      const b = e.toNode ? allNodes[e.toNode] : null;
+      const name = (n: CanvasNode | null) => (n ? (n.content.text?.trim() ? snippet(n.content.text, 14) : TYPE_LABEL[n.type]) : '•');
+      what = a || b ? `Connector · ${name(a)} → ${name(b)}` : 'Line';
+      where = `${layerName(e.layerId)} · ${e.routing}${e.label ? ` · ${snippet(e.label, 16)}` : ''}`;
+    }
+  } else if (sel.length === 1) {
+    const n = sel[0];
+    const content =
+      n.type === 'image'
+        ? n.content.naturalWidth
+          ? `${n.content.naturalWidth} × ${n.content.naturalHeight} px${n.locked ? ' · locked' : ''}`
+          : n.locked ? 'locked' : ''
+        : n.type === 'icon'
+          ? n.content.iconName ?? ''
+          : snippet(n.content.text);
+    what = `${TYPE_LABEL[n.type]}${content ? ` · ${content}` : ''}`;
+    where = `${layerName(n.layerId)} · ${zRank(n)} · ${r0(n.width)} × ${r0(n.height)} at ${r0(n.x)}, ${r0(n.y)}`;
+  } else {
+    const counts = new Map<string, number>();
+    for (const n of sel) counts.set(TYPE_LABEL[n.type], (counts.get(TYPE_LABEL[n.type]) ?? 0) + 1);
+    what = [...counts].map(([t, c]) => `${c} ${t.toLowerCase()}${c > 1 ? 's' : ''}`).join(', ');
+    if (selEdges.length) what += `, ${selEdges.length} line${selEdges.length > 1 ? 's' : ''}`;
+    const ls = new Set(sel.map((n) => n.layerId));
+    const minX = Math.min(...sel.map((n) => n.x));
+    const minY = Math.min(...sel.map((n) => n.y));
+    const maxX = Math.max(...sel.map((n) => n.x + n.width));
+    const maxY = Math.max(...sel.map((n) => n.y + n.height));
+    where = `${ls.size === 1 ? layerName(sel[0].layerId) : 'mixed layers'} · ${r0(maxX - minX)} × ${r0(maxY - minY)} at ${r0(minX)}, ${r0(minY)}`;
+  }
+  return (
+    <div className="p-3 border-b border-border" title={`${what}\n${where}`}>
+      <div className="text-sm text-fg font-semibold truncate">{what}</div>
+      <div className="text-xs text-fg-muted truncate tabular-nums">{where}</div>
+    </div>
   );
 }
 

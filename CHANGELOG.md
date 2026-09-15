@@ -2,6 +2,16 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.8.2 — 2026-09-15
+
+### Added
+
+- **Selection readout.** The properties panel header now says what is selected and where: type and content on the first line (`Text · “Quicken says…”`, `Rectangle · empty`, `Image · 1557 × 923 px · locked`, `Connector · “Schwab” → Rectangle`), then layer, z-rank within that layer, size and position on the second (`Drawing · z 3/7 · 220 × 52 at 1032, 418`). Multi-selections show counts by type and the bounding box. Replaces the bare `1 shape` / `Connector` title.
+
+### Changed
+
+- **Empty text boxes are removed.** Leaving a text box without typing anything (click away or Escape) deletes it instead of leaving an invisible 220 × 52 rectangle behind. Undo brings it back.
+
 ## 0.8.1 — 2026-09-15
 
 ### Fixed
