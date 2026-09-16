@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import Anthropic from '@anthropic-ai/sdk';
 import type { VectorizeRequest, VectorizeResponse, VectorizeResult } from '@shared/types';
 
@@ -120,6 +121,16 @@ function textOf(message: Anthropic.Message): string {
 }
 
 export async function runVectorize(req: VectorizeRequest): Promise<VectorizeResponse> {
+  // Test seam: HALDRAW_VECTORIZE_FAKE=<json file> returns that result with no
+  // network call. Only a launcher that sets the variable sees this; a packaged
+  // app opened from the Finder never has it.
+  const fake = process.env.HALDRAW_VECTORIZE_FAKE;
+  if (fake) {
+    const raw = JSON.parse(readFileSync(fake, 'utf8'));
+    const problem = validateResult(raw, req.width, req.height);
+    if (problem) throw new VectorizeError(`Fake result rejected: ${problem}`, 'output');
+    return { result: raw as VectorizeResult, model: 'fake', inputTokens: 0, outputTokens: 0 };
+  }
   const apiKey = readApiKey();
   if (!apiKey) {
     throw new VectorizeError(`No API key in the keychain. In Terminal, run:\n${KEYCHAIN_ADD_COMMAND}`, 'no-key');
