@@ -2,6 +2,17 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.3 — 2026-09-16
+
+### Fixed
+
+- **Vectorize places the draft against the image as it is when the reply arrives**, not as it was when the button was pressed. Moving or resizing the reference, or reordering layers, during the call no longer misplaces the draft. If the image was removed, or a different board opened, while the model was working, a toast says so and nothing is inserted (previously the draft could land on whichever board was open).
+- **Undo never leaves a locked layer current.** When the current layer disappears (undo or redo of a step that created it, deleting it, or loading a board whose saved current layer is gone), the current layer becomes the topmost *unlocked* layer instead of the bottom one, which after a reference import is the locked Reference layer. Previously the next shape drawn after undoing a vectorize landed on Reference and could not be selected.
+
+### Internal
+
+- `HALDRAW_VECTORIZE_FAKE_DELAY_MS` delays the canned test result so the in-flight state can be exercised.
+
 ## 0.9.2 — 2026-09-15
 
 ### Changed

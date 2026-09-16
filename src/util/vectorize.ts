@@ -160,7 +160,7 @@ export function convertResult(
  * the draft on a "Draft" layer above the image's layer as one undo step.
  */
 export async function vectorizeNode(ref: CanvasNode, onProgress?: (msg: string) => void): Promise<VectorizeSummary> {
-  const store = useCanvas.getState();
+  const boardId = useCanvas.getState().boardId;
   const imageId = ref.content.imageId;
   if (!imageId) throw new Error('The selected shape is not an image.');
   onProgress?.('Preparing image…');
@@ -182,9 +182,15 @@ export async function vectorizeNode(ref: CanvasNode, onProgress?: (msg: string) 
     throw new Error((err as Error).message.replace(/^Error invoking remote method '[^']+': (?:\w*Error: )?/, ''));
   }
   if (!res.result.shapes.length) throw new Error('The model found no shapes in this image.');
+  // Re-read the board after the round trip: the image may have been moved or
+  // removed, layers reordered, or another board opened while the model worked.
+  const store = useCanvas.getState();
+  if (store.boardId !== boardId) throw new Error('The board changed while the model was working; nothing inserted.');
+  const live = store.nodes[ref.id];
+  if (!live) throw new Error('The image was removed while the model was working; nothing inserted.');
   const bg = store.board?.background ?? '#ffffff';
-  const { nodes, edges, lowConfidence } = convertResult(res.result, ref, sent, bg);
-  const refLayer = store.layers[ref.layerId];
+  const { nodes, edges, lowConfidence } = convertResult(res.result, live, sent, bg);
+  const refLayer = store.layers[live.layerId];
   const ordered = layerOrder(store.layers);
   // Reuse an existing "Draft" layer directly above the reference; else create one there.
   const above = ordered[ordered.findIndex((l) => l.id === refLayer?.id) + 1];

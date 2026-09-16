@@ -127,6 +127,10 @@ export async function runVectorize(req: VectorizeRequest): Promise<VectorizeResp
   // app opened from the Finder never has it.
   const fake = process.env.HALDRAW_VECTORIZE_FAKE;
   if (fake) {
+    // HALDRAW_VECTORIZE_FAKE_DELAY_MS imitates the round trip so the renderer
+    // can be exercised while a call is "in flight".
+    const delay = Number(process.env.HALDRAW_VECTORIZE_FAKE_DELAY_MS ?? 0);
+    if (delay > 0) await new Promise((r) => setTimeout(r, delay));
     const raw = JSON.parse(readFileSync(fake, 'utf8'));
     const problem = validateResult(raw, req.width, req.height);
     if (problem) throw new VectorizeError(`Fake result rejected: ${problem}`, 'output');

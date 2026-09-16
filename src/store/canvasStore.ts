@@ -202,6 +202,17 @@ export function layerOrder(layers: Record<string, Layer>): Layer[] {
   return Object.values(layers).sort((a, b) => a.position - b.position || a.createdAt - b.createdAt);
 }
 
+/**
+ * Current layer to fall back to when the current one is gone or locked: the
+ * topmost unlocked layer, else the topmost. Never a locked layer while an
+ * unlocked one exists, so new shapes stay interactive.
+ */
+export function fallbackCurrentLayer(layers: Record<string, Layer>): string | null {
+  const ordered = layerOrder(layers);
+  for (let i = ordered.length - 1; i >= 0; i--) if (!ordered[i].locked) return ordered[i].id;
+  return ordered[ordered.length - 1]?.id ?? null;
+}
+
 /** Visible on the canvas: layer shown, and not excluded by solo. */
 export function isNodeVisible(s: Pick<CanvasState, 'layers' | 'soloLayerId'>, n: CanvasNode): boolean {
   const l = s.layers[n.layerId];
@@ -401,7 +412,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       }
     }
     const currentLayerId =
-      s.board.currentLayerId && layers[s.board.currentLayerId] ? s.board.currentLayerId : bottom?.id ?? null;
+      s.board.currentLayerId && layers[s.board.currentLayerId] ? s.board.currentLayerId : fallbackCurrentLayer(layers);
     set({
       boardId: s.board.id,
       board: s.board,
@@ -698,7 +709,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       nodes: { ...last.nodes },
       edges: { ...last.edges },
       layers: { ...last.layers },
-      currentLayerId: s.currentLayerId && last.layers[s.currentLayerId] ? s.currentLayerId : layerOrder(last.layers)[0]?.id ?? null,
+      currentLayerId: s.currentLayerId && last.layers[s.currentLayerId] ? s.currentLayerId : fallbackCurrentLayer(last.layers),
       history: history.slice(0, -1),
       future: [...s.future, current],
       dirtyNodeIds: dirtyN,
@@ -733,7 +744,7 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       nodes: { ...next.nodes },
       edges: { ...next.edges },
       layers: { ...next.layers },
-      currentLayerId: s.currentLayerId && next.layers[s.currentLayerId] ? s.currentLayerId : layerOrder(next.layers)[0]?.id ?? null,
+      currentLayerId: s.currentLayerId && next.layers[s.currentLayerId] ? s.currentLayerId : fallbackCurrentLayer(next.layers),
       history: [...s.history, current],
       future: s.future.slice(0, -1),
       dirtyNodeIds: dirtyN,
@@ -1146,7 +1157,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       nodes,
       edges,
       layers,
-      currentLayerId: s.currentLayerId === id ? target.id : s.currentLayerId,
+      // A locked neighbour is not a place to draw; prefer an unlocked layer.
+      currentLayerId: s.currentLayerId === id ? (target.locked ? fallbackCurrentLayer(layers) : target.id) : s.currentLayerId,
       soloLayerId: s.soloLayerId === id ? null : s.soloLayerId,
       selection,
       edgeSelection,
