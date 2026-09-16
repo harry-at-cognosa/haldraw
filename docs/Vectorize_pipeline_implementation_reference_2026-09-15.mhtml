@@ -1,0 +1,3891 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html
+Subject: Vectorize_pipeline_implementation_reference_2026-09-15
+Date: Wed, 16 Sep 2026 18:25:31 GMT
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--Whq3HRU452vuSPEJHbdkIl5O6StIxtN0QkbWCL0zPw----"
+
+
+------MultipartBoundary--Whq3HRU452vuSPEJHbdkIl5O6StIxtN0QkbWCL0zPw----
+Content-Type: text/html
+Content-ID: <frame-40401EA5CF8890E0B50D04B0CCCCCDA4@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html
+
+<!DOCTYPE html><html><head><meta http-equiv=3D"Content-Type" content=3D"tex=
+t/html; charset=3DUTF-8"><link rel=3D"stylesheet" type=3D"text/css" href=3D=
+"cid:css-a6ae707a-1b58-4a99-9b01-17dd1c878c23@mhtml.blink" /><link rel=3D"s=
+tylesheet" type=3D"text/css" href=3D"cid:css-a198c425-644f-4b22-909d-d2529d=
+2dc62f@mhtml.blink" /><meta name=3D"viewport" content=3D"width=3Ddevice-wid=
+th, initial-scale=3D1"><title>Vectorize_pipeline_implementation_reference_2=
+026-09-15</title></head><body data-theme=3D"auto"><article class=3D"markdow=
+n-body"><h1 id=3D"vectorize-how-a-reference-image-becomes-an-editable-draft=
+-pipeline-reference">Vectorize: how a reference image becomes an editable d=
+raft =E2=80=94 pipeline reference<a class=3D"headerlink" href=3D"file:///pr=
+ivate/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#vectorize-how=
+-a-reference-image-becomes-an-editable-draft-pipeline-reference" title=3D"P=
+ermanent link">=EE=A0=86</a></h1>
+<p>Describes the implementation as of <strong>0.9.2</strong> (commits <code=
+>8ee54aa</code>, <code>d0233eb</code>, <code>e0291bd</code>, <code>77136d6<=
+/code>, all 2026-09-15). Written 2026-09-15 from the code, not from the des=
+ign note; where the two differ, =C2=A71.6 says so. Companion to <a href=3D"=
+file:///Users/harryAtMac/p33_haldraw_info_and_repo/haldraw/docs/Vectorize_r=
+aster_design.md">Vectorize_raster_design.md</a>, which holds the intent and=
+ the decision record.</p>
+<p>Audience: someone who wants to know exactly what happens between pressin=
+g <strong>Vectorize=E2=80=A6</strong> and seeing shapes on a Draft layer, i=
+ncluding every byte that goes to the model and every rule applied to what c=
+omes back.</p>
+<hr>
+<h2 id=3D"table-of-contents">Table of contents<a class=3D"headerlink" href=
+=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html=
+#table-of-contents" title=3D"Permanent link">=EE=A0=86</a></h2>
+<ul>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#0-scope-and-the-one-thing-to-know-first">0. Scope and the one t=
+hing to know first</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#1-overview">1. Overview</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#11-one-paragraph">1.1 One paragraph</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#12-level-0-diagram">1.2 Level-0 diagram</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#13-the-five-major-steps">1.3 The five major steps</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#14-process-and-trust-boundaries">1.4 Process and trust boundari=
+es</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#15-where-perception-happens-and-where-it-does-not">1.5 Where pe=
+rception happens, and where it does not</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#16-design-note-versus-shipped-code">1.6 Design note versus ship=
+ped code</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#2-step-a--trigger-and-image-preparation-renderer">2. Step A =E2=
+=80=94 Trigger and image preparation (renderer)</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#a1-entry-points">A.1 Entry points</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#a2-fetching-the-image-bytes">A.2 Fetching the image bytes</a></=
+li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#a3-downsampling-to-the-models-resolution-ceiling">A.3 Downsampl=
+ing to the model=E2=80=99s resolution ceiling</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#a4-model-choice-and-settings">A.4 Model choice and settings</a>=
+</li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#a5-the-ipc-request">A.5 The IPC request</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#3-step-b--the-model-call-main-process">3. Step B =E2=80=94 The =
+model call (main process)</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b1-api-key-retrieval">B.1 API key retrieval</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b2-request-assembly">B.2 Request assembly</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b3-the-system-prompt-verbatim">B.3 The system prompt, verbatim<=
+/a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b4-the-user-turn">B.4 The user turn</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b5-the-output-schema-verbatim">B.5 The output schema, verbatim<=
+/a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b6-what-the-model-is-asked-to-perceive">B.6 What the model is a=
+sked to perceive</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b7-response-handling-and-structural-validation">B.7 Response ha=
+ndling and structural validation</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b8-the-single-retry">B.8 The single retry</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b9-error-taxonomy">B.9 Error taxonomy</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#b10-the-test-seam">B.10 The test seam</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#4-step-c--conversion-to-board-geometry-renderer">4. Step C =E2=
+=80=94 Conversion to board geometry (renderer)</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#c1-coordinate-mapping">C.1 Coordinate mapping</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#c2-shape-kind-mapping">C.2 Shape kind mapping</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#c3-fill-stroke-and-text-colour">C.3 Fill, stroke and text colou=
+r</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#c4-confidence-and-the-dashed-stroke">C.4 Confidence and the das=
+hed stroke</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#c5-font-size-estimation">C.5 Font size estimation</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#c6-connector-construction">C.6 Connector construction</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#5-step-d--insertion-into-the-board-store">5. Step D =E2=80=94 I=
+nsertion into the board (store)</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#d1-resolving-the-draft-layer">D.1 Resolving the Draft layer</a>=
+</li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#d2-insertmany-ids-z-order-group-selection-undo">D.2 insertMany:=
+ ids, z-order, group, selection, undo</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#d3-persistence">D.3 Persistence</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#d4-how-the-rows-render">D.4 How the rows render</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#6-step-e--feedback-to-the-user">6. Step E =E2=80=94 Feedback to=
+ the user</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#7-data-contracts">7. Data contracts</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#8-constants-and-tunables">8. Constants and tunables</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#9-observed-behaviour-and-limits">9. Observed behaviour and limi=
+ts</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#appendix-a--end-to-end-pseudo-code">Appendix A =E2=80=94 End-to=
+-end pseudo-code</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#appendix-b--validateresult-pseudo-code">Appendix B =E2=80=94 va=
+lidateResult pseudo-code</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#appendix-c--colour-and-font-size-helpers-pseudo-code">Appendix =
+C =E2=80=94 Colour and font-size helpers pseudo-code</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#appendix-d--insertmany-pseudo-code">Appendix D =E2=80=94 insert=
+Many pseudo-code</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#appendix-e--a-worked-example">Appendix E =E2=80=94 A worked exa=
+mple</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#appendix-f--file-and-symbol-map">Appendix F =E2=80=94 File and =
+symbol map</a></li>
+<li><a href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/92.html#index">Index</a></li>
+</ul>
+<hr>
+<h2 id=3D"0-scope-and-the-one-thing-to-know-first">0. Scope and the one thi=
+ng to know first<a class=3D"headerlink" href=3D"file:///private/var/folders=
+/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#0-scope-and-the-one-thing-to-k=
+now-first" title=3D"Permanent link">=EE=A0=86</a></h2>
+<p><strong>haldraw performs no image analysis of its own.</strong> There is=
+ no edge detection, contour tracing, colour quantisation, connected-compone=
+nt labelling, OCR or line following anywhere in the app. Every perceptual j=
+udgement =E2=80=94 where a box is, whether it is a rectangle or an ellipse,=
+ what colour it is, what its text says, which shapes an arrow joins =E2=80=
+=94 is made by the vision model in a single request and returned as JSON. T=
+he app=E2=80=99s job is to (1) prepare the image, (2) ask the question prec=
+isely and constrain the answer=E2=80=99s shape, (3) check the answer struct=
+urally, (4) map the answer=E2=80=99s pixel coordinates onto the board, and =
+(5) insert the result as ordinary haldraw rows that the user can edit.</p>
+<p>Consequently, connectors are <strong>not traced</strong>. The model repo=
+rts =E2=80=9Ca connector joins shape <code>s1</code> to shape <code>s3</cod=
+e>, with an arrowhead at <code>s3</code>=E2=80=9D. haldraw then draws its o=
+wn straight line between those two shapes using its existing auto-anchor ro=
+uting (=C2=A7C.6, =C2=A7D.4). The path in the original picture =E2=80=94 be=
+nds, curves, the exact points where it touched the boxes =E2=80=94 is not r=
+ecovered and is not asked for.</p>
+<p>Everything below is in service of that division of labour.</p>
+<hr>
+<h2 id=3D"1-overview">1. Overview<a class=3D"headerlink" href=3D"file:///pr=
+ivate/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#1-overview" t=
+itle=3D"Permanent link">=EE=A0=86</a></h2>
+<h3 id=3D"11-one-paragraph">1.1 One paragraph<a class=3D"headerlink" href=
+=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html=
+#11-one-paragraph" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>The user selects a reference image node (or clicks the sparkle on its <s=
+trong>Reference images</strong> row) and presses <strong>Vectorize=E2=80=A6=
+</strong>. The renderer fetches the stored image bytes, downsamples them so=
+ the long side is at most 1568 px, and sends a PNG plus the chosen model id=
+ to the main process over IPC. The main process reads the Anthropic API key=
+ from the macOS keychain, builds one Messages API request (image + one-line=
+ instruction, a fixed system prompt, and a JSON-schema structured-output co=
+nstraint), and calls the model. The reply is parsed and validated structura=
+lly; an invalid reply is sent back once with the validation error appended.=
+ The validated <code>{ shapes, connectors }</code> object returns to the re=
+nderer, which scales every box from image pixels into the reference node=E2=
+=80=99s rectangle, resolves colours, dashes low-confidence elements, estima=
+tes a font size for each text, and builds node and edge rows. Those rows ar=
+e inserted as one undo step onto a =E2=80=9CDraft=E2=80=9D layer directly a=
+bove the image=E2=80=99s layer, grouped and selected; the ordinary dirty-fl=
+ush then writes them to SQLite. A toast reports the counts, the model and t=
+he token usage.</p>
+<h3 id=3D"12-level-0-diagram">1.2 Level-0 diagram<a class=3D"headerlink" hr=
+ef=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.ht=
+ml#12-level-0-diagram" title=3D"Permanent link">=EE=A0=86</a></h3>
+<div class=3D"highlight"><pre> =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80 Elect=
+ron renderer (React; no key, no network) =E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=90
+ =E2=94=82                                                                 =
+                                       =E2=94=82
+ =E2=94=82  [A] Trigger &amp; prepare      [C] Convert to board geometry   =
+     [D] Insert            [E] Feedback    =E2=94=82
+ =E2=94=82  =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90      =E2=94=8C=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=90      =E2=94=8C=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90    =E2=94=8C=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=90  =E2=94=82
+ =E2=94=82  =E2=94=82 Vectorize=E2=80=A6 click  =E2=94=82      =E2=94=82 px=
+ =E2=86=92 board scale, colours,  =E2=94=82      =E2=94=82 Draft layer,   =
+=E2=94=82    =E2=94=82 toast:     =E2=94=82  =E2=94=82
+ =E2=94=82  =E2=94=82 images.get(id)    =E2=94=82      =E2=94=82 dash &lt; =
+0.6, font size,      =E2=94=82=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=96=B6=E2=94=82 insertMany     =E2=94=82=E2=94=80=E2=94=80=E2=94=80=E2=
+=96=B6=E2=94=82 counts,    =E2=94=82  =E2=94=82
+ =E2=94=82  =E2=94=82 downsample =E2=89=A4 1568 =E2=94=82      =E2=94=82 no=
+de + edge rows (temp ids) =E2=94=82      =E2=94=82 one undo step  =E2=94=82=
+    =E2=94=82 model,     =E2=94=82  =E2=94=82
+ =E2=94=82  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=AC=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98      =E2=94=94=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B2=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=98      =E2=94=94=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=AC=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98    =E2=94=82 tokens =
+    =E2=94=82  =E2=94=82
+ =E2=94=82           =E2=94=82 VectorizeRequest               =E2=94=82 Vec=
+torizeResponse           =E2=94=82 dirty flush =E2=94=94=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=98  =E2=94=82
+ =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=BC=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=BC=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=BC=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98
+             =E2=94=82 IPC vectorize:run              =E2=94=82            =
+                 =E2=94=82 IPC upsertMany (300 ms)
+ =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=BC=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=B4=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=90     =E2=94=82
+ =E2=94=82  Electron main process =E2=80=94 [B] Model call                 =
+           =E2=94=82     =E2=96=BC
+ =E2=94=82  =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=90  =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90  =E2=94=8C=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=90  =E2=94=82  =E2=94=8C=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90
+ =E2=94=82  =E2=94=82 keychain read =E2=94=82=E2=94=80=E2=96=B6=E2=94=82 Me=
+ssages API request:      =E2=94=82=E2=94=80=E2=96=B6=E2=94=82 parse +   =E2=
+=94=82  =E2=94=82  =E2=94=82 SQLite               =E2=94=82
+ =E2=94=82  =E2=94=82 `security`    =E2=94=82  =E2=94=82 system prompt + im=
+age +    =E2=94=82  =E2=94=82 validate; =E2=94=82  =E2=94=82  =E2=94=82 ima=
+ges, meta, nodes, =E2=94=82
+ =E2=94=82  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=98  =E2=94=82 one line + json_schema     =E2=94=82  =E2=94=82 =
+one retry =E2=94=82  =E2=94=82  =E2=94=82 edges, layers        =E2=94=82
+ =E2=94=82                     =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=AC=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=98  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98  =E2=94=82  =E2=94=94=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98
+ =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=BC=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=98
+                                     =E2=94=82 HTTPS
+                                     =E2=96=BC
+                         Anthropic Messages API  (haldraw's only network ca=
+ll)
+</pre></div>
+
+<h3 id=3D"13-the-five-major-steps">1.3 The five major steps<a class=3D"head=
+erlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000=
+gv/T/92.html#13-the-five-major-steps" title=3D"Permanent link">=EE=A0=86</a=
+></h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Where</th>
+<th>Entry symbol</th>
+<th>Input</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A</strong> Trigger &amp; prepare</td>
+<td>renderer</td>
+<td><code>VectorizeButton</code> =E2=86=92 <code>vectorizeNode</code> =E2=
+=86=92 <code>imageToPng</code> (<code>src/panels/PropertiesPanel.tsx</code>=
+, <code>src/util/vectorize.ts</code>)</td>
+<td>image node, stored bytes</td>
+<td><code>VectorizeRequest { pngBase64, width, height, model }</code></td>
+</tr>
+<tr>
+<td><strong>B</strong> Model call</td>
+<td>main</td>
+<td><code>runVectorize</code> (<code>electron/vectorize.ts</code>)</td>
+<td><code>VectorizeRequest</code></td>
+<td><code>VectorizeResponse { result, model, inputTokens, outputTokens }</c=
+ode> or <code>VectorizeError</code></td>
+</tr>
+<tr>
+<td><strong>C</strong> Convert</td>
+<td>renderer</td>
+<td><code>convertResult</code> (<code>src/util/vectorize.ts</code>)</td>
+<td><code>VectorizeResult</code>, reference node, sent size, board backgrou=
+nd</td>
+<td>node rows (temp ids), edge rows (temp refs), low-confidence count</td>
+</tr>
+<tr>
+<td><strong>D</strong> Insert</td>
+<td>renderer store</td>
+<td><code>insertMany</code> (<code>src/store/canvasStore.ts</code>)</td>
+<td>rows + layer spec</td>
+<td>fresh ids, one history entry, dirty sets =E2=86=92 SQLite</td>
+</tr>
+<tr>
+<td><strong>E</strong> Feedback</td>
+<td>renderer</td>
+<td><code>notify</code> =E2=86=92 <code>BoardEditor</code> toast</td>
+<td>summary or error</td>
+<td>toast text</td>
+</tr>
+</tbody>
+</table>
+<h3 id=3D"14-process-and-trust-boundaries">1.4 Process and trust boundaries=
+<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf=
+89fbssd6mq5h0000gv/T/92.html#14-process-and-trust-boundaries" title=3D"Perm=
+anent link">=EE=A0=86</a></h3>
+<div class=3D"highlight"><pre>  Renderer (contextIsolation, no nodeIntegrat=
+ion)      Preload (contextBridge)        Main (Node)              Outside
+  =E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80      =E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80       =E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80           =E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80
+  window.haldraw.images.get(id)          =E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6   ipcRenderer.inv=
+oke      =E2=94=80=E2=94=80=E2=94=80=E2=96=B6  imagesRepo.getImage  =E2=94=
+=80=E2=94=80=E2=94=80=E2=96=B6 SQLite images table
+  window.haldraw.settings.get()          =E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6   ipcRenderer.inv=
+oke      =E2=94=80=E2=94=80=E2=94=80=E2=96=B6  metaRepo.getMeta     =E2=94=
+=80=E2=94=80=E2=94=80=E2=96=B6 SQLite meta table
+  window.haldraw.vectorize.keyStatus()   =E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6   ipcRenderer.inv=
+oke      =E2=94=80=E2=94=80=E2=94=80=E2=96=B6  hasApiKey()          =E2=94=
+=80=E2=94=80=E2=94=80=E2=96=B6 macOS keychain (bool only)
+  window.haldraw.vectorize.run(req)      =E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6   ipcRenderer.inv=
+oke      =E2=94=80=E2=94=80=E2=94=80=E2=96=B6  runVectorize(req)    =E2=94=
+=80=E2=94=80=E2=94=80=E2=96=B6 keychain (key) + HTTPS API
+</pre></div>
+
+<ul>
+<li>The API key is read by <code>security find-generic-password</code> insi=
+de <code>runVectorize</code> at call time. It exists only in main-process m=
+emory for the duration of the call, is never returned over IPC, never writt=
+en to the database, and never logged. <code>keyStatus</code> returns <code>=
+{ present: boolean }</code> and nothing else.</li>
+<li>The renderer holds image bytes and the model=E2=80=99s JSON; it never h=
+olds credentials. The window runs with <code>contextIsolation: true</code>,=
+ <code>nodeIntegration: false</code> and <code>sandbox: false</code>; the l=
+ast means the preload script has Node access, so the context bridge, not an=
+ OS sandbox, is the boundary.</li>
+<li>The main process never touches the board: it does not know which node i=
+s being vectorized, only the PNG and its size.</li>
+</ul>
+<h3 id=3D"15-where-perception-happens-and-where-it-does-not">1.5 Where perc=
+eption happens, and where it does not<a class=3D"headerlink" href=3D"file:/=
+//private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#15-where-=
+perception-happens-and-where-it-does-not" title=3D"Permanent link">=EE=A0=
+=86</a></h3>
+<table>
+<thead>
+<tr>
+<th>Perceptual question</th>
+<th>Who answers it</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Where is each box, and how big is it?</td>
+<td>model</td>
+<td>bounding box <code>x, y, w, h</code> in sent-image pixels, requested by=
+ the system prompt and typed by the schema</td>
+</tr>
+<tr>
+<td>Is it a rectangle, ellipse, diamond, or bare text?</td>
+<td>model</td>
+<td><code>kind</code> enum; prompt says =E2=80=9Cuse rect when unsure=E2=80=
+=9D</td>
+</tr>
+<tr>
+<td>What colour is the interior / outline / text?</td>
+<td>model</td>
+<td><code>fill</code>, <code>stroke</code>, <code>textColor</code> as <code=
+>#rrggbb</code>, or <code>""</code> when it cannot tell; prompt forbids inv=
+ention</td>
+</tr>
+<tr>
+<td>What does the text say?</td>
+<td>model</td>
+<td><code>text</code> verbatim, <code>\n</code> for line breaks</td>
+</tr>
+<tr>
+<td>Which shapes does a line join, and which end has the head?</td>
+<td>model</td>
+<td><code>from</code>, <code>to</code> shape ids, <code>headEnd</code> =E2=
+=88=88 {none, arrow}</td>
+</tr>
+<tr>
+<td>How sure is it?</td>
+<td>model</td>
+<td><code>confidence</code> 0=E2=80=931 per element</td>
+</tr>
+<tr>
+<td>Where does the connector actually run?</td>
+<td><strong>haldraw, at render time</strong></td>
+<td>straight segment between auto-chosen sides of the two boxes (=C2=A7C.6)=
+</td>
+</tr>
+<tr>
+<td>What size should the text be?</td>
+<td><strong>haldraw</strong></td>
+<td>heuristic from the box the model measured (=C2=A7C.5)</td>
+</tr>
+<tr>
+<td>Which colour if the model said <code>""</code>?</td>
+<td><strong>haldraw</strong></td>
+<td>transparent fill; board-default stroke; for text, black or white by lum=
+inance when the fill is known, else the board default (=C2=A7C.3)</td>
+</tr>
+<tr>
+<td>Which layer, z-order, group, selection?</td>
+<td><strong>haldraw</strong></td>
+<td>=C2=A7D</td>
+</tr>
+</tbody>
+</table>
+<h3 id=3D"16-design-note-versus-shipped-code">1.6 Design note versus shippe=
+d code<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg=
+8908nf89fbssd6mq5h0000gv/T/92.html#16-design-note-versus-shipped-code" titl=
+e=3D"Permanent link">=EE=A0=86</a></h3>
+<p>The design note=E2=80=99s =E2=80=9CPipeline=E2=80=9D section (written 20=
+26-09-13) is partly superseded by its own =E2=80=9CImplementation plan =E2=
+=80=94 0.9.0=E2=80=9D section and by the code. Differences that matter when=
+ reading the note:</p>
+<table>
+<thead>
+<tr>
+<th>Design note =E2=80=9CPipeline=E2=80=9D</th>
+<th>Shipped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Renderer sends <code>imageId</code> plus the node rectangle to main; ma=
+in fetches and downsamples at ~2000 px</td>
+<td>Renderer fetches and downsamples to <strong>1568 px</strong>; main rece=
+ives a finished PNG and knows nothing about the node</td>
+</tr>
+<tr>
+<td>Model emits a <code>.haldraw</code> board file; validated by the file i=
+mporter</td>
+<td>Model emits the purpose-built <code>{ shapes, connectors }</code> contr=
+act (=C2=A77); validated by <code>validateResult</code></td>
+</tr>
+<tr>
+<td>System prompt describes the <code>.haldraw</code> v1 schema and node ty=
+pes including <code>icon</code></td>
+<td>System prompt describes four kinds (<code>rect</code>, <code>ellipse</c=
+ode>, <code>diamond</code>, <code>text</code>); no icons; no routing option=
+s</td>
+</tr>
+<tr>
+<td>=E2=80=9CSettings dialog for the API key=E2=80=9D</td>
+<td>Settings dialog shows key <strong>status</strong> and the <code>securit=
+y</code> command; the key itself is never entered in the app</td>
+</tr>
+<tr>
+<td>=E2=80=9C<strong>Vectorize=E2=80=A6</strong> button =E2=80=A6 when exac=
+tly one locked image is selected=E2=80=9D, =E2=80=9Cor File menu=E2=80=9D</=
+td>
+<td>Any single selected image, locked or not, in the Image section, plus a =
+per-row sparkle under Reference images; no File-menu item</td>
+</tr>
+<tr>
+<td>=E2=80=9CProgress toast=E2=80=9D</td>
+<td>Progress is the button label or a line under the row; toasts carry only=
+ the final result or error</td>
+</tr>
+</tbody>
+</table>
+<p>The 0.9.1 and 0.9.2 changes (transparent unknown fill, measured font siz=
+e, <code>textColor</code>) post-date the note entirely.</p>
+<hr>
+<h2 id=3D"2-step-a-trigger-and-image-preparation-renderer">2. Step A =E2=80=
+=94 Trigger and image preparation (renderer)<a class=3D"headerlink" href=3D=
+"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#2-=
+step-a-trigger-and-image-preparation-renderer" title=3D"Permanent link">=EE=
+=A0=86</a></h2>
+<div class=3D"highlight"><pre>  =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=90    =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=90    =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90=
+    =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90
+  =E2=94=82 A.1 click           =E2=94=82    =E2=94=82 A.2 images.get      =
+ =E2=94=82    =E2=94=82 A.3 imageToPng      =E2=94=82    =E2=94=82 A.4/A.5 =
+settings +   =E2=94=82
+  =E2=94=82 Vectorize=E2=80=A6 /        =E2=94=82=E2=94=80=E2=94=80=E2=94=
+=80=E2=96=B6=E2=94=82 SQLite row =E2=86=92         =E2=94=82=E2=94=80=E2=94=
+=80=E2=94=80=E2=96=B6=E2=94=82 decode, scale =E2=89=A41568,=E2=94=82=E2=94=
+=80=E2=94=80=E2=94=80=E2=96=B6=E2=94=82 IPC vectorize:run    =E2=94=82
+  =E2=94=82 row sparkle         =E2=94=82    =E2=94=82 data URL            =
+ =E2=94=82    =E2=94=82 PNG base64          =E2=94=82    =E2=94=82 { png, w=
+, h, model } =E2=94=82
+  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98    =E2=94=94=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98    =E2=94=94=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98    =E2=94=94=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98
+        progress: "Starting=E2=80=A6"     "Preparing image=E2=80=A6"       =
+                           "Asking &lt;model&gt;=E2=80=A6"
+</pre></div>
+
+<h3 id=3D"a1-entry-points">A.1 Entry points<a class=3D"headerlink" href=3D"=
+file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#a1-=
+entry-points" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>Both entry points render the same component, <code>VectorizeButton</code=
+> in <code>src/panels/PropertiesPanel.tsx</code>, and both call <code>vecto=
+rizeNode(node, setProgress)</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Condition</th>
+<th>Appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Properties panel, <strong>Image</strong> section</td>
+<td>exactly one node selected and it is an image</td>
+<td>full-width button, sparkle icon, label is the progress text while runni=
+ng, else =E2=80=9CVectorize=E2=80=A6=E2=80=9D</td>
+</tr>
+<tr>
+<td>Board panel, <strong>Reference images</strong> list</td>
+<td>every node with <code>locked: true</code> gets a row, whatever its type=
+; only image rows get the sparkle</td>
+<td>small sparkle icon button; progress text appears under the row while ru=
+nning</td>
+</tr>
+</tbody>
+</table>
+<p>The second entry point exists because locked reference images cannot be =
+selected on the canvas, so the Image section never shows for them. The butt=
+on is disabled while a call is in flight (<code>progress !=3D=3D null</code=
+>); there is no cancel.</p>
+<p>The image need not be locked and need not be on a layer named =E2=80=9CR=
+eference=E2=80=9D; any image node works.</p>
+<p>Two gaps follow from where the buttons live. An image whose own <code>lo=
+cked</code> flag is false but which sits on a locked layer is neither click=
+able on the canvas nor listed under Reference images, so it has no Vectoriz=
+e entry point until its layer is unlocked. And nothing serialises calls: th=
+e disabled state is per button instance, so two rows=E2=80=99 sparkles can =
+run concurrently, and if the Image section unmounts mid-call (the selection=
+ changes) its progress display is lost while the call continues and the toa=
+st still fires.</p>
+<h3 id=3D"a2-fetching-the-image-bytes">A.2 Fetching the image bytes<a class=
+=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6=
+mq5h0000gv/T/92.html#a2-fetching-the-image-bytes" title=3D"Permanent link">=
+=EE=A0=86</a></h3>
+<p><code>vectorizeNode</code> reads <code>ref.content.imageId</code> and ca=
+lls <code>window.haldraw.images.get(imageId)</code>. The main-process handl=
+er returns an <code>ImageBlob { id, mime, width, height, dataUrl }</code>, =
+where <code>dataUrl</code> is <code>data:&lt;mime&gt;;base64,&lt;bytes&gt;<=
+/code> built from the <code>images</code> table (<code>electron/repo/images=
+.ts</code>). Image ids are the SHA-256 of the stored bytes, so the same pic=
+ture imported twice is stored once.</p>
+<p>What is stored may already be smaller than the file the user imported: f=
+iles imported or dropped are downsampled when the long side exceeds 4096 px=
+ (<code>MAX_STORED_SIDE</code> in <code>src/util/importImage.ts</code>), co=
+nverting to PNG (or keeping JPEG); pasted images are stored as pasted, at f=
+ull size; SVG is stored untouched. Vectorize works from the stored bytes, n=
+ever the original file.</p>
+<h3 id=3D"a3-downsampling-to-the-models-resolution-ceiling">A.3 Downsamplin=
+g to the model=E2=80=99s resolution ceiling<a class=3D"headerlink" href=3D"=
+file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#a3-=
+downsampling-to-the-models-resolution-ceiling" title=3D"Permanent link">=EE=
+=A0=86</a></h3>
+<p><code>imageToPng(dataUrl)</code> in <code>src/util/vectorize.ts</code>:<=
+/p>
+<ol>
+<li><strong>Decode by hand.</strong> <code>fetch()</code> on a <code>data:<=
+/code> URL is blocked by the renderer=E2=80=99s Content-Security-Policy, so=
+ the function slices the MIME type out of the URL prefix, <code>atob</code>=
+s the payload into a <code>Uint8Array</code>, wraps it in a <code>Blob</cod=
+e>, and calls <code>createImageBitmap</code>.</li>
+<li><strong>Scale factor.</strong> <code>scale =3D min(1, 1568 / max(bitmap=
+.width, bitmap.height))</code>. Images already within 1568 px are sent at n=
+ative size; larger ones are shrunk so the long side is exactly 1568 (rounde=
+d). Never upscaled.</li>
+<li><strong>Resample.</strong> Draw the bitmap onto a 2-D canvas of the tar=
+get size with <code>imageSmoothingQuality =3D 'high'</code>.</li>
+<li><strong>Encode.</strong> <code>canvas.toDataURL('image/png')</code>, st=
+rip the <code>data:image/png;base64,</code> prefix.</li>
+<li><strong>Return</strong> <code>{ pngBase64, width, height }</code> where=
+ <code>width</code>/<code>height</code> are the <strong>sent</strong> dimen=
+sions. Every coordinate the model returns is in this pixel space, and Step =
+C scales from it.</li>
+</ol>
+<p>Always PNG regardless of the stored MIME (lossless after the resample; a=
+ JPEG source is re-encoded losslessly at the new size). An SVG reference wo=
+uld have to be rasterised here by <code>createImageBitmap</code>; Chromium=
+=E2=80=99s support for SVG blobs in that call is limited and this path has =
+not been exercised, so treat SVG references as unverified.</p>
+<p>Why 1568: Anthropic=E2=80=99s vision documentation states images are dow=
+nscaled server-side when the long edge exceeds 1568 px, so sending more pix=
+els costs bandwidth without adding detail, and scaling locally makes the co=
+ordinate space deterministic and known to the renderer. (Per the same docum=
+entation an image costs roughly <code>width =C3=97 height / 750</code> inpu=
+t tokens, about 3.3 k at 1568 =C3=97 1568; the code does not compute this.)=
+</p>
+<div class=3D"highlight"><pre>   stored image (imported files =E2=89=A4 409=
+6 px)       sent image (=E2=89=A4 1568 px long side)
+   =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90                 =E2=94=8C=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90
+   =E2=94=82 W_img =C3=97 H_img              =E2=94=82  scale =3D        =
+=E2=94=82 W_sent =C3=97     =E2=94=82   model coordinates live here
+   =E2=94=82                            =E2=94=82  min(1, 1568 /  =E2=94=82=
+ H_sent       =E2=94=82   (origin top-left, y down)
+   =E2=94=82                            =E2=94=82  max(W, H))     =E2=94=82=
+              =E2=94=82
+   =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98                 =E2=94=94=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98
+</pre></div>
+
+<h3 id=3D"a4-model-choice-and-settings">A.4 Model choice and settings<a cla=
+ss=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbss=
+d6mq5h0000gv/T/92.html#a4-model-choice-and-settings" title=3D"Permanent lin=
+k">=EE=A0=86</a></h3>
+<p><code>window.haldraw.settings.get()</code> returns <code>AppSettings { v=
+ectorizeModel }</code>. The main process reads it from the <code>meta</code=
+> table, key <code>vectorize.model</code>, falling back to <code>DEFAULT_VE=
+CTORIZE_MODEL =3D 'claude-opus-5'</code>. The Settings dialog (<strong>File=
+ =E2=96=B8 Settings=E2=80=A6</strong>, <code>=E2=8C=98,</code>, or the tool=
+bar gear) writes it with <code>settings.set</code>, which trims and ignores=
+ empty strings.</p>
+<p>The selectable models (<code>VECTORIZE_MODELS</code> in <code>shared/typ=
+es.ts</code>):</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>claude-opus-5</code></td>
+<td>Claude Opus 5 (default)</td>
+</tr>
+<tr>
+<td><code>claude-sonnet-5</code></td>
+<td>Claude Sonnet 5</td>
+</tr>
+<tr>
+<td><code>claude-opus-4-8</code></td>
+<td>Claude Opus 4.8</td>
+</tr>
+<tr>
+<td><code>claude-haiku-4-5</code></td>
+<td>Claude Haiku 4.5</td>
+</tr>
+</tbody>
+</table>
+<p>The id string is passed through to the API unchanged. An id the API does=
+ not know produces the =E2=80=9CModel =E2=80=A6 was not found=E2=80=9D erro=
+r (=C2=A7B.9); since the select offers only these four, that arises only fr=
+om a hand-edited <code>meta</code> row or an id the API has retired.</p>
+<h3 id=3D"a5-the-ipc-request">A.5 The IPC request<a class=3D"headerlink" hr=
+ef=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.ht=
+ml#a5-the-ipc-request" title=3D"Permanent link">=EE=A0=86</a></h3>
+<div class=3D"highlight"><pre><span class=3D"nb">window</span><span class=
+=3D"p">.</span><span class=3D"nx">haldraw</span><span class=3D"p">.</span><=
+span class=3D"nx">vectorize</span><span class=3D"p">.</span><span class=3D"=
+nx">run</span><span class=3D"p">({</span>
+  <span class=3D"nx">pngBase64</span>: <span class=3D"kt">sent.pngBase64</s=
+pan><span class=3D"p">,</span>   <span class=3D"c1">// PNG, no data: prefix=
+</span>
+  <span class=3D"nx">width</span>:     <span class=3D"kt">sent.width</span>=
+<span class=3D"p">,</span>       <span class=3D"c1">// sent pixel size</spa=
+n>
+  <span class=3D"nx">height</span>:    <span class=3D"kt">sent.height</span=
+><span class=3D"p">,</span>
+  <span class=3D"nx">model</span>:     <span class=3D"kt">settings.vectoriz=
+eModel</span><span class=3D"p">,</span>
+<span class=3D"p">})</span>
+</pre></div>
+
+<p>Electron=E2=80=99s structured clone carries the base64 string to main. O=
+n failure Electron wraps the main-process error as <code>Error invoking rem=
+ote method 'vectorize:run': Error: &lt;msg&gt;</code> (the subclass name is=
+ not carried because <code>VectorizeError</code> never sets <code>name</cod=
+e>); <code>vectorizeNode</code> strips that prefix with a regex so the toas=
+t shows only <code>&lt;msg&gt;</code>.</p>
+<hr>
+<h2 id=3D"3-step-b-the-model-call-main-process">3. Step B =E2=80=94 The mod=
+el call (main process)<a class=3D"headerlink" href=3D"file:///private/var/f=
+olders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#3-step-b-the-model-call-=
+main-process" title=3D"Permanent link">=EE=A0=86</a></h2>
+<div class=3D"highlight"><pre>  runVectorize(req)
+  =E2=94=82
+  =E2=94=9C=E2=94=80 HALDRAW_VECTORIZE_FAKE set? =E2=94=80=E2=94=80yes=E2=
+=94=80=E2=94=80=E2=96=B6 read JSON file =E2=86=92 validateResult =E2=86=92 =
+return {model:'fake', tokens 0}
+  =E2=94=82
+  =E2=94=9C=E2=94=80 readApiKey() via `security find-generic-password -s ha=
+ldraw -a anthropic-api-key -w`
+  =E2=94=82      =E2=94=94=E2=94=80 null =E2=94=80=E2=94=80=E2=96=B6 throw =
+VectorizeError('no-key', includes the add command)
+  =E2=94=82
+  =E2=94=9C=E2=94=80 client =3D new Anthropic({ apiKey, maxRetries: 2, time=
+out: 180_000 })
+  =E2=94=9C=E2=94=80 messages =3D [ user: [ image(base64 PNG), text("The im=
+age is W =C3=97 H pixels. Extract its shapes and connectors.") ] ]
+  =E2=94=82
+  =E2=94=94=E2=94=80 for attempt in 0, 1:
+        =E2=94=9C=E2=94=80 messages.create({ model, max_tokens: 16000, syst=
+em: SYSTEM_PROMPT, messages,
+        =E2=94=82                    output_config: { format: { type: 'json=
+_schema', schema: OUTPUT_SCHEMA } } })
+        =E2=94=82      =E2=94=94=E2=94=80 SDK error =E2=94=80=E2=94=80=E2=
+=96=B6 map to VectorizeError kind (auth / model / network) and throw
+        =E2=94=9C=E2=94=80 accumulate usage.input_tokens / output_tokens
+        =E2=94=9C=E2=94=80 stop_reason 'refusal'    =E2=94=80=E2=94=80=E2=
+=96=B6 throw 'model'
+        =E2=94=9C=E2=94=80 stop_reason 'max_tokens' =E2=94=80=E2=94=80=E2=
+=96=B6 throw 'output'
+        =E2=94=9C=E2=94=80 text =3D concat of text blocks; parsed =3D JSON.=
+parse(text); problem =3D validateResult(parsed, W, H)
+        =E2=94=9C=E2=94=80 no problem =E2=94=80=E2=94=80=E2=96=B6 return { =
+result, model: message.model, inputTokens, outputTokens }
+        =E2=94=9C=E2=94=80 attempt 0 =E2=94=80=E2=94=80=E2=96=B6 push assis=
+tant(text or '{}') + user("That output was rejected: &lt;problem&gt;\nRetur=
+n the corrected JSON object only."); continue
+        =E2=94=94=E2=94=80 attempt 1 =E2=94=80=E2=94=80=E2=96=B6 throw 'out=
+put' with problem + first 400 chars of text
+</pre></div>
+
+<h3 id=3D"b1-api-key-retrieval">B.1 API key retrieval<a class=3D"headerlink=
+" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/9=
+2.html#b1-api-key-retrieval" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p><code>readApiKey()</code> spawns <code>security find-generic-password -s=
+ haldraw -a anthropic-api-key -w</code> synchronously with a 5 s timeout an=
+d takes trimmed stdout. Non-zero exit or empty output means =E2=80=9Cno key=
+=E2=80=9D. The user stores the key once with:</p>
+<div class=3D"highlight"><pre>security add-generic-password -s haldraw -a a=
+nthropic-api-key -w '&lt;your key&gt;' -U
+</pre></div>
+
+<p>That exact string is exported as <code>KEYCHAIN_ADD_COMMAND</code> and e=
+mbedded in the no-key error. The Settings dialog shows a second, hand-dupli=
+cated copy of the same string (line 4 of <code>SettingsModal.tsx</code>, wi=
+th a Copy button) because the renderer cannot import the Electron module; t=
+he two must be kept in sync by hand. The key is re-read on every call; noth=
+ing is cached.</p>
+<h3 id=3D"b2-request-assembly">B.2 Request assembly<a class=3D"headerlink" =
+href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.=
+html#b2-request-assembly" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>One call to <code>client.messages.create</code> per attempt, through <co=
+de>@anthropic-ai/sdk</code> 0.126.0. The request, field by field:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>model</code></td>
+<td><code>req.model</code></td>
+<td>from Settings; see A.4</td>
+</tr>
+<tr>
+<td><code>max_tokens</code></td>
+<td><code>16000</code></td>
+<td>ceiling on output; a hit produces the =E2=80=9Cran out of output tokens=
+=E2=80=9D error rather than a truncated draft</td>
+</tr>
+<tr>
+<td><code>system</code></td>
+<td><code>SYSTEM_PROMPT</code></td>
+<td>fixed string, =C2=A7B.3; identical on every call</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>one user turn on attempt 0; on attempt 1 the same turn plus the rejecte=
+d assistant text and a correction request, three messages in all</td>
+<td>=C2=A7B.4, =C2=A7B.8</td>
+</tr>
+<tr>
+<td><code>output_config.format</code></td>
+<td><code>{ type: 'json_schema', schema: OUTPUT_SCHEMA }</code></td>
+<td>structured output; the API constrains generation to the schema in =C2=
+=A7B.5</td>
+</tr>
+</tbody>
+</table>
+<p>Fields <strong>not</strong> set, and what that implies:</p>
+<table>
+<thead>
+<tr>
+<th>Absent field</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thinking</code></td>
+<td>model default applies; per Anthropic documentation as of 2026-09-15 (no=
+t exercised here), Opus 5 and Sonnet 5 run adaptive thinking when the field=
+ is omitted, Opus 4.8 and Haiku 4.5 do not think</td>
+</tr>
+<tr>
+<td><code>output_config.effort</code></td>
+<td>API default (<code>high</code>, per the same documentation)</td>
+</tr>
+<tr>
+<td><code>temperature</code>, <code>top_p</code>, <code>top_k</code></td>
+<td>API defaults (the Claude 5 models reject them anyway, per the same docu=
+mentation)</td>
+</tr>
+<tr>
+<td><code>stream</code></td>
+<td>non-streaming; the SDK client timeout of 180 s bounds each HTTP attempt=
+</td>
+</tr>
+<tr>
+<td><code>cache_control</code></td>
+<td>no prompt caching. The system prompt is short and the image dominates t=
+he input, so there is little to cache</td>
+</tr>
+<tr>
+<td><code>tools</code>, <code>tool_choice</code></td>
+<td>none; JSON comes back as a plain text block</td>
+</tr>
+<tr>
+<td><code>betas</code> / <code>fallbacks</code></td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p>Client options: <code>maxRetries: 2</code> means the SDK itself retries =
+transport-level failures and 408/409/429/5xx responses up to twice per <cod=
+e>messages.create</code>, with backoff, before the app sees an error. Combi=
+ned with the app=E2=80=99s own one validation retry, a worst case is six HT=
+TP requests.</p>
+<h3 id=3D"b3-the-system-prompt-verbatim">B.3 The system prompt, verbatim<a =
+class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89f=
+bssd6mq5h0000gv/T/92.html#b3-the-system-prompt-verbatim" title=3D"Permanent=
+ link">=EE=A0=86</a></h3>
+<p>Stored as <code>SYSTEM_PROMPT</code> in <code>electron/vectorize.ts</cod=
+e>. Reproduced exactly (the <code>\\n</code> in the source is a literal bac=
+kslash-n in the delivered text, telling the model how to encode line breaks=
+ inside JSON strings):</p>
+<div class=3D"highlight"><pre>You convert a raster picture of a diagram (fl=
+owchart, data-flow diagram, architecture sketch, org chart, logo with text)=
+ into an editable first draft for a drawing tool.
+
+Return every visible shape and every visible connector, as JSON matching th=
+e given schema. Coordinates are pixels of the supplied image, origin top-le=
+ft, x/y the top-left corner of the element's bounding box, w/h its size.
+
+Rules:
+- Each box, circle, rounded rectangle or diamond is one shape. Classify as =
+rect, ellipse or diamond; use rect when unsure.
+- Free-standing text that is not inside a shape is a shape of kind "text" w=
+hose box is the text's extent.
+- Text inside a shape goes in that shape's "text" field, exactly as written=
+, line breaks as \n. Use "" when the shape has no text.
+- Colours as 6-digit lowercase hex (#rrggbb): "fill" is the shape's interio=
+r, "stroke" its outline, "textColor" the colour of its text (white text on =
+a dark shape is common; report it). Use "" when you cannot tell. Do not inv=
+ent colours.
+- A connector is a line or arrow that visibly joins two shapes; "from" and =
+"to" are the shape ids at its ends, "headEnd" is "arrow" when the "to" end =
+has an arrowhead. A line whose ends do not touch shapes is not a connector;=
+ omit it.
+- "confidence" is your 0=E2=80=931 estimate that the element is real and co=
+rrectly placed.
+- Ids are short unique strings such as s1, s2.
+- Do not describe the image; output only the JSON object.
+</pre></div>
+
+<p>Reading it rule by rule (the third column is this document=E2=80=99s rea=
+ding of the consequences, not anything the code states; =C2=A7B.6 is the ca=
+nonical list of what is not captured):</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>What it buys</th>
+<th>What it deliberately gives up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Role sentence names diagram genres</td>
+<td>primes the model for boxes-and-arrows, not photographs</td>
+<td>=E2=80=94</td>
+</tr>
+<tr>
+<td>=E2=80=9Cevery visible shape and every visible connector=E2=80=9D</td>
+<td>recall over precision; the user prunes</td>
+<td>may over-report decorative elements</td>
+</tr>
+<tr>
+<td>Coordinate convention stated twice (prompt + user turn size)</td>
+<td>removes ambiguity about origin and units</td>
+<td>=E2=80=94</td>
+</tr>
+<tr>
+<td>Rounded rectangles =E2=86=92 <code>rect</code>; =E2=80=9Cuse rect when =
+unsure=E2=80=9D</td>
+<td>avoids spurious ellipses/diamonds</td>
+<td>corner radius is not captured (every rect gets the board default, 8)</t=
+d>
+</tr>
+<tr>
+<td>Free text is a <code>text</code> shape with the text=E2=80=99s extent a=
+s its box</td>
+<td>lets Step C size the font from the box (=C2=A7C.5)</td>
+<td>=E2=80=94</td>
+</tr>
+<tr>
+<td>Text =E2=80=9Cexactly as written=E2=80=9D</td>
+<td>faithful labels</td>
+<td>no spelling correction</td>
+</tr>
+<tr>
+<td>Colours as hex or <code>""</code>; =E2=80=9CDo not invent colours=E2=80=
+=9D</td>
+<td>Step C can treat <code>""</code> as =E2=80=9Cunknown=E2=80=9D and keep =
+the reference visible through the draft</td>
+<td>gradients, patterns, images inside shapes reduce to one hex or <code>""=
+</code></td>
+</tr>
+<tr>
+<td><code>textColor</code> with the explicit white-on-dark hint</td>
+<td>fixes the 0.9.0 defect of white labels coming out black</td>
+<td>=E2=80=94</td>
+</tr>
+<tr>
+<td>Connector =3D line that <strong>visibly joins two shapes</strong>; line=
+s touching nothing are omitted</td>
+<td>every edge can be attached at both ends, which is what makes it follow =
+the shapes when moved</td>
+<td>free lines, brackets, axes, legend swatches, timelines are lost; a line=
+ touching only one shape is lost</td>
+</tr>
+<tr>
+<td><code>headEnd</code> only</td>
+<td>one head, at the <code>to</code> end</td>
+<td>double-headed arrows and arrows pointing at <code>from</code> are not r=
+epresentable; the model must choose direction</td>
+</tr>
+<tr>
+<td><code>confidence</code> 0=E2=80=931</td>
+<td>Step C dashes elements below 0.6</td>
+<td>=E2=80=94</td>
+</tr>
+<tr>
+<td>Short unique ids</td>
+<td>connectors can reference shapes; ids are remapped on insert</td>
+<td>=E2=80=94</td>
+</tr>
+<tr>
+<td>=E2=80=9Coutput only the JSON object=E2=80=9D</td>
+<td>belt and braces alongside the schema constraint</td>
+<td>=E2=80=94</td>
+</tr>
+</tbody>
+</table>
+<h3 id=3D"b4-the-user-turn">B.4 The user turn<a class=3D"headerlink" href=
+=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html=
+#b4-the-user-turn" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>The first (and on attempt 0, only) message:</p>
+<div class=3D"highlight"><pre><span class=3D"p">{</span>
+  <span class=3D"nt">"role"</span><span class=3D"p">:</span> <span class=3D=
+"s2">"user"</span><span class=3D"p">,</span>
+  <span class=3D"nt">"content"</span><span class=3D"p">:</span> <span class=
+=3D"p">[</span>
+    <span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=
+=3D"p">:</span> <span class=3D"s2">"image"</span><span class=3D"p">,</span>=
+ <span class=3D"nt">"source"</span><span class=3D"p">:</span> <span class=
+=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p">:</span> =
+<span class=3D"s2">"base64"</span><span class=3D"p">,</span> <span class=3D=
+"nt">"media_type"</span><span class=3D"p">:</span> <span class=3D"s2">"imag=
+e/png"</span><span class=3D"p">,</span> <span class=3D"nt">"data"</span><sp=
+an class=3D"p">:</span> <span class=3D"s2">"&lt;pngBase64&gt;"</span> <span=
+ class=3D"p">}</span> <span class=3D"p">},</span>
+    <span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=
+=3D"p">:</span> <span class=3D"s2">"text"</span><span class=3D"p">,</span> =
+ <span class=3D"nt">"text"</span><span class=3D"p">:</span> <span class=3D"=
+s2">"The image is &lt;W&gt; =C3=97 &lt;H&gt; pixels. Extract its shapes and=
+ connectors."</span> <span class=3D"p">}</span>
+  <span class=3D"p">]</span>
+<span class=3D"p">}</span>
+</pre></div>
+
+<p>The image block precedes the text block (the ordering Anthropic=E2=80=99=
+s documentation recommends). The size sentence gives the model the exact pi=
+xel frame in which to express coordinates; <code>validateResult</code> late=
+r uses the same <code>W</code>, <code>H</code> to reject boxes wholly outsi=
+de the frame.</p>
+<h3 id=3D"b5-the-output-schema-verbatim">B.5 The output schema, verbatim<a =
+class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89f=
+bssd6mq5h0000gv/T/92.html#b5-the-output-schema-verbatim" title=3D"Permanent=
+ link">=EE=A0=86</a></h3>
+<p><code>OUTPUT_SCHEMA</code>, passed as <code>output_config.format.schema<=
+/code>. Every property is <code>required</code> and <code>additionalPropert=
+ies</code> is <code>false</code> at all three object levels (root, shape it=
+em, connector item), so the model cannot omit a colour (it must send <code>=
+""</code>) and cannot add fields.</p>
+<div class=3D"highlight"><pre><span class=3D"p">{</span>
+  <span class=3D"nt">"type"</span><span class=3D"p">:</span> <span class=3D=
+"s2">"object"</span><span class=3D"p">,</span>
+  <span class=3D"nt">"additionalProperties"</span><span class=3D"p">:</span=
+> <span class=3D"kc">false</span><span class=3D"p">,</span>
+  <span class=3D"nt">"required"</span><span class=3D"p">:</span> <span clas=
+s=3D"p">[</span><span class=3D"s2">"shapes"</span><span class=3D"p">,</span=
+> <span class=3D"s2">"connectors"</span><span class=3D"p">],</span>
+  <span class=3D"nt">"properties"</span><span class=3D"p">:</span> <span cl=
+ass=3D"p">{</span>
+    <span class=3D"nt">"shapes"</span><span class=3D"p">:</span> <span clas=
+s=3D"p">{</span>
+      <span class=3D"nt">"type"</span><span class=3D"p">:</span> <span clas=
+s=3D"s2">"array"</span><span class=3D"p">,</span>
+      <span class=3D"nt">"items"</span><span class=3D"p">:</span> <span cla=
+ss=3D"p">{</span>
+        <span class=3D"nt">"type"</span><span class=3D"p">:</span> <span cl=
+ass=3D"s2">"object"</span><span class=3D"p">,</span>
+        <span class=3D"nt">"additionalProperties"</span><span class=3D"p">:=
+</span> <span class=3D"kc">false</span><span class=3D"p">,</span>
+        <span class=3D"nt">"required"</span><span class=3D"p">:</span> <spa=
+n class=3D"p">[</span><span class=3D"s2">"id"</span><span class=3D"p">,</sp=
+an> <span class=3D"s2">"kind"</span><span class=3D"p">,</span> <span class=
+=3D"s2">"x"</span><span class=3D"p">,</span> <span class=3D"s2">"y"</span><=
+span class=3D"p">,</span> <span class=3D"s2">"w"</span><span class=3D"p">,<=
+/span> <span class=3D"s2">"h"</span><span class=3D"p">,</span> <span class=
+=3D"s2">"text"</span><span class=3D"p">,</span> <span class=3D"s2">"fill"</=
+span><span class=3D"p">,</span> <span class=3D"s2">"stroke"</span><span cla=
+ss=3D"p">,</span> <span class=3D"s2">"textColor"</span><span class=3D"p">,<=
+/span> <span class=3D"s2">"confidence"</span><span class=3D"p">],</span>
+        <span class=3D"nt">"properties"</span><span class=3D"p">:</span> <s=
+pan class=3D"p">{</span>
+          <span class=3D"nt">"id"</span><span class=3D"p">:</span>         =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"kind"</span><span class=3D"p">:</span>       =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span><span class=3D"p">,</span> <sp=
+an class=3D"nt">"enum"</span><span class=3D"p">:</span> <span class=3D"p">[=
+</span><span class=3D"s2">"rect"</span><span class=3D"p">,</span> <span cla=
+ss=3D"s2">"ellipse"</span><span class=3D"p">,</span> <span class=3D"s2">"di=
+amond"</span><span class=3D"p">,</span> <span class=3D"s2">"text"</span><sp=
+an class=3D"p">]</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"x"</span><span class=3D"p">:</span>          =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"number"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"y"</span><span class=3D"p">:</span>          =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"number"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"w"</span><span class=3D"p">:</span>          =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"number"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"h"</span><span class=3D"p">:</span>          =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"number"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"text"</span><span class=3D"p">:</span>       =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"fill"</span><span class=3D"p">:</span>       =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"stroke"</span><span class=3D"p">:</span>     =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"textColor"</span><span class=3D"p">:</span>  =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"confidence"</span><span class=3D"p">:</span> =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"number"</span> <span class=3D"p">}</span>
+        <span class=3D"p">}</span>
+      <span class=3D"p">}</span>
+    <span class=3D"p">},</span>
+    <span class=3D"nt">"connectors"</span><span class=3D"p">:</span> <span =
+class=3D"p">{</span>
+      <span class=3D"nt">"type"</span><span class=3D"p">:</span> <span clas=
+s=3D"s2">"array"</span><span class=3D"p">,</span>
+      <span class=3D"nt">"items"</span><span class=3D"p">:</span> <span cla=
+ss=3D"p">{</span>
+        <span class=3D"nt">"type"</span><span class=3D"p">:</span> <span cl=
+ass=3D"s2">"object"</span><span class=3D"p">,</span>
+        <span class=3D"nt">"additionalProperties"</span><span class=3D"p">:=
+</span> <span class=3D"kc">false</span><span class=3D"p">,</span>
+        <span class=3D"nt">"required"</span><span class=3D"p">:</span> <spa=
+n class=3D"p">[</span><span class=3D"s2">"from"</span><span class=3D"p">,</=
+span> <span class=3D"s2">"to"</span><span class=3D"p">,</span> <span class=
+=3D"s2">"headEnd"</span><span class=3D"p">,</span> <span class=3D"s2">"labe=
+l"</span><span class=3D"p">,</span> <span class=3D"s2">"confidence"</span><=
+span class=3D"p">],</span>
+        <span class=3D"nt">"properties"</span><span class=3D"p">:</span> <s=
+pan class=3D"p">{</span>
+          <span class=3D"nt">"from"</span><span class=3D"p">:</span>       =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"to"</span><span class=3D"p">:</span>         =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"headEnd"</span><span class=3D"p">:</span>    =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span><span class=3D"p">,</span> <sp=
+an class=3D"nt">"enum"</span><span class=3D"p">:</span> <span class=3D"p">[=
+</span><span class=3D"s2">"none"</span><span class=3D"p">,</span> <span cla=
+ss=3D"s2">"arrow"</span><span class=3D"p">]</span> <span class=3D"p">},</sp=
+an>
+          <span class=3D"nt">"label"</span><span class=3D"p">:</span>      =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"string"</span> <span class=3D"p">},</span>
+          <span class=3D"nt">"confidence"</span><span class=3D"p">:</span> =
+<span class=3D"p">{</span> <span class=3D"nt">"type"</span><span class=3D"p=
+">:</span> <span class=3D"s2">"number"</span> <span class=3D"p">}</span>
+        <span class=3D"p">}</span>
+      <span class=3D"p">}</span>
+    <span class=3D"p">}</span>
+  <span class=3D"p">}</span>
+<span class=3D"p">}</span>
+</pre></div>
+
+<p>What the schema does <strong>not</strong> constrain, and therefore what =
+<code>validateResult</code> (=C2=A7B.7) or Step C must handle:</p>
+<ul>
+<li><code>id</code> uniqueness and <code>from</code>/<code>to</code> referr=
+ing to real ids (checked by <code>validateResult</code>)</li>
+<li><code>w</code>, <code>h</code> positivity and box position relative to =
+the image (checked by <code>validateResult</code>)</li>
+<li>hex format of colours (handled by Step C: a non-matching string is trea=
+ted as unknown)</li>
+<li><code>confidence</code> range (not checked; anything <code>&lt; 0.6</co=
+de> dashes, anything else does not)</li>
+<li><code>text</code> line-break encoding (the model is told <code>\n</code=
+>; JSON decoding yields a real newline)</li>
+</ul>
+<p>The division of labour: <strong>schema</strong> guarantees the shape of =
+the JSON so <code>JSON.parse</code> and the type cast are safe; <strong>pro=
+mpt</strong> carries the semantics; <strong>validateResult</strong> enforce=
+s the referential and geometric invariants the schema language cannot expre=
+ss.</p>
+<h3 id=3D"b6-what-the-model-is-asked-to-perceive">B.6 What the model is ask=
+ed to perceive<a class=3D"headerlink" href=3D"file:///private/var/folders/h=
+j/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#b6-what-the-model-is-asked-to-pe=
+rceive" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>Restating =C2=A71.5 from the model=E2=80=99s point of view, this is the =
+complete perceptual task, and nothing else is asked:</p>
+<div class=3D"highlight"><pre>  for every visible shape:                   =
+ for every visible connector:
+    kind =E2=88=88 {rect, ellipse, diamond, text}       from: shape id at o=
+ne end
+    bounding box x, y, w, h (image px)          to:   shape id at the other=
+ end
+    text (verbatim, \n line breaks, or "")      headEnd =E2=88=88 {none, ar=
+row}  (head at `to`)
+    fill, stroke, textColor (#rrggbb or "")     label ("" if none)
+    confidence 0=E2=80=931                              confidence 0=E2=80=
+=931
+    id (short, unique)
+</pre></div>
+
+<p>Not asked for, and so never present in a draft: rotation, corner radius,=
+ stroke width, dash pattern, font family/weight/size, text alignment, gradi=
+ents, icons, images inside shapes, connector paths or waypoints, connector =
+colour or width, a head at the <code>from</code> end, head styles other tha=
+n the filled arrow, containment/nesting, groups, z-order intent, and any el=
+ement that is a line not joining two shapes.</p>
+<h3 id=3D"b7-response-handling-and-structural-validation">B.7 Response hand=
+ling and structural validation<a class=3D"headerlink" href=3D"file:///priva=
+te/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#b7-response-hand=
+ling-and-structural-validation" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>After a successful HTTP round trip:</p>
+<ol>
+<li><code>usage.input_tokens</code> and <code>usage.output_tokens</code> ar=
+e added to running totals (so a retried call reports the sum of both attemp=
+ts).</li>
+<li><code>stop_reason =3D=3D=3D 'refusal'</code> =E2=86=92 <code>VectorizeE=
+rror('model')</code> =E2=80=9CThe model declined to process this image.=E2=
+=80=9D</li>
+<li><code>stop_reason =3D=3D=3D 'max_tokens'</code> =E2=86=92 <code>Vectori=
+zeError('output')</code> =E2=80=9C=E2=80=A6ran out of output tokens=E2=80=
+=A6; try a simpler image.=E2=80=9D</li>
+<li>All <code>text</code> blocks in <code>message.content</code> are concat=
+enated (<code>textOf</code>).</li>
+<li><code>JSON.parse(text)</code>; a throw becomes the problem string <code=
+>Not valid JSON: &lt;message&gt;</code>.</li>
+<li><code>validateResult(parsed, req.width, req.height)</code> returns <cod=
+e>null</code> or the <strong>first</strong> problem found, as a sentence th=
+e model can act on.</li>
+</ol>
+<p><code>validateResult</code> rules, in evaluation order:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Problem string</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>value is an object</td>
+<td><code>Output is not an object.</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>shapes</code> is an array</td>
+<td><code>Missing "shapes" array.</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>connectors</code> is an array</td>
+<td><code>Missing "connectors" array.</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>each shape has a non-empty string <code>id</code></td>
+<td><code>Shape &lt;i&gt;: missing id.</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>ids are unique</td>
+<td><code>Shape &lt;i&gt;: duplicate id "&lt;id&gt;".</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>kind</code> =E2=88=88 {rect, ellipse, diamond, text}</td>
+<td><code>Shape &lt;id&gt;: unknown kind "&lt;kind&gt;".</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>x</code>, <code>y</code>, <code>w</code>, <code>h</code> are fini=
+te numbers</td>
+<td><code>Shape &lt;id&gt;: &lt;k&gt; must be a number.</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>w &gt; 0</code> and <code>h &gt; 0</code></td>
+<td><code>Shape &lt;id&gt;: w and h must be positive.</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>box overlaps the image: not <code>x + w &lt; 0</code>, not <code>y + h =
+&lt; 0</code>, not <code>x &gt; W</code>, not <code>y &gt; H</code></td>
+<td><code>Shape &lt;id&gt;: box lies outside the image (W=C3=97H).</code></=
+td>
+</tr>
+<tr>
+<td>10</td>
+<td>each connector=E2=80=99s <code>from</code> is a known id</td>
+<td><code>Connector &lt;i&gt;: "from" is not a shape id.</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td>each connector=E2=80=99s <code>to</code> is a known id</td>
+<td><code>Connector &lt;i&gt;: "to" is not a shape id.</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>from !=3D=3D to</code></td>
+<td><code>Connector &lt;i&gt;: from and to are the same shape.</code></td>
+</tr>
+</tbody>
+</table>
+<p>Rule 9 is permissive on purpose: a box may hang partly off the image (co=
+mmon when the model=E2=80=99s estimate of an edge-hugging element overshoot=
+s) and is only rejected when it has no overlap at all. Rule 6 and the type =
+half of rule 7 duplicate what the schema enforces; they matter for the test=
+-seam file (=C2=A7B.10), which bypasses the API. Finiteness, positivity (ru=
+le 8) and the overlap test (rule 9) are enforced nowhere else.</p>
+<p>Not validated: colour strings, confidence range, <code>headEnd</code> va=
+lue (schema-enforced only), <code>text</code>/<code>label</code> types (sch=
+ema-enforced only), empty <code>shapes</code> (handled in the renderer: =E2=
+=80=9CThe model found no shapes in this image.=E2=80=9D).</p>
+<h3 id=3D"b8-the-single-retry">B.8 The single retry<a class=3D"headerlink" =
+href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.=
+html#b8-the-single-retry" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>If attempt 0 fails parsing or validation, the conversation is extended a=
+nd sent again once:</p>
+<div class=3D"highlight"><pre>  messages after the first failure
+  =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90
+  =E2=94=82 1  user      [ image, "The image is W =C3=97 H pixels. Extract =
+its shapes=E2=80=A6" ]     =E2=94=82
+  =E2=94=82 2  assistant  &lt;the rejected text verbatim, or "{}" if it was=
+ empty&gt;          =E2=94=82
+  =E2=94=82 3  user      "That output was rejected: &lt;problem&gt;        =
+                    =E2=94=82
+  =E2=94=82               Return the corrected JSON object only."          =
+              =E2=94=82
+  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98
+  system prompt, schema and all other parameters unchanged
+</pre></div>
+
+<p>The image is therefore sent (and billed) twice on a retry. The <code>&lt=
+;problem&gt;</code> is one of the rule strings in =C2=A7B.7 or the <code>No=
+t valid JSON: &lt;message&gt;</code> form, so the model gets a single concr=
+ete fix to make (=E2=80=9CConnector 3: =E2=80=9Cto=E2=80=9D is not a shape =
+id.=E2=80=9D), not a list. If the second reply also fails, the error carrie=
+s the problem and the first 400 characters of the reply so the user can see=
+ what came back.</p>
+<p>Because the output is schema-constrained, parse failures should be rare;=
+ the retry mostly catches referential errors (a connector naming an id that=
+ does not exist, a duplicate id) and geometric ones (zero-width box).</p>
+<h3 id=3D"b9-error-taxonomy">B.9 Error taxonomy<a class=3D"headerlink" href=
+=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html=
+#b9-error-taxonomy" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p><code>VectorizeError</code> carries a <code>kind</code> used only for cl=
+assification; the renderer shows <code>message</code> in a red toast for 9 =
+s.</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>kind</th>
+<th>Message shown</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>keychain item absent or empty</td>
+<td><code>no-key</code></td>
+<td><code>No API key in the keychain. In Terminal, run:</code> + the add co=
+mmand</td>
+</tr>
+<tr>
+<td><code>Anthropic.AuthenticationError</code> (401)</td>
+<td><code>auth</code></td>
+<td><code>The API key was rejected (401). Check the keychain item.</code></=
+td>
+</tr>
+<tr>
+<td><code>Anthropic.NotFoundError</code> (404)</td>
+<td><code>model</code></td>
+<td><code>Model "&lt;id&gt;" was not found. Pick another in Settings.</code=
+></td>
+</tr>
+<tr>
+<td><code>Anthropic.RateLimitError</code> (429, after SDK retries)</td>
+<td><code>network</code></td>
+<td><code>Rate limited by the API. Try again in a minute.</code></td>
+</tr>
+<tr>
+<td><code>Anthropic.APIConnectionError</code> (DNS, offline, timeout)</td>
+<td><code>network</code></td>
+<td><code>Could not reach the API. Check the network connection.</code></td=
+>
+</tr>
+<tr>
+<td>any other <code>Anthropic.APIError</code></td>
+<td><code>model</code></td>
+<td><code>API error &lt;status&gt;: &lt;message&gt;</code></td>
+</tr>
+<tr>
+<td><code>stop_reason: 'refusal'</code></td>
+<td><code>model</code></td>
+<td><code>The model declined to process this image.</code></td>
+</tr>
+<tr>
+<td><code>stop_reason: 'max_tokens'</code></td>
+<td><code>output</code></td>
+<td><code>The model ran out of output tokens before finishing; try a simple=
+r image.</code></td>
+</tr>
+<tr>
+<td>second parse/validation failure</td>
+<td><code>output</code></td>
+<td><code>The model's output could not be used: &lt;problem&gt;</code> + bl=
+ank line + first 400 chars</td>
+</tr>
+<tr>
+<td>fake file fails validation</td>
+<td><code>output</code></td>
+<td><code>Fake result rejected: &lt;problem&gt;</code></td>
+</tr>
+<tr>
+<td>any other exception (not an <code>Anthropic.APIError</code>), or a fake=
+ file that is not valid JSON</td>
+<td>none (re-thrown raw)</td>
+<td>the error=E2=80=99s own message, unclassified</td>
+</tr>
+<tr>
+<td>(renderer) no <code>imageId</code> on node</td>
+<td>plain Error</td>
+<td><code>The selected shape is not an image.</code></td>
+</tr>
+<tr>
+<td>(renderer) <code>images.get</code> returned null</td>
+<td>plain Error</td>
+<td><code>Image bytes not found.</code></td>
+</tr>
+<tr>
+<td>(renderer) <code>shapes</code> empty</td>
+<td>plain Error</td>
+<td><code>The model found no shapes in this image.</code></td>
+</tr>
+</tbody>
+</table>
+<p>Nothing is inserted on any error path; the store is untouched until <cod=
+e>insertMany</code> in Step D.</p>
+<h3 id=3D"b10-the-test-seam">B.10 The test seam<a class=3D"headerlink" href=
+=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html=
+#b10-the-test-seam" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>If the environment variable <code>HALDRAW_VECTORIZE_FAKE</code> names a =
+JSON file, <code>runVectorize</code> reads it, validates it with <code>vali=
+dateResult</code> against the request=E2=80=99s <code>width</code>/<code>he=
+ight</code>, and returns it as <code>{ result, model: 'fake', inputTokens: =
+0, outputTokens: 0 }</code> without touching the keychain or the network. O=
+nly a launcher that sets the variable sees this; the packaged app opened fr=
+om Finder never has it. It exists so Steps C=E2=80=93E (mapping, layer, ins=
+ert, grouping, undo) can be exercised deterministically in an isolated inst=
+ance. Because the fake bypasses the schema constraint, this path is why <co=
+de>validateResult</code> re-checks kinds and numeric types.</p>
+<hr>
+<h2 id=3D"4-step-c-conversion-to-board-geometry-renderer">4. Step C =E2=80=
+=94 Conversion to board geometry (renderer)<a class=3D"headerlink" href=3D"=
+file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#4-s=
+tep-c-conversion-to-board-geometry-renderer" title=3D"Permanent link">=EE=
+=A0=86</a></h2>
+<p><code>convertResult(result, ref, sent, background)</code> in <code>src/u=
+til/vectorize.ts</code> turns the model=E2=80=99s contract into rows the st=
+ore accepts. It is a pure function of its arguments; it does not touch the =
+store.</p>
+<div class=3D"highlight"><pre>  inputs                                     =
+    per shape                                   per connector
+  =E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80                      =E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80      =
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80
+  result.shapes / .connectors                    C.1 x,y,w,h  =E2=86=92 boa=
+rd rect (sx, sy)          fromTemp/toTemp =3D ids
+  ref: image node (x, y, width, height, layer)   C.2 kind     =E2=86=92 nod=
+e.type                    anchors 'auto', routing straight
+  sent: { width, height } of the PNG             C.3 fill/stroke/textColor =
+=E2=86=92 style            headStart 'none', headEnd from model
+  background: board paper colour                 C.4 confidence &lt; 0.6 =
+=E2=86=92 dashed                C.4 confidence &lt; 0.6 =E2=86=92 dashed
+                                                 C.5 fontSize =E2=86=90 tex=
+t, box, kind              stroke =3D board default, width 2
+                                                                           =
+                  label (or undefined)
+  outputs: { nodes[] with tempId, edges[] with fromTemp/toTemp, lowConfiden=
+ce }
+</pre></div>
+
+<h3 id=3D"c1-coordinate-mapping">C.1 Coordinate mapping<a class=3D"headerli=
+nk" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T=
+/92.html#c1-coordinate-mapping" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p>The model=E2=80=99s boxes are in sent-image pixels. The reference node o=
+ccupies a rectangle on the board that the user chose at import (original si=
+ze, fit, or a percentage) and may have moved or resized since. The mapping =
+is an independent affine scale per axis plus the node=E2=80=99s offset:</p>
+<div class=3D"highlight"><pre>  sx =3D ref.width  / sent.width
+  sy =3D ref.height / sent.height
+
+  node.x      =3D ref.x + s.x * sx
+  node.y      =3D ref.y + s.y * sy
+  node.width  =3D max(4, s.w * sx)
+  node.height =3D max(4, s.h * sy)
+</pre></div>
+
+<div class=3D"highlight"><pre>   sent image (px)                           =
+   board (canvas units)
+   =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90 W_sent                =
+=E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=90 ref.width
+   =E2=94=82   =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=90          =E2=94=82                       =E2=94=82      =E2=94=8C=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90         =
+   =E2=94=82
+   =E2=94=82   =E2=94=82 s.x =E2=94=82 s.w      =E2=94=82   =C3=97sx, =C3=
+=97sy, +ref.x/y  =E2=94=82      =E2=94=82       =E2=94=82            =E2=94=
+=82
+   =E2=94=82   =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=98          =E2=94=82  =E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=96=B6    =E2=94=82      =E2=94=94=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98            =E2=94=82
+   =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98 H_sent                =
+=E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=98 ref.height
+   origin (0,0)                                 origin (ref.x, ref.y)
+</pre></div>
+
+<p>Because <code>sx</code> and <code>sy</code> are computed separately, a r=
+eference the user has stretched non-uniformly gets a draft stretched the sa=
+me way. Rotation of the reference node is <strong>not</strong> applied (<co=
+de>rotation: 0</code> on every draft node); a rotated reference gets an unr=
+otated draft over its axis-aligned frame. The floor of 4 units prevents a d=
+egenerate box (a reading of the code; no comment states the reason).</p>
+<p>The design note=E2=80=99s regression case =E2=80=9Creference at 50 %=E2=
+=80=9D is exactly this scale: <code>sent</code> equals the stored image siz=
+e (if =E2=89=A4 1568 px) while <code>ref.width</code> is half of it, so <co=
+de>sx =3D 0.5</code>.</p>
+<h3 id=3D"c2-shape-kind-mapping">C.2 Shape kind mapping<a class=3D"headerli=
+nk" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T=
+/92.html#c2-shape-kind-mapping" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p><code>node.type =3D s.kind</code> directly; the four model kinds are a s=
+ubset of haldraw=E2=80=99s <code>NodeType</code>. Differences by kind in th=
+e rest of the conversion:</p>
+<table>
+<thead>
+<tr>
+<th>kind</th>
+<th>fill</th>
+<th>stroke</th>
+<th>textAlign</th>
+<th>verticalAlign</th>
+<th>dashed when low confidence</th>
+<th>font size rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rect</code>, <code>ellipse</code>, <code>diamond</code></td>
+<td>model=E2=80=99s or transparent</td>
+<td>model=E2=80=99s or board default</td>
+<td>board default (<code>center</code>)</td>
+<td>unset (middle)</td>
+<td>yes</td>
+<td>area-based, =C2=A7C.5</td>
+</tr>
+<tr>
+<td><code>text</code></td>
+<td>always <code>transparent</code></td>
+<td>always <code>transparent</code></td>
+<td><code>left</code></td>
+<td><code>top</code></td>
+<td><strong>no</strong> (nothing to dash)</td>
+<td>extent-based, =C2=A7C.5</td>
+</tr>
+</tbody>
+</table>
+<p>Every node also gets <code>rotation: 0</code>, <code>locked: false</code=
+>, <code>content.text =3D s.text || undefined</code> (empty string becomes =
+absent), and the board-default style spread underneath (<code>strokeWidth 2=
+</code>, <code>opacity 1</code>, <code>fontFamily Inter=E2=80=A6</code>, <c=
+ode>fontWeight 500</code>, <code>cornerRadius 8</code>).</p>
+<h3 id=3D"c3-fill-stroke-and-text-colour">C.3 Fill, stroke and text colour<=
+a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf8=
+9fbssd6mq5h0000gv/T/92.html#c3-fill-stroke-and-text-colour" title=3D"Perman=
+ent link">=EE=A0=86</a></h3>
+<p>Helper: <code>colour(v, fallback)</code> returns <code>v.toLowerCase()</=
+code> if <code>v</code> matches <code>/^#[0-9a-f]{6}$/i</code>, else <code>=
+fallback</code>. So <code>""</code>, <code>#fff</code>, <code>rgb(=E2=80=A6=
+)</code>, <code>"white"</code> all mean =E2=80=9Cunknown=E2=80=9D.</p>
+<div class=3D"highlight"><pre>  fill:
+    kind =3D=3D text =E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6 'transparent'
+    else colour(s.fill, 'transparent')      (unknown fill stays see-through=
+ so the reference shows)
+
+  stroke:
+    kind =3D=3D text =E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6 'transparent'
+    else colour(s.stroke, base.stroke)      (base.stroke: #0b0d10 on light =
+paper, #e6e8eb on dark)
+
+  textColor (style.color):
+    colour(s.textColor, fallback) where
+      fallback =3D fill is a real hex =E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6 contrastingText(fill=
+)     (black or white by luminance)
+                 fill is 'transparent' =E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=96=B6 base.color               (#0b0d10 light paper /=
+ #e6e8eb dark)
+</pre></div>
+
+<p><code>contrastingText(hex)</code> computes WCAG relative luminance (sRGB=
+ linearisation, coefficients 0.2126 / 0.7152 / 0.0722) and returns <code>#0=
+b0d10</code> when luminance &gt; 0.35, else <code>#ffffff</code>. The thres=
+hold 0.35 sits above the 0.179 crossover at which black and white have equa=
+l contrast, so mid-tone fills (the blues and greens in the screenshot board=
+s) get white text. The code and the 0.9.2 commit state the value but no rat=
+ionale; this reading is the document=E2=80=99s.</p>
+<p><code>base</code> is <code>defaultStyleForBackground(board.background)</=
+code>, which switches between a light and a dark palette by a different, ch=
+eaper luminance test (<code>isColorDark</code>, Rec. 601 weights, threshold=
+ 128). The two functions serve different purposes and are not meant to agre=
+e.</p>
+<p>Note the asymmetry: an unknown <strong>fill</strong> becomes transparent=
+ (so as not to hide the reference), but an unknown <strong>stroke</strong> =
+becomes the board default (so the shape has a visible outline to grab).</p>
+<h3 id=3D"c4-confidence-and-the-dashed-stroke">C.4 Confidence and the dashe=
+d stroke<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1h=
+qg8908nf89fbssd6mq5h0000gv/T/92.html#c4-confidence-and-the-dashed-stroke" t=
+itle=3D"Permanent link">=EE=A0=86</a></h3>
+<p><code>LOW_CONFIDENCE =3D 0.6</code>. For shapes other than <code>text</c=
+ode>, <code>confidence &lt; 0.6</code> sets <code>style.strokeDasharray =3D=
+ '6 4'</code>; for connectors it sets the same on the edge style. Each dash=
+ed element increments <code>lowConfidence</code>, which the toast reports (=
+=E2=80=9CN dashed (low confidence)=E2=80=9D). Low-confidence <code>text</co=
+de> shapes are counted but not visually marked, because a text node has no =
+stroke to dash.</p>
+<p>The dash is stored as a plain style value, so the user removes it by cho=
+osing <strong>Solid</strong> in the properties panel, and it survives in th=
+e <code>.haldraw</code> file like any other dash.</p>
+<h3 id=3D"c5-font-size-estimation">C.5 Font size estimation<a class=3D"head=
+erlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000=
+gv/T/92.html#c5-font-size-estimation" title=3D"Permanent link">=EE=A0=86</a=
+></h3>
+<p>The model reports no font size. <code>estimateFontSize(text, w, h, kind)=
+</code> derives one from the box the model measured, in canvas units (the s=
+ame units as <code>w</code>, <code>h</code> after C.1). Constants model an =
+Inter-like face:</p>
+<table>
+<thead>
+<tr>
+<th>constant</th>
+<th>value</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CHAR_W</code></td>
+<td>0.55</td>
+<td>average glyph advance as a multiple of font size</td>
+</tr>
+<tr>
+<td><code>LINE_H</code></td>
+<td>1.25</td>
+<td>line height as a multiple of font size</td>
+</tr>
+<tr>
+<td><code>MIN_FONT</code> / <code>MAX_FONT</code></td>
+<td>8 / 48</td>
+<td>clamp</td>
+</tr>
+</tbody>
+</table>
+<p>Empty (after trimming) text =E2=86=92 16 (the default; nothing to fit). =
+Otherwise, on the trimmed text <code>t</code>: <code>lines =3D t.split('\n'=
+)</code>, <code>longest =3D max line length (=E2=89=A5 1)</code>; <code>tex=
+t.length</code> below means <code>t.length</code>.</p>
+<p><strong>Free text</strong> (<code>kind =3D=3D 'text'</code>): the box <e=
+m>is</em> the text=E2=80=99s extent, so fit both dimensions and take the sm=
+aller:</p>
+<div class=3D"highlight"><pre>  byHeight =3D h / (lines =C3=97 LINE_H)
+  byWidth  =3D w / (longest =C3=97 CHAR_W)
+  f =3D min(byHeight, byWidth)
+</pre></div>
+
+<p><strong>Text inside a shape</strong>: the box is the shape, and the text=
+ occupies only part of it, wrapped by the renderer. Size so the wrapped tex=
+t fills a usable fraction of the area, but never wider than 90 % of the box=
+ at a capped 24-character line:</p>
+<div class=3D"highlight"><pre>  usable  =3D k =C3=97 w =C3=97 h        k =
+=3D 0.75 rect | 0.50 ellipse | 0.40 diamond
+  byArea  =3D sqrt( usable / (text.length =C3=97 CHAR_W =C3=97 LINE_H) )
+  byWidth =3D (0.9 =C3=97 w) / (min(longest, 24) =C3=97 CHAR_W)
+  f =3D min(byArea, byWidth)
+</pre></div>
+
+<p>Result: <code>round(clamp(f, 8, 48))</code>.</p>
+<p>The <code>k</code> factors approximate how much of the bounding box an i=
+nscribed text block can use: an ellipse loses its corners, a diamond more s=
+o. The <code>min(longest, 24)</code> cap assumes the renderer will wrap lin=
+es longer than about 24 characters, so a single long line should not force =
+a tiny font. Verified values from the 0.9.1 commit:</p>
+<table>
+<thead>
+<tr>
+<th>box</th>
+<th>kind</th>
+<th>text</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>397 =C3=97 119</td>
+<td>rect</td>
+<td>36 chars</td>
+<td>27 px</td>
+</tr>
+<tr>
+<td>496 =C3=97 60</td>
+<td>text</td>
+<td>one line, 36 chars</td>
+<td>25 px</td>
+</tr>
+<tr>
+<td>298 =C3=97 159</td>
+<td>ellipse</td>
+<td>=E2=80=94</td>
+<td>20 px</td>
+</tr>
+</tbody>
+</table>
+<p>The commit does not give line breaks. The 27 and the 20 follow when the =
+longest line is at least 24 characters, which makes both width-bound (357.3=
+ / 13.2 =3D 27.07); that is the ordinary case for a single wrapped label. T=
+he 25 is width-bound for a 36-character line.</p>
+<p>The renderer draws the label in a <code>foreignObject</code> with 8 px p=
+adding, <code>lineHeight 1.3</code>, <code>pre-wrap</code> and <code>break-=
+word</code> (=C2=A7D.4). The heuristic=E2=80=99s 1.25 line height and zero =
+padding are slightly optimistic relative to that, so drafts run a touch lar=
+ge rather than small. (An observed consequence; the code does not state it =
+as a goal.)</p>
+<h3 id=3D"c6-connector-construction">C.6 Connector construction<a class=3D"=
+headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h=
+0000gv/T/92.html#c6-connector-construction" title=3D"Permanent link">=EE=A0=
+=86</a></h3>
+<p>Each <code>VectorConnector</code> becomes one <code>CanvasEdge</code> ro=
+w. Nothing geometric is computed here; the edge stores only <em>what it joi=
+ns</em>:</p>
+<table>
+<thead>
+<tr>
+<th>field</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fromTemp</code> / <code>toTemp</code></td>
+<td>the model=E2=80=99s <code>from</code> / <code>to</code> ids (replaced b=
+y real node ids in D.2)</td>
+</tr>
+<tr>
+<td><code>fromNode</code> / <code>toNode</code></td>
+<td><code>null</code> here; set by <code>insertMany</code></td>
+</tr>
+<tr>
+<td><code>fromAnchor</code> / <code>toAnchor</code></td>
+<td><code>'auto'</code></td>
+</tr>
+<tr>
+<td><code>fromPoint</code> / <code>toPoint</code></td>
+<td><code>null</code> (both ends attached)</td>
+</tr>
+<tr>
+<td><code>routing</code></td>
+<td><code>'straight'</code></td>
+</tr>
+<tr>
+<td><code>headStart</code></td>
+<td><code>'none'</code></td>
+</tr>
+<tr>
+<td><code>headEnd</code></td>
+<td>the model=E2=80=99s value: <code>'none'</code> or <code>'arrow'</code><=
+/td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>{ stroke: board default edge colour, strokeWidth: 2, opacity: 1, =
+strokeDasharray: '6 4' if confidence &lt; 0.6 }</code></td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>the model=E2=80=99s label, or <code>undefined</code> when <code>""</cod=
+e></td>
+</tr>
+</tbody>
+</table>
+<p>Where the line actually runs is decided every time the canvas renders (=
+=C2=A7D.4): the <code>auto</code> anchor picks, on each box, the side that =
+faces the other box=E2=80=99s centre, and the straight route joins those tw=
+o side-midpoints. The connector=E2=80=99s colour is <strong>not</strong> ta=
+ken from the image; it is always the board=E2=80=99s default edge stroke (d=
+ark on light paper, light on dark).</p>
+<div class=3D"highlight"><pre>  model says                                 =
+  haldraw draws
+  { from: s1, to: s2, headEnd: arrow }         side of s1 facing s2 =E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=96=B6 side of s2 facing s1
+                                                (midpoint of that side)    =
+         (arrowhead here)
+</pre></div>
+
+<hr>
+<h2 id=3D"5-step-d-insertion-into-the-board-store">5. Step D =E2=80=94 Inse=
+rtion into the board (store)<a class=3D"headerlink" href=3D"file:///private=
+/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#5-step-d-insertion=
+-into-the-board-store" title=3D"Permanent link">=EE=A0=86</a></h2>
+<h3 id=3D"d1-resolving-the-draft-layer">D.1 Resolving the Draft layer<a cla=
+ss=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbss=
+d6mq5h0000gv/T/92.html#d1-resolving-the-draft-layer" title=3D"Permanent lin=
+k">=EE=A0=86</a></h3>
+<p>Done in <code>vectorizeNode</code> just before insertion:</p>
+<div class=3D"highlight"><pre>  ordered  =3D layers sorted bottom-first (po=
+sition, then createdAt)
+  refLayer =3D layers[ref.layerId]
+  above    =3D the layer immediately above refLayer in `ordered`
+
+  if above exists and above.name =3D=3D 'Draft'  =E2=86=92 reuse: layer =3D=
+ { id: above.id }
+  else                                       =E2=86=92 create: layer =3D { =
+name: 'Draft', abovePosition: refLayer.position }
+</pre></div>
+
+<p>So repeated vectorizations of the same image accumulate on one Draft lay=
+er, each as its own group, while an image on a different layer (or a Draft =
+layer that has since been moved) gets a fresh one. Only the layer <strong>d=
+irectly</strong> above is considered; a =E2=80=9CDraft=E2=80=9D two layers =
+up is not reused. If the reference=E2=80=99s layer cannot be found, <code>f=
+indIndex</code> returns -1, so <code>above</code> is the bottom layer: it i=
+s reused if it happens to be named =E2=80=9CDraft=E2=80=9D, otherwise a new=
+ layer is created at the bottom (<code>abovePosition</code> -1).</p>
+<p>These reads use state captured before the network round trip. <code>vect=
+orizeNode</code> takes <code>store =3D useCanvas.getState()</code> once, be=
+fore any <code>await</code>, and after the reply reads the board background=
+, the layer table and the <code>ref</code> node from that snapshot, while <=
+code>insertMany</code> itself runs against fresh state. If the user moves o=
+r resizes the reference, or reorders layers, during the call (which can tak=
+e tens of seconds), the draft is placed against the old rectangle and the D=
+raft-layer decision uses the old layer positions.</p>
+<h3 id=3D"d2-insertmany-ids-z-order-group-selection-undo">D.2 insertMany: i=
+ds, z-order, group, selection, undo<a class=3D"headerlink" href=3D"file:///=
+private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#d2-insertma=
+ny-ids-z-order-group-selection-undo" title=3D"Permanent link">=EE=A0=86</a>=
+</h3>
+<p><code>insertMany({ nodes, edges }, { layer, group: true, select: true })=
+</code> in <code>src/store/canvasStore.ts</code>:</p>
+<div class=3D"highlight"><pre>  1  prev =3D snapshot(state)                =
+              =E2=86=90 the undo point, taken before any change
+  2  layer:
+       { id }                     =E2=86=92 use it
+       { name, abovePosition }    =E2=86=92 every layer with position &gt; =
+abovePosition moves up by 1;
+                                    new layer at abovePosition + 1; renumbe=
+r densely from 0
+  3  nodes: for each input row in order
+       id       =3D newId()          idOf[tempId] =3D id
+       zIndex   =3D maxZIndex(existing) + 1, +2, +3 =E2=80=A6      =E2=86=
+=90 model order becomes stacking order
+       groupId  =3D one shared newId() if group &amp;&amp; nodes &gt; 1, el=
+se null
+       layerId  =3D the resolved layer
+       boardId, createdAt, updatedAt filled
+  4  edges: for each input row
+       fromNode =3D idOf[fromTemp], toNode =3D idOf[toTemp]  =E2=86=90 unkn=
+own ends drop the edge silently (a guard for other
+                                                          callers; validate=
+Result already ensured references here)
+       id, boardId, layerId, midpoint =3D null, labelPoint =3D null, timest=
+amps
+  5  set state:
+       nodes, edges, layers merged
+       currentLayerId =3D the Draft layer                  =E2=86=90 subseq=
+uent drawing lands on Draft
+       selection =3D all new node ids; edgeSelection =3D =E2=88=85
+       dirty sets =E2=88=AA=3D new ids (and every renumbered layer)
+       history.push(prev); future =3D []                   =E2=86=90 exactl=
+y one undo entry
+  6  return { nodeIds, edgeIds, layerId }
+</pre></div>
+
+<div class=3D"highlight"><pre>  layer stack before                     afte=
+r (create case, ref on position 0)
+  =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90 2  Annotati=
+ons         =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90 3 =
+ Annotations   (shifted)
+  =E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=A4 1  Drawing =
+            =E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=A4 2 =
+ Drawing       (shifted)
+  =E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=A4 0  Referenc=
+e =E2=97=80 image   =E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=A4 1  Draft   =E2=97=80 new, current, unlocked, visible
+  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98            =
+            =E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=A4 0 =
+ Reference =E2=97=80 image
+                                         =E2=94=94=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=98
+</pre></div>
+
+<p>Consequences worth knowing:</p>
+<ul>
+<li><strong>One =E2=8C=98Z</strong> removes every draft node and edge <em>a=
+nd</em> the Draft layer if it was created in this call (the layer lives in =
+the same snapshot). Undo also clears the selection, and because the current=
+ layer (Draft) no longer exists, the current layer falls to the bottom of t=
+he stack, typically =E2=80=9CReference=E2=80=9D, not the layer the user was=
+ on before. Redo restores nodes, edges and layer with the same ids, but not=
+ the selection.</li>
+<li>The group means a click on any draft element selects the whole draft (<=
+code>expandSelectionToGroups</code>), so the user can nudge or scale the wh=
+ole thing against the reference, then =E2=8C=98=E2=87=A7G (Ungroup) to edit=
+ pieces.</li>
+<li>The canvas paints layers bottom-first and, within a layer, by <code>zIn=
+dex</code>. Draft nodes get <code>zIndex</code> values above every existing=
+ node, which orders them among themselves in model order; anything added la=
+ter, on any layer, gets a higher <code>zIndex</code> still. Their position =
+relative to the reference comes from Draft sitting above the reference=E2=
+=80=99s layer, not from <code>zIndex</code>.</li>
+<li>Edges are on the Draft layer too, so hiding Draft hides its connectors.=
+</li>
+</ul>
+<h3 id=3D"d3-persistence">D.3 Persistence<a class=3D"headerlink" href=3D"fi=
+le:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#d3-pe=
+rsistence" title=3D"Permanent link">=EE=A0=86</a></h3>
+<p><code>insertMany</code> only marks rows dirty. <code>BoardEditor</code> =
+subscribes to the store and, 300 ms after the last change to nodes, edges, =
+layers, viewport or current layer, runs <code>flushSave</code> (also on =E2=
+=8C=98S and on unmount). <code>flushSave</code> calls <code>consumeDirty()<=
+/code> and issues <code>layers.upsertMany</code> first (so every <code>laye=
+r_id</code> resolves), then <code>nodes.upsertMany</code> and <code>edges.u=
+psertMany</code>, then the viewport and the current layer; main writes them=
+ to SQLite. The unmount path issues the same upserts without awaiting them.=
+ The draft therefore appears in the <code>.haldraw</code> export and surviv=
+es restart like anything else; there is no separate =E2=80=9Cvectorize resu=
+lt=E2=80=9D table or file.</p>
+<h3 id=3D"d4-how-the-rows-render">D.4 How the rows render<a class=3D"header=
+link" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv=
+/T/92.html#d4-how-the-rows-render" title=3D"Permanent link">=EE=A0=86</a></=
+h3>
+<p>Nothing in the renderer knows a node came from Vectorize. The rows are d=
+rawn by the same code as hand-made ones:</p>
+<ul>
+<li><strong>Shapes</strong> =E2=80=94 <code>Shape.tsx</code> draws the rect=
+/ellipse/diamond with <code>style.fill</code>, <code>style.stroke</code>, <=
+code>strokeWidth 2</code>, <code>strokeDasharray</code> if set, <code>corne=
+rRadius 8</code> on rects. The label is a <code>foreignObject</code> spanni=
+ng the node with a flex <code>div</code>: <code>p-2</code> (8 px padding), =
+<code>fontSize</code> from C.5, <code>lineHeight 1.3</code>, <code>whiteSpa=
+ce: pre-wrap</code>, <code>wordBreak: break-word</code>, <code>overflow: hi=
+dden</code>, alignment from <code>textAlign</code>/<code>verticalAlign</cod=
+e> (centre/middle for shapes, left/top for free text). Text that does not f=
+it is clipped, not shrunk.</li>
+<li><strong>Connectors</strong> =E2=80=94 <code>routing.ts</code> <code>edg=
+eEndpoints</code> resolves each end: with <code>anchor 'auto'</code> and a =
+target point (the other node=E2=80=99s centre), it compares <code>|dx| =C3=
+=97 height</code> against <code>|dy| =C3=97 width</code>; if the horizontal=
+ term wins it attaches to the left or right side=E2=80=99s midpoint, else t=
+op or bottom. <code>buildPath</code> for <code>'straight'</code> emits <cod=
+e>M from L to</code>. <code>Edge.tsx</code> draws that path in the edge=E2=
+=80=99s stroke/width/dash, adds the <code>arrow</code> marker at the <code>=
+to</code> end via <code>markerEnd</code>, and if a <code>label</code> exist=
+s, a 120 =C3=97 24 <code>foreignObject</code> pill at the path midpoint.</l=
+i>
+<li><strong>Auto-anchor rule, geometrically:</strong> the chosen side is th=
+e one the ray from this box=E2=80=99s centre to the other box=E2=80=99s cen=
+tre would exit through, using the box=E2=80=99s aspect ratio. For two boxes=
+ side by side that is right=E2=86=92left; for stacked boxes it is bottom=E2=
+=86=92top; for a diagonal pair it depends on the slope versus the aspect ra=
+tio.</li>
+</ul>
+<div class=3D"highlight"><pre>   |dx|=C2=B7h &gt; |dy|=C2=B7w  =E2=86=92  l=
+eft/right side          otherwise  =E2=86=92  top/bottom side
+   =E2=94=8C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=90                                    =E2=94=8C=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=90
+   =E2=94=82   c =E2=94=80=E2=94=80=E2=94=80=E2=94=BC=E2=94=80=E2=94=80=E2=
+=96=B6 target                          =E2=94=82   c    =E2=94=82
+   =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=98                                    =E2=94=94=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=AC=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=98
+                                                     =E2=96=BC target
+</pre></div>
+
+<p>Because the edge is attached by node id, moving a draft box later drags =
+its connectors with it. That is the payoff for asking the model for endpoin=
+ts rather than paths.</p>
+<hr>
+<h2 id=3D"6-step-e-feedback-to-the-user">6. Step E =E2=80=94 Feedback to th=
+e user<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg=
+8908nf89fbssd6mq5h0000gv/T/92.html#6-step-e-feedback-to-the-user" title=3D"=
+Permanent link">=EE=A0=86</a></h2>
+<p><code>notify(kind, text)</code> dispatches a <code>haldraw:toast</code> =
+<code>CustomEvent</code> on <code>window</code>; <code>BoardEditor</code> l=
+istens and shows it for 3.5 s (ok) or 9 s (err), pre-wrapped so the multi-l=
+ine keychain command is readable.</p>
+<p>Progress texts, in order, shown as the button label (Image section) or u=
+nder the row (Reference images):</p>
+<ol>
+<li><code>Starting=E2=80=A6</code> (set by the button before <code>vectoriz=
+eNode</code> runs)</li>
+<li><code>Preparing image=E2=80=A6</code> (before <code>images.get</code> a=
+nd the downsample)</li>
+<li><code>Asking &lt;model id&gt;=E2=80=A6</code> (before the IPC call; sta=
+ys until the reply)</li>
+</ol>
+<p>Success toast format:</p>
+<div class=3D"highlight"><pre>Draft: &lt;n&gt; shape[s], &lt;m&gt; connecto=
+r[s][, &lt;k&gt; dashed (low confidence)] =C2=B7 &lt;model as reported by t=
+he API&gt; =C2=B7 &lt;input+output&gt; tokens
+</pre></div>
+
+<p><code>model</code> is <code>message.model</code> from the API response (=
+the resolved id), not the requested string. The token figure is the sum of =
+input and output over all attempts. Observed once, on a 3106 =C3=97 2667 bu=
+bble-chart board that produced 65 shapes and no connectors: <code>claude-op=
+us-5 =C2=B7 13833 tokens</code>.</p>
+<p>Error toast: the <code>VectorizeError.message</code> with Electron=E2=80=
+=99s IPC prefix stripped (=C2=A7A.5).</p>
+<hr>
+<h2 id=3D"7-data-contracts">7. Data contracts<a class=3D"headerlink" href=
+=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html=
+#7-data-contracts" title=3D"Permanent link">=EE=A0=86</a></h2>
+<p>From <code>shared/types.ts</code> (0.9.2). These are the only vectorize-=
+specific types; everything downstream is ordinary <code>CanvasNode</code> /=
+ <code>CanvasEdge</code> / <code>Layer</code>.</p>
+<div class=3D"highlight"><pre><span class=3D"kr">export</span> <span class=
+=3D"nx">type</span> <span class=3D"nx">VectorShapeKind</span> <span class=
+=3D"o">=3D</span> <span class=3D"s1">'rect'</span> <span class=3D"o">|</spa=
+n> <span class=3D"s1">'ellipse'</span> <span class=3D"o">|</span> <span cla=
+ss=3D"s1">'diamond'</span> <span class=3D"o">|</span> <span class=3D"s1">'t=
+ext'</span><span class=3D"p">;</span>
+
+<span class=3D"cm">/** One element the model found. Coordinates are pixels =
+of the image as sent, origin top-left. */</span>
+<span class=3D"kr">export</span> <span class=3D"kr">interface</span> <span =
+class=3D"nx">VectorShape</span> <span class=3D"p">{</span>
+  <span class=3D"nx">id</span>: <span class=3D"kt">string</span><span class=
+=3D"p">;</span>
+  <span class=3D"nx">kind</span>: <span class=3D"kt">VectorShapeKind</span>=
+<span class=3D"p">;</span>
+  <span class=3D"nx">x</span>: <span class=3D"kt">number</span><span class=
+=3D"p">;</span> <span class=3D"nx">y</span>: <span class=3D"kt">number</spa=
+n><span class=3D"p">;</span> <span class=3D"nx">w</span>: <span class=3D"kt=
+">number</span><span class=3D"p">;</span> <span class=3D"nx">h</span>: <spa=
+n class=3D"kt">number</span><span class=3D"p">;</span>
+  <span class=3D"nx">text</span>: <span class=3D"kt">string</span><span cla=
+ss=3D"p">;</span>        <span class=3D"c1">// '' when none</span>
+  <span class=3D"nx">fill</span>: <span class=3D"kt">string</span><span cla=
+ss=3D"p">;</span>        <span class=3D"c1">// '#rrggbb' or ''</span>
+  <span class=3D"nx">stroke</span>: <span class=3D"kt">string</span><span c=
+lass=3D"p">;</span>      <span class=3D"c1">// '#rrggbb' or ''</span>
+  <span class=3D"nx">textColor</span>: <span class=3D"kt">string</span><spa=
+n class=3D"p">;</span>   <span class=3D"c1">// '#rrggbb' or ''   (added 0.9=
+.2)</span>
+  <span class=3D"nx">confidence</span>: <span class=3D"kt">number</span><sp=
+an class=3D"p">;</span>  <span class=3D"c1">// 0=E2=80=931</span>
+<span class=3D"p">}</span>
+
+<span class=3D"kr">export</span> <span class=3D"kr">interface</span> <span =
+class=3D"nx">VectorConnector</span> <span class=3D"p">{</span>
+  <span class=3D"nx">from</span>: <span class=3D"kt">string</span><span cla=
+ss=3D"p">;</span>                 <span class=3D"c1">// shape id</span>
+  <span class=3D"nx">to</span>: <span class=3D"kt">string</span><span class=
+=3D"p">;</span>                   <span class=3D"c1">// shape id</span>
+  <span class=3D"nx">headEnd</span><span class=3D"o">:</span> <span class=
+=3D"s1">'none'</span> <span class=3D"o">|</span> <span class=3D"s1">'arrow'=
+</span><span class=3D"p">;</span>    <span class=3D"c1">// head at the `to`=
+ end</span>
+  <span class=3D"nx">label</span>: <span class=3D"kt">string</span><span cl=
+ass=3D"p">;</span>                <span class=3D"c1">// '' when none</span>
+  <span class=3D"nx">confidence</span>: <span class=3D"kt">number</span><sp=
+an class=3D"p">;</span>           <span class=3D"c1">// 0=E2=80=931</span>
+<span class=3D"p">}</span>
+
+<span class=3D"kr">export</span> <span class=3D"kr">interface</span> <span =
+class=3D"nx">VectorizeResult</span>  <span class=3D"p">{</span> <span class=
+=3D"nx">shapes</span>: <span class=3D"kt">VectorShape</span><span class=3D"=
+p">[];</span> <span class=3D"nx">connectors</span>: <span class=3D"kt">Vect=
+orConnector</span><span class=3D"p">[];</span> <span class=3D"p">}</span>
+
+<span class=3D"kr">export</span> <span class=3D"kr">interface</span> <span =
+class=3D"nx">VectorizeRequest</span> <span class=3D"p">{</span>
+  <span class=3D"nx">pngBase64</span>: <span class=3D"kt">string</span><spa=
+n class=3D"p">;</span>   <span class=3D"c1">// PNG, base64 without the data=
+: prefix, long side =E2=89=A4 1568 px</span>
+  <span class=3D"nx">width</span>: <span class=3D"kt">number</span><span cl=
+ass=3D"p">;</span> <span class=3D"nx">height</span>: <span class=3D"kt">num=
+ber</span><span class=3D"p">;</span>   <span class=3D"c1">// sent size</spa=
+n>
+  <span class=3D"nx">model</span>: <span class=3D"kt">string</span><span cl=
+ass=3D"p">;</span>
+<span class=3D"p">}</span>
+
+<span class=3D"kr">export</span> <span class=3D"kr">interface</span> <span =
+class=3D"nx">VectorizeResponse</span> <span class=3D"p">{</span>
+  <span class=3D"nx">result</span>: <span class=3D"kt">VectorizeResult</spa=
+n><span class=3D"p">;</span>
+  <span class=3D"nx">model</span>: <span class=3D"kt">string</span><span cl=
+ass=3D"p">;</span>         <span class=3D"c1">// as reported by the API ('f=
+ake' for the test seam)</span>
+  <span class=3D"nx">inputTokens</span>: <span class=3D"kt">number</span><s=
+pan class=3D"p">;</span>   <span class=3D"c1">// summed over attempts</span=
+>
+  <span class=3D"nx">outputTokens</span>: <span class=3D"kt">number</span><=
+span class=3D"p">;</span>
+<span class=3D"p">}</span>
+
+<span class=3D"kr">export</span> <span class=3D"kr">interface</span> <span =
+class=3D"nx">AppSettings</span> <span class=3D"p">{</span> <span class=3D"n=
+x">vectorizeModel</span>: <span class=3D"kt">string</span><span class=3D"p"=
+>;</span> <span class=3D"p">}</span>   <span class=3D"c1">// meta table key=
+ 'vectorize.model'</span>
+</pre></div>
+
+<p>Fields of <code>CanvasNode</code> / <code>CanvasEdge</code> that Step C =
+sets, versus those <code>insertMany</code> fills:</p>
+<table>
+<thead>
+<tr>
+<th>set by <code>convertResult</code> (node)</th>
+<th>set by <code>insertMany</code> (node)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type, x, y, width, height, rotation=3D0, locked=3Dfalse, style{=
+=E2=80=A6}, content{text}</code> + <code>tempId</code></td>
+<td><code>id, boardId, zIndex, groupId, layerId, createdAt, updatedAt</code=
+></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>set by <code>convertResult</code> (edge)</th>
+<th>set by <code>insertMany</code> (edge)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fromAnchor=3D'auto', toAnchor=3D'auto', fromPoint=3Dnull, toPoint=
+=3Dnull, routing=3D'straight', headStart=3D'none', headEnd, style{=E2=80=A6=
+}, label</code> + <code>fromTemp, toTemp</code></td>
+<td><code>id, boardId, fromNode, toNode, layerId, midpoint=3Dnull, labelPoi=
+nt=3Dnull, createdAt, updatedAt</code></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id=3D"8-constants-and-tunables">8. Constants and tunables<a class=3D"he=
+aderlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h00=
+00gv/T/92.html#8-constants-and-tunables" title=3D"Permanent link">=EE=A0=86=
+</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Value</th>
+<th>File</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MAX_SIDE</code></td>
+<td>1568</td>
+<td><code>src/util/vectorize.ts</code></td>
+<td>long side of the PNG sent</td>
+</tr>
+<tr>
+<td><code>LOW_CONFIDENCE</code></td>
+<td>0.6</td>
+<td><code>src/util/vectorize.ts</code></td>
+<td>below =E2=86=92 dashed <code>'6 4'</code></td>
+</tr>
+<tr>
+<td><code>CHAR_W</code>, <code>LINE_H</code></td>
+<td>0.55, 1.25</td>
+<td><code>src/util/vectorize.ts</code></td>
+<td>glyph metrics for font-size estimate</td>
+</tr>
+<tr>
+<td><code>MIN_FONT</code>, <code>MAX_FONT</code></td>
+<td>8, 48</td>
+<td><code>src/util/vectorize.ts</code></td>
+<td>clamp</td>
+</tr>
+<tr>
+<td>usable-area factors</td>
+<td>rect 0.75, ellipse 0.50, diamond 0.40</td>
+<td><code>estimateFontSize</code></td>
+<td>fraction of the box text may fill</td>
+</tr>
+<tr>
+<td>width cap</td>
+<td><code>min(longest, 24)</code>, 0.9 =C3=97 w</td>
+<td><code>estimateFontSize</code></td>
+<td>wrap assumption for shape text</td>
+</tr>
+<tr>
+<td>luminance threshold</td>
+<td>0.35</td>
+<td><code>contrastingText</code></td>
+<td>&gt; =E2=86=92 dark text <code>#0b0d10</code>, else <code>#ffffff</code=
+></td>
+</tr>
+<tr>
+<td>minimum node size</td>
+<td>4 =C3=97 4</td>
+<td><code>convertResult</code></td>
+<td>floor after scaling</td>
+</tr>
+<tr>
+<td>edge defaults</td>
+<td><code>strokeWidth 2</code>, <code>routing 'straight'</code>, anchors <c=
+ode>'auto'</code></td>
+<td><code>convertResult</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>max_tokens</code></td>
+<td>16000</td>
+<td><code>electron/vectorize.ts</code></td>
+<td>output ceiling</td>
+</tr>
+<tr>
+<td>SDK <code>timeout</code></td>
+<td>180 000 ms</td>
+<td><code>electron/vectorize.ts</code></td>
+<td>per HTTP attempt</td>
+</tr>
+<tr>
+<td>SDK <code>maxRetries</code></td>
+<td>2</td>
+<td><code>electron/vectorize.ts</code></td>
+<td>transport/429/5xx retries inside the SDK</td>
+</tr>
+<tr>
+<td>app validation retries</td>
+<td>1</td>
+<td><code>electron/vectorize.ts</code></td>
+<td>one corrected-JSON round</td>
+</tr>
+<tr>
+<td>keychain lookup timeout</td>
+<td>5000 ms</td>
+<td><code>readApiKey</code></td>
+<td></td>
+</tr>
+<tr>
+<td>raw-text excerpt in final error</td>
+<td>400 chars</td>
+<td><code>runVectorize</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>KEYCHAIN_SERVICE</code> / <code>ACCOUNT</code></td>
+<td><code>haldraw</code> / <code>anthropic-api-key</code></td>
+<td><code>electron/vectorize.ts</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>DEFAULT_VECTORIZE_MODEL</code></td>
+<td><code>claude-opus-5</code></td>
+<td><code>shared/types.ts</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Draft layer name</td>
+<td><code>'Draft'</code></td>
+<td><code>vectorizeNode</code></td>
+<td>reuse test is by exact name</td>
+</tr>
+<tr>
+<td>toast durations</td>
+<td>ok 3.5 s, err 9 s</td>
+<td><code>BoardEditor.tsx</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>HISTORY_LIMIT</code></td>
+<td>200</td>
+<td><code>src/store/canvasStore.ts</code></td>
+<td>undo entries kept</td>
+</tr>
+<tr>
+<td>autosave debounce</td>
+<td>300 ms</td>
+<td><code>BoardEditor.tsx</code></td>
+<td>delay from last store change to <code>flushSave</code></td>
+</tr>
+<tr>
+<td><code>MAX_STORED_SIDE</code></td>
+<td>4096</td>
+<td><code>src/util/importImage.ts</code></td>
+<td>upstream: what is in the images table</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id=3D"9-observed-behaviour-and-limits">9. Observed behaviour and limits=
+<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf=
+89fbssd6mq5h0000gv/T/92.html#9-observed-behaviour-and-limits" title=3D"Perm=
+anent link">=EE=A0=86</a></h2>
+<p>Facts that follow from the code above, collected for anyone testing or e=
+xtending the feature. None is a bug report; several are deliberate scope de=
+cisions recorded in the design note.</p>
+<p><strong>Perception and coverage</strong></p>
+<ul>
+<li>Anything that is not a shape with a box, text with a box, or a line joi=
+ning two shapes is dropped: axes, brackets, legends drawn as lines, free ar=
+rows, arrows that touch only one shape, swimlane dividers, timelines. In on=
+e observed run, the screenshot board=E2=80=99s vertical timeline bars came =
+back as tall thin rectangles: the model classified them as shapes.</li>
+<li>Bubble-chart-style boards (many discs, no arrows) produce shapes only; =
+=E2=80=9C0 connectors=E2=80=9D is the expected result, not a failure.</li>
+<li>Nested boxes (a box inside a container) come back as two overlapping sh=
+apes with no containment relation; the later one in the model=E2=80=99s lis=
+t stacks on top.</li>
+<li>Only one arrowhead, at the <code>to</code> end, of one style (filled <c=
+ode>arrow</code>). Double-headed arrows lose one head; open, dot, diamond a=
+nd crow heads are never produced although haldraw supports them.</li>
+<li>Connector colour, width, dash and route in the source image are not cap=
+tured; every draft connector is a straight, board-default-coloured, 2-px li=
+ne, dashed only for low confidence.</li>
+<li>Text is sized by heuristic and centred in shapes; the source=E2=80=99s =
+alignment, weight and family are not captured. Long text in a small box is =
+clipped by the renderer rather than overflowing.</li>
+<li>Corner radius is always the board default (8); sharp-cornered source bo=
+xes render rounded.</li>
+<li>A rotated reference node gets an unrotated draft (C.1).</li>
+</ul>
+<p><strong>Coordinates and placement</strong></p>
+<ul>
+<li>Accuracy is bounded by the model=E2=80=99s bounding-box estimates in a =
+=E2=89=A4 1568 px frame, scaled by <code>sx</code>, <code>sy</code>. On a r=
+eference placed at 100 % of a 1568 px image, one image pixel is one canvas =
+unit; at 50 % it is half a unit.</li>
+<li>Boxes partly outside the image are accepted and can land partly outside=
+ the reference rectangle.</li>
+<li>The Draft layer is created directly above the reference=E2=80=99s layer=
+ and becomes current; new drawing after a vectorize lands on Draft until th=
+e user switches.</li>
+<li>The reference rectangle and the layer positions used for placement are =
+those captured when the call started, not when the reply arrived (=C2=A7D.1=
+).</li>
+</ul>
+<p><strong>Request mechanics</strong></p>
+<ul>
+<li>Each Vectorize is exactly one model call unless the reply fails validat=
+ion, in which case exactly two; the image is sent both times. The SDK may a=
+dditionally retry transport failures up to twice per call.</li>
+<li>No streaming, no prompt caching, no thinking or effort parameters; mode=
+l defaults apply (=C2=A7B.2).</li>
+<li><code>max_tokens</code> 16000 bounds the draft size. A very dense diagr=
+am can hit it; the error suggests a simpler image. There is no chunking or =
+tiling.</li>
+<li>The token count in the toast is <code>input + output</code> summed acro=
+ss attempts, as reported by the API; there is no cost display.</li>
+<li>Colours that are not exactly <code>#rrggbb</code> (short hex, names, rg=
+b()) are treated as unknown, which the schema and prompt make unlikely but =
+do not prevent.</li>
+<li><code>confidence</code> outside 0=E2=80=931 is not rejected; only <code=
+>&lt; 0.6</code> matters.</li>
+</ul>
+<p><strong>Validation gaps by design</strong></p>
+<ul>
+<li>A box that overlaps the image by a single pixel passes rule 9.</li>
+<li>Duplicate connectors (same <code>from</code>, <code>to</code>) are allo=
+wed and each becomes an edge.</li>
+<li>A connector between two <code>text</code> shapes is allowed; it will at=
+tach to the invisible text boxes.</li>
+</ul>
+<hr>
+<h2 id=3D"appendix-a-end-to-end-pseudo-code">Appendix A =E2=80=94 End-to-en=
+d pseudo-code<a class=3D"headerlink" href=3D"file:///private/var/folders/hj=
+/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#appendix-a-end-to-end-pseudo-code=
+" title=3D"Permanent link">=EE=A0=86</a></h2>
+<div class=3D"highlight"><pre>procedure VECTORIZE(imageNode ref, onProgress=
+):
+    -- Step A (renderer)
+    imageId =E2=86=90 ref.content.imageId;  fail "not an image" if absent
+    onProgress("Preparing image=E2=80=A6")
+    blob =E2=86=90 IPC images.get(imageId);  fail "Image bytes not found." =
+if null
+    (png, W, H) =E2=86=90 IMAGE_TO_PNG(blob.dataUrl)                 -- =C2=
+=A7A.3
+    settings =E2=86=90 IPC settings.get()
+    onProgress("Asking " + settings.vectorizeModel + "=E2=80=A6")
+
+    -- Step B (main, via IPC vectorize:run)
+    try  resp =E2=86=90 RUN_VECTORIZE({png, W, H, model: settings.vectorize=
+Model})
+    catch e: rethrow with Electron's "Error invoking remote method=E2=80=A6=
+" prefix removed
+    fail "The model found no shapes in this image." if resp.result.shapes i=
+s empty
+
+    -- Step C (renderer)
+    bg =E2=86=90 board.background or '#ffffff'
+    (nodes, edges, low) =E2=86=90 CONVERT_RESULT(resp.result, ref, {W, H}, =
+bg)   -- =C2=A74
+
+    -- Step D (renderer store)
+    ordered =E2=86=90 layers sorted by (position, createdAt)
+    refLayer =E2=86=90 layers[ref.layerId]
+    above =E2=86=90 ordered[index(refLayer) + 1]
+    layerSpec =E2=86=90 (above exists and above.name =3D=3D "Draft") ? {id:=
+ above.id}
+                                                         : {name: "Draft", =
+abovePosition: refLayer.position or -1}
+    INSERT_MANY({nodes, edges}, {layer: layerSpec, group: true, select: tru=
+e})   -- Appendix D
+
+    -- Step E
+    return {shapes: |nodes|, connectors: |edges|, lowConfidence: low,
+            model: resp.model, inputTokens: resp.inputTokens, outputTokens:=
+ resp.outputTokens}
+
+
+procedure IMAGE_TO_PNG(dataUrl):
+    mime =E2=86=90 substring between "data:" and ";";  bytes =E2=86=90 base=
+64-decode(payload after ",")
+    bitmap =E2=86=90 createImageBitmap(Blob(bytes, mime))
+    scale =E2=86=90 min(1, 1568 / max(bitmap.w, bitmap.h))
+    w =E2=86=90 max(1, round(bitmap.w =C3=97 scale));  h =E2=86=90 max(1, r=
+ound(bitmap.h =C3=97 scale))
+    canvas(w, h).drawImage(bitmap, 0, 0, w, h) with high smoothing
+    return (base64 of canvas PNG without prefix, w, h)
+
+
+procedure RUN_VECTORIZE(req):                                -- main proces=
+s
+    if env HALDRAW_VECTORIZE_FAKE:
+        raw =E2=86=90 parse file;  problem =E2=86=90 VALIDATE(raw, req.W, r=
+eq.H)
+        if problem: throw VectorizeError(output, "Fake result rejected: " +=
+ problem)
+        return {result: raw, model: "fake", inputTokens: 0, outputTokens: 0=
+}
+    key =E2=86=90 stdout of `security find-generic-password -s haldraw -a a=
+nthropic-api-key -w` (5 s), trimmed
+    if not key: throw VectorizeError(no-key, "No API key in the keychain. I=
+n Terminal, run:\n" + ADD_COMMAND)
+    client =E2=86=90 Anthropic(apiKey: key, maxRetries: 2, timeout: 180 s)
+    messages =E2=86=90 [ user: [ image(base64 PNG), text("The image is W =
+=C3=97 H pixels. Extract its shapes and connectors.") ] ]
+    inTok =E2=86=90 0; outTok =E2=86=90 0
+    for attempt in 0..1:
+        try  msg =E2=86=90 client.messages.create(model: req.model, max_tok=
+ens: 16000, system: SYSTEM_PROMPT,
+                                          messages, output_config: {format:=
+ {type: json_schema, schema: OUTPUT_SCHEMA}})
+        catch AuthenticationError =E2=86=92 throw(auth);  NotFoundError =E2=
+=86=92 throw(model);  RateLimitError =E2=86=92 throw(network)
+              APIConnectionError =E2=86=92 throw(network);  APIError =E2=86=
+=92 throw(model, status + message);  else rethrow
+        inTok +=3D msg.usage.input_tokens;  outTok +=3D msg.usage.output_to=
+kens
+        if msg.stop_reason =3D=3D refusal:    throw VectorizeError(model,  =
+"The model declined to process this image.")
+        if msg.stop_reason =3D=3D max_tokens: throw VectorizeError(output, =
+"=E2=80=A6ran out of output tokens=E2=80=A6")
+        text =E2=86=90 concat of text blocks
+        try  parsed =E2=86=90 JSON.parse(text);  problem =E2=86=90 VALIDATE=
+(parsed, req.W, req.H)
+        catch: problem =E2=86=90 "Not valid JSON: " + error
+        if not problem: return {result: parsed, model: msg.model, inputToke=
+ns: inTok, outputTokens: outTok}
+        if attempt =3D=3D 0:
+            messages.push(assistant: text or "{}")
+            messages.push(user: "That output was rejected: " + problem + "\=
+nReturn the corrected JSON object only.")
+            continue
+        throw VectorizeError(output, "The model's output could not be used:=
+ " + problem + "\n\n" + text[0:400])
+</pre></div>
+
+<h2 id=3D"appendix-b-validateresult-pseudo-code">Appendix B =E2=80=94 valid=
+ateResult pseudo-code<a class=3D"headerlink" href=3D"file:///private/var/fo=
+lders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#appendix-b-validateresult=
+-pseudo-code" title=3D"Permanent link">=EE=A0=86</a></h2>
+<div class=3D"highlight"><pre>function VALIDATE(raw, W, H) =E2=86=92 proble=
+m string or null:
+    if raw is not an object:                 return "Output is not an objec=
+t."
+    if raw.shapes is not an array:           return 'Missing "shapes" array=
+.'
+    if raw.connectors is not an array:       return 'Missing "connectors" a=
+rray.'
+    ids =E2=86=90 =E2=88=85
+    for i, s in raw.shapes:
+        if s.id is not a non-empty string:   return "Shape i: missing id."
+        if s.id =E2=88=88 ids:                       return 'Shape i: dupli=
+cate id "s.id".'
+        ids =E2=86=90 ids =E2=88=AA {s.id}
+        if s.kind =E2=88=89 {rect, ellipse, diamond, text}: return 'Shape s=
+.id: unknown kind "s.kind".'
+        for k in (x, y, w, h):
+            if s[k] is not a finite number:  return "Shape s.id: k must be =
+a number."
+        if s.w =E2=89=A4 0 or s.h =E2=89=A4 0:               return "Shape =
+s.id: w and h must be positive."
+        if s.x + s.w &lt; 0 or s.y + s.h &lt; 0 or s.x &gt; W or s.y &gt; H=
+:
+                                             return "Shape s.id: box lies o=
+utside the image (W=C3=97H)."
+    for i, c in raw.connectors:
+        if c.from =E2=88=89 ids:                     return 'Connector i: "=
+from" is not a shape id.'
+        if c.to =E2=88=89 ids:                       return 'Connector i: "=
+to" is not a shape id.'
+        if c.from =3D=3D c.to:                   return "Connector i: from =
+and to are the same shape."
+    return null
+</pre></div>
+
+<h2 id=3D"appendix-c-colour-and-font-size-helpers-pseudo-code">Appendix C =
+=E2=80=94 Colour and font-size helpers pseudo-code<a class=3D"headerlink" h=
+ref=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.h=
+tml#appendix-c-colour-and-font-size-helpers-pseudo-code" title=3D"Permanent=
+ link">=EE=A0=86</a></h2>
+<div class=3D"highlight"><pre>function COLOUR(v, fallback):
+    return v matches /^#[0-9a-f]{6}$/i ? lowercase(v) : fallback
+
+function CONTRASTING_TEXT(hex):
+    (r, g, b) =E2=86=90 channels of hex, each / 255
+    lin(c) =E2=86=90 c =E2=89=A4 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055=
+) ^ 2.4
+    L =E2=86=90 0.2126=C2=B7lin(r) + 0.7152=C2=B7lin(g) + 0.0722=C2=B7lin(b=
+)
+    return L &gt; 0.35 ? "#0b0d10" : "#ffffff"
+
+function ESTIMATE_FONT_SIZE(text, w, h, kind):
+    t =E2=86=90 trim(text);  if t is empty: return 16
+    lines =E2=86=90 split(t, "\n");  longest =E2=86=90 max(1, max length of=
+ lines)
+    if kind =3D=3D text:
+        f =E2=86=90 min( h / (|lines| =C3=97 1.25),  w / (longest =C3=97 0.=
+55) )
+    else:
+        k =E2=86=90 kind =3D=3D ellipse ? 0.50 : kind =3D=3D diamond ? 0.40=
+ : 0.75
+        byArea  =E2=86=90 sqrt( (k =C3=97 w =C3=97 h) / (|t| =C3=97 0.55 =
+=C3=97 1.25) )
+        byWidth =E2=86=90 (0.9 =C3=97 w) / (min(longest, 24) =C3=97 0.55)
+        f =E2=86=90 min(byArea, byWidth)
+    return round( clamp(f, 8, 48) )
+
+function CONVERT_RESULT(result, ref, sent, background):
+    sx =E2=86=90 ref.width / sent.width;  sy =E2=86=90 ref.height / sent.he=
+ight
+    base =E2=86=90 defaultStyleForBackground(background);  edgeStroke =E2=
+=86=90 defaultEdgeStrokeForBackground(background)
+    low =E2=86=90 0
+    nodes =E2=86=90 for s in result.shapes:
+        isText =E2=86=90 s.kind =3D=3D text;  dashed =E2=86=90 s.confidence=
+ &lt; 0.6;  if dashed: low +=3D 1
+        width =E2=86=90 max(4, s.w =C3=97 sx);  height =E2=86=90 max(4, s.h=
+ =C3=97 sy)
+        fill =E2=86=90 isText ? transparent : COLOUR(s.fill, transparent)
+        textColor =E2=86=90 COLOUR(s.textColor, fill =E2=89=A0 transparent =
+? CONTRASTING_TEXT(fill) : base.color)
+        yield { tempId: s.id, type: s.kind,
+                x: ref.x + s.x =C3=97 sx, y: ref.y + s.y =C3=97 sy, width, =
+height, rotation: 0, locked: false,
+                style: base =E2=8A=95 { fill, stroke: isText ? transparent =
+: COLOUR(s.stroke, base.stroke), color: textColor,
+                                strokeDasharray: (dashed and not isText) ? =
+"6 4" : undefined,
+                                fontSize: ESTIMATE_FONT_SIZE(s.text, width,=
+ height, s.kind),
+                                textAlign: isText ? left : base.textAlign, =
+verticalAlign: isText ? top : undefined },
+                content: { text: s.text or undefined } }
+    edges =E2=86=90 for c in result.connectors:
+        dashed =E2=86=90 c.confidence &lt; 0.6;  if dashed: low +=3D 1
+        yield { fromTemp: c.from, toTemp: c.to, fromNode: null, toNode: nul=
+l,
+                fromAnchor: auto, toAnchor: auto, fromPoint: null, toPoint:=
+ null,
+                routing: straight, headStart: none, headEnd: c.headEnd,
+                style: { stroke: edgeStroke, strokeWidth: 2, opacity: 1, st=
+rokeDasharray: dashed ? "6 4" : undefined },
+                label: c.label or undefined }
+    return (nodes, edges, low)
+</pre></div>
+
+<h2 id=3D"appendix-d-insertmany-pseudo-code">Appendix D =E2=80=94 insertMan=
+y pseudo-code<a class=3D"headerlink" href=3D"file:///private/var/folders/hj=
+/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#appendix-d-insertmany-pseudo-code=
+" title=3D"Permanent link">=EE=A0=86</a></h2>
+<div class=3D"highlight"><pre>procedure INSERT_MANY({nodes: inNodes, edges:=
+ inEdges}, opts):
+    prev =E2=86=90 snapshot(nodes, edges, layers)                       -- =
+undo point
+    now =E2=86=90 Date.now()
+    if opts.layer has id:
+        layerId =E2=86=90 opts.layer.id
+    else:
+        for each layer l: if l.position &gt; opts.layer.abovePosition: l.po=
+sition +=3D 1
+        new =E2=86=90 Layer{ id: newId(), name: opts.layer.name, position: =
+opts.layer.abovePosition + 1,
+                     visible: true, locked: false, createdAt/updatedAt: now=
+ }
+        layers =E2=86=90 renumber densely (sort by position, createdAt; ass=
+ign 0..n-1)
+        mark every changed layer dirty;  layerId =E2=86=90 new.id
+    idOf =E2=86=90 {};  groupId =E2=86=90 (opts.group and |inNodes| &gt; 1)=
+ ? newId() : null
+    z =E2=86=90 maxZIndex(existing nodes) + 1
+    for n in inNodes:
+        id =E2=86=90 newId();  idOf[n.tempId] =E2=86=90 id
+        nodes[id] =E2=86=90 n minus tempId, plus { id, boardId, zIndex: z++=
+, groupId, layerId, createdAt/updatedAt: now }
+        mark dirty
+    for e in inEdges:
+        from =E2=86=90 idOf[e.fromTemp];  to =E2=86=90 idOf[e.toTemp];  ski=
+p e if either is missing
+        id =E2=86=90 newId()
+        edges[id] =E2=86=90 e minus temps, plus { id, boardId, fromNode: fr=
+om, toNode: to, midpoint: null, labelPoint: null,
+                                          layerId, createdAt/updatedAt: now=
+ }
+        mark dirty
+    commit { nodes, edges, layers, currentLayerId: layerId,
+             selection: opts.select ? new node ids : unchanged, edgeSelecti=
+on: opts.select ? =E2=88=85 : unchanged,
+             history: history + prev (bounded), future: [] }
+    return { nodeIds, edgeIds, layerId }
+</pre></div>
+
+<h2 id=3D"appendix-e-a-worked-example">Appendix E =E2=80=94 A worked exampl=
+e<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908n=
+f89fbssd6mq5h0000gv/T/92.html#appendix-e-a-worked-example" title=3D"Permane=
+nt link">=EE=A0=86</a></h2>
+<p>Illustrative numbers, chosen to be easy to follow; not a captured transc=
+ript.</p>
+<p><strong>Setup.</strong> A 1200 =C3=97 800 px PNG of two boxes joined by =
+an arrow is imported at 50 % and placed at board (100, 50), so the referenc=
+e node is <code>x 100, y 50, width 600, height 400</code>. Long side 1200 =
+=E2=89=A4 1568, so it is sent at native size: <code>W =3D 1200, H =3D 800</=
+code>, <code>sx =3D sy =3D 0.5</code>.</p>
+<p><strong>Request.</strong> System prompt of =C2=A7B.3; user turn =3D imag=
+e + <code>The image is 1200 =C3=97 800 pixels. Extract its shapes and conne=
+ctors.</code>; schema of =C2=A7B.5.</p>
+<p><strong>A plausible reply.</strong></p>
+<div class=3D"highlight"><pre><span class=3D"p">{</span>
+  <span class=3D"nt">"shapes"</span><span class=3D"p">:</span> <span class=
+=3D"p">[</span>
+    <span class=3D"p">{</span> <span class=3D"nt">"id"</span><span class=3D=
+"p">:</span> <span class=3D"s2">"s1"</span><span class=3D"p">,</span> <span=
+ class=3D"nt">"kind"</span><span class=3D"p">:</span> <span class=3D"s2">"r=
+ect"</span><span class=3D"p">,</span>    <span class=3D"nt">"x"</span><span=
+ class=3D"p">:</span> <span class=3D"mi">100</span><span class=3D"p">,</spa=
+n> <span class=3D"nt">"y"</span><span class=3D"p">:</span> <span class=3D"m=
+i">100</span><span class=3D"p">,</span> <span class=3D"nt">"w"</span><span =
+class=3D"p">:</span> <span class=3D"mi">300</span><span class=3D"p">,</span=
+> <span class=3D"nt">"h"</span><span class=3D"p">:</span> <span class=3D"mi=
+">120</span><span class=3D"p">,</span>
+      <span class=3D"nt">"text"</span><span class=3D"p">:</span> <span clas=
+s=3D"s2">"Start"</span><span class=3D"p">,</span> <span class=3D"nt">"fill"=
+</span><span class=3D"p">:</span> <span class=3D"s2">"#1f6f3f"</span><span =
+class=3D"p">,</span> <span class=3D"nt">"stroke"</span><span class=3D"p">:<=
+/span> <span class=3D"s2">"#1f6f3f"</span><span class=3D"p">,</span> <span =
+class=3D"nt">"textColor"</span><span class=3D"p">:</span> <span class=3D"s2=
+">""</span><span class=3D"p">,</span> <span class=3D"nt">"confidence"</span=
+><span class=3D"p">:</span> <span class=3D"mf">0.95</span> <span class=3D"p=
+">},</span>
+    <span class=3D"p">{</span> <span class=3D"nt">"id"</span><span class=3D=
+"p">:</span> <span class=3D"s2">"s2"</span><span class=3D"p">,</span> <span=
+ class=3D"nt">"kind"</span><span class=3D"p">:</span> <span class=3D"s2">"e=
+llipse"</span><span class=3D"p">,</span> <span class=3D"nt">"x"</span><span=
+ class=3D"p">:</span> <span class=3D"mi">700</span><span class=3D"p">,</spa=
+n> <span class=3D"nt">"y"</span><span class=3D"p">:</span> <span class=3D"m=
+i">100</span><span class=3D"p">,</span> <span class=3D"nt">"w"</span><span =
+class=3D"p">:</span> <span class=3D"mi">300</span><span class=3D"p">,</span=
+> <span class=3D"nt">"h"</span><span class=3D"p">:</span> <span class=3D"mi=
+">120</span><span class=3D"p">,</span>
+      <span class=3D"nt">"text"</span><span class=3D"p">:</span> <span clas=
+s=3D"s2">"End"</span><span class=3D"p">,</span>   <span class=3D"nt">"fill"=
+</span><span class=3D"p">:</span> <span class=3D"s2">""</span><span class=
+=3D"p">,</span>        <span class=3D"nt">"stroke"</span><span class=3D"p">=
+:</span> <span class=3D"s2">"#333333"</span><span class=3D"p">,</span> <spa=
+n class=3D"nt">"textColor"</span><span class=3D"p">:</span> <span class=3D"=
+s2">""</span><span class=3D"p">,</span> <span class=3D"nt">"confidence"</sp=
+an><span class=3D"p">:</span> <span class=3D"mf">0.55</span> <span class=3D=
+"p">}</span>
+  <span class=3D"p">],</span>
+  <span class=3D"nt">"connectors"</span><span class=3D"p">:</span> <span cl=
+ass=3D"p">[</span>
+    <span class=3D"p">{</span> <span class=3D"nt">"from"</span><span class=
+=3D"p">:</span> <span class=3D"s2">"s1"</span><span class=3D"p">,</span> <s=
+pan class=3D"nt">"to"</span><span class=3D"p">:</span> <span class=3D"s2">"=
+s2"</span><span class=3D"p">,</span> <span class=3D"nt">"headEnd"</span><sp=
+an class=3D"p">:</span> <span class=3D"s2">"arrow"</span><span class=3D"p">=
+,</span> <span class=3D"nt">"label"</span><span class=3D"p">:</span> <span =
+class=3D"s2">""</span><span class=3D"p">,</span> <span class=3D"nt">"confid=
+ence"</span><span class=3D"p">:</span> <span class=3D"mf">0.9</span> <span =
+class=3D"p">}</span>
+  <span class=3D"p">]</span>
+<span class=3D"p">}</span>
+</pre></div>
+
+<p><strong>Validation.</strong> Ids unique; kinds valid; sizes positive; bo=
+th boxes inside 1200 =C3=97 800; connector ids exist and differ =E2=86=92 <=
+code>null</code>.</p>
+<p><strong>Conversion (light board, base stroke/colour <code>#0b0d10</code>=
+).</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>s1</th>
+<th>s2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>board rect</td>
+<td>x =3D 100 + 100=C2=B70.5 =3D <strong>150</strong>, y =3D 50 + 100=C2=B7=
+0.5 =3D <strong>100</strong>, w <strong>150</strong>, h <strong>60</strong>=
+</td>
+<td>x <strong>450</strong>, y <strong>100</strong>, w <strong>150</strong>,=
+ h <strong>60</strong></td>
+</tr>
+<tr>
+<td>fill</td>
+<td><code>#1f6f3f</code></td>
+<td><code>""</code> =E2=86=92 <code>transparent</code> (reference shows thr=
+ough)</td>
+</tr>
+<tr>
+<td>stroke</td>
+<td><code>#1f6f3f</code></td>
+<td><code>#333333</code></td>
+</tr>
+<tr>
+<td>text colour</td>
+<td><code>""</code>, fill known =E2=86=92 luminance of (31,111,63) =E2=89=
+=88 0.120 =E2=89=A4 0.35 =E2=86=92 <strong><code>#ffffff</code></strong></t=
+d>
+<td><code>""</code>, fill transparent =E2=86=92 base <strong><code>#0b0d10<=
+/code></strong></td>
+</tr>
+<tr>
+<td>dashed</td>
+<td>0.95 =E2=86=92 no</td>
+<td>0.55 &lt; 0.6 =E2=86=92 <strong><code>'6 4'</code></strong>, counted</t=
+d>
+</tr>
+<tr>
+<td>font size</td>
+<td>rect: usable 0.75=C2=B7150=C2=B760 =3D 6750; byArea =3D =E2=88=9A(6750 =
+/ (5=C2=B70.55=C2=B71.25)) =E2=89=88 44.3; byWidth =3D 135 / (5=C2=B70.55) =
+=E2=89=88 49.1 =E2=86=92 <strong>44</strong></td>
+<td>ellipse: usable 4500; byArea =3D =E2=88=9A(4500 / (3=C2=B70.6875)) =E2=
+=89=88 46.7; byWidth =3D 135 / 1.65 =E2=89=88 81.8 =E2=86=92 <strong>47</st=
+rong></td>
+</tr>
+</tbody>
+</table>
+<p>Connector: <code>fromTemp s1 =E2=86=92 toTemp s2</code>, <code>headEnd '=
+arrow'</code>, straight, board-default stroke, not dashed.</p>
+<p><strong>Insertion.</strong> Suppose the reference sits on layer =E2=80=
+=9CReference=E2=80=9D at position 0 and =E2=80=9CDrawing=E2=80=9D is at 1 w=
+ith no Draft above it. A new =E2=80=9CDraft=E2=80=9D layer is created at po=
+sition 1, Drawing moves to 2. Two nodes get fresh ids and consecutive <code=
+>zIndex</code> above everything, one shared <code>groupId</code>; the edge =
+gets <code>fromNode</code>/<code>toNode</code> set to those ids. Selection =
+=3D both nodes; current layer =3D Draft; one history entry.</p>
+<p><strong>Render.</strong> Centres are (225, 130) and (525, 130): <code>dx=
+ =3D 300, dy =3D 0</code>, so <code>|dx|=C2=B760 &gt; 0=C2=B7150</code> on =
+both boxes =E2=86=92 s1=E2=80=99s right side (300, 130) to s2=E2=80=99s lef=
+t side (450, 130), a horizontal 150-unit arrow with a filled head at s2. Dr=
+agging s2 later re-routes the arrow automatically.</p>
+<p><strong>Toast.</strong> <code>Draft: 2 shapes, 1 connector, 1 dashed (lo=
+w confidence) =C2=B7 claude-opus-5 =C2=B7 &lt;n&gt; tokens</code>.</p>
+<h2 id=3D"appendix-f-file-and-symbol-map">Appendix F =E2=80=94 File and sym=
+bol map<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hq=
+g8908nf89fbssd6mq5h0000gv/T/92.html#appendix-f-file-and-symbol-map" title=
+=3D"Permanent link">=EE=A0=86</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Symbols</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>electron/vectorize.ts</code></td>
+<td><code>KEYCHAIN_ADD_COMMAND</code>, <code>readApiKey</code>, <code>hasAp=
+iKey</code>, <code>VectorizeError</code>, <code>SYSTEM_PROMPT</code>, <code=
+>OUTPUT_SCHEMA</code>, <code>validateResult</code>, <code>textOf</code>, <c=
+ode>runVectorize</code></td>
+<td>Step B: key, request, schema, validation, retry, errors, test seam</td>
+</tr>
+<tr>
+<td><code>electron/ipc.ts</code></td>
+<td>handlers <code>vectorize:run</code>, <code>vectorize:keyStatus</code>, =
+<code>settings:get</code>, <code>settings:set</code>, <code>images:get</cod=
+e>; <code>readSettings</code></td>
+<td>IPC surface; model setting in <code>meta</code></td>
+</tr>
+<tr>
+<td><code>electron/preload.ts</code></td>
+<td><code>window.haldraw.vectorize</code>, <code>.settings</code>, <code>.i=
+mages</code></td>
+<td>context bridge</td>
+</tr>
+<tr>
+<td><code>electron/main.ts</code></td>
+<td>File =E2=96=B8 Settings=E2=80=A6 (<code>=E2=8C=98,</code>) =E2=86=92 <c=
+ode>menu:settings</code></td>
+<td>menu entry</td>
+</tr>
+<tr>
+<td><code>electron/repo/images.ts</code>, <code>repo/meta.ts</code></td>
+<td><code>getImage</code>, <code>getMeta</code>/<code>setMeta</code></td>
+<td>SQLite access</td>
+</tr>
+<tr>
+<td><code>shared/types.ts</code></td>
+<td><code>VectorShape</code>, <code>VectorConnector</code>, <code>Vectorize=
+Result</code>, <code>VectorizeRequest</code>, <code>VectorizeResponse</code=
+>, <code>VECTORIZE_MODELS</code>, <code>DEFAULT_VECTORIZE_MODEL</code>, <co=
+de>AppSettings</code>, <code>HaldrawApi.vectorize/settings</code></td>
+<td>contracts (=C2=A77)</td>
+</tr>
+<tr>
+<td><code>src/util/vectorize.ts</code></td>
+<td><code>MAX_SIDE</code>, <code>LOW_CONFIDENCE</code>, <code>notify</code>=
+, <code>imageToPng</code>, <code>colour</code>, <code>contrastingText</code=
+>, <code>estimateFontSize</code>, <code>convertResult</code>, <code>vectori=
+zeNode</code></td>
+<td>Steps A, C, orchestration, Draft-layer choice</td>
+</tr>
+<tr>
+<td><code>src/util/geometry.ts</code></td>
+<td><code>defaultStyleForBackground</code>, <code>defaultEdgeStrokeForBackg=
+round</code>, <code>isColorDark</code>, <code>anchorPoint</code></td>
+<td>defaults and auto-anchor</td>
+</tr>
+<tr>
+<td><code>src/store/canvasStore.ts</code></td>
+<td><code>insertMany</code>, <code>layerOrder</code>, <code>renumberLayers<=
+/code>, <code>checkpoint</code>/<code>undo</code>/<code>redo</code>, <code>=
+consumeDirty</code></td>
+<td>Step D</td>
+</tr>
+<tr>
+<td><code>src/panels/PropertiesPanel.tsx</code></td>
+<td><code>VectorizeButton</code> (full and <code>compact</code>)</td>
+<td>Step A entry points; Step E toast text</td>
+</tr>
+<tr>
+<td><code>src/panels/SettingsModal.tsx</code></td>
+<td>model select, key status, add command with Copy, Check again</td>
+<td>settings UI</td>
+</tr>
+<tr>
+<td><code>src/panels/Toolbar.tsx</code></td>
+<td>gear =E2=86=92 <code>onSettings</code></td>
+<td>settings entry</td>
+</tr>
+<tr>
+<td><code>src/canvas/BoardEditor.tsx</code></td>
+<td><code>haldraw:toast</code> listener, <code>menu:settings</code> listene=
+r, <code>flushSave</code></td>
+<td>Step E, persistence</td>
+</tr>
+<tr>
+<td><code>src/canvas/routing.ts</code>, <code>Edge.tsx</code>, <code>Shape.=
+tsx</code>, <code>edgeHeads.ts</code></td>
+<td><code>edgeEndpoints</code>, <code>buildPath</code>, label <code>foreign=
+Object</code>, <code>headMarker</code></td>
+<td>how the rows render (=C2=A7D.4)</td>
+</tr>
+<tr>
+<td><code>src/util/importImage.ts</code></td>
+<td><code>MAX_STORED_SIDE</code>, <code>decodeAndStore</code>, <code>placeI=
+mage</code></td>
+<td>upstream: what is in the images table and how the reference node was pl=
+aced</td>
+</tr>
+<tr>
+<td><code>docs/Vectorize_raster_design.md</code></td>
+<td>=E2=80=94</td>
+<td>intent and decisions</td>
+</tr>
+<tr>
+<td><code>CHANGELOG.md</code> 0.9.0=E2=80=930.9.2</td>
+<td>=E2=80=94</td>
+<td>user-facing history</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id=3D"index">Index<a class=3D"headerlink" href=3D"file:///private/var/f=
+olders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/92.html#index" title=3D"Permanen=
+t link">=EE=A0=86</a></h2>
+<p>Section numbers; =E2=80=9CApp.=E2=80=9D =3D appendix.</p>
+<ul>
+<li><strong>anchor, auto</strong> =E2=80=94 1.5, C.6, D.4, App. E</li>
+<li><strong>Anthropic SDK</strong> (<code>@anthropic-ai/sdk</code> 0.126.0)=
+ =E2=80=94 B.2, B.9, 8</li>
+<li><strong>arrowhead</strong> (<code>headEnd</code>) =E2=80=94 B.3, B.6, C=
+.6, 9</li>
+<li><strong>base64</strong> =E2=80=94 A.3, A.5, B.4</li>
+<li><strong>bounding box</strong> =E2=80=94 B.3, B.5, B.7 rule 9, C.1</li>
+<li><strong>Content-Security-Policy</strong> (data-URL fetch) =E2=80=94 A.3=
+</li>
+<li><strong>colour resolution</strong> (fill, stroke, textColor) =E2=80=94 =
+1.5, B.3, C.3, App. C, App. E</li>
+<li><strong>concurrency</strong> (no serialisation, no cancel) =E2=80=94 A.=
+1</li>
+<li><strong>confidence</strong> =E2=80=94 B.3, B.5, C.4, 8, 9</li>
+<li><strong>connector</strong> =E2=80=94 0, 1.5, B.3, B.6, C.6, D.4, 9</li>
+<li><strong>contrastingText / luminance</strong> =E2=80=94 C.3, 8, App. C, =
+App. E</li>
+<li><strong>convertResult</strong> =E2=80=94 1.3, 4, App. C</li>
+<li><strong>coordinate mapping</strong> (<code>sx</code>, <code>sy</code>) =
+=E2=80=94 C.1, App. E</li>
+<li><strong>corner radius</strong> =E2=80=94 B.3, C.2, 9</li>
+<li><strong>dashed stroke</strong> (<code>'6 4'</code>) =E2=80=94 C.4, C.6,=
+ 8</li>
+<li><strong>data URL</strong> =E2=80=94 A.2, A.3</li>
+<li><strong>design note, differences from</strong> =E2=80=94 1.6</li>
+<li><strong>downsampling</strong> (1568 px) =E2=80=94 A.3, 8</li>
+<li><strong>Draft layer</strong> =E2=80=94 D.1, D.2, 9, App. E</li>
+<li><strong>entry points</strong> (Image section, Reference images row) =E2=
+=80=94 A.1</li>
+<li><strong>errors</strong> (<code>VectorizeError</code>, kinds, messages) =
+=E2=80=94 A.5, B.9</li>
+<li><strong>estimateFontSize</strong> =E2=80=94 C.5, 8, App. C, App. E</li>
+<li><strong>fake result</strong> (<code>HALDRAW_VECTORIZE_FAKE</code>) =E2=
+=80=94 B.10</li>
+<li><strong>font size</strong> =E2=80=94 see estimateFontSize</li>
+<li><strong>group</strong> =E2=80=94 D.2</li>
+<li><strong>HISTORY_LIMIT</strong> =E2=80=94 8, D.2</li>
+<li><strong>IPC channels</strong> =E2=80=94 1.4, A.5, D.3, App. F</li>
+<li><strong>images table</strong> (SHA-256 ids) =E2=80=94 A.2</li>
+<li><strong>insertMany</strong> =E2=80=94 1.3, D.2, App. D</li>
+<li><strong>keychain</strong> (<code>security</code>, add command) =E2=80=
+=94 1.4, B.1, B.9</li>
+<li><strong>layer position shifting</strong> =E2=80=94 D.1, D.2, App. D</li=
+>
+<li><strong>line height / glyph width constants</strong> =E2=80=94 C.5, 8</=
+li>
+<li><strong>max_tokens</strong> (16000) =E2=80=94 B.2, B.9, 9</li>
+<li><strong>meta table</strong> (<code>vectorize.model</code>) =E2=80=94 A.=
+4</li>
+<li><strong>model list</strong> =E2=80=94 A.4</li>
+<li><strong>model, reported</strong> (<code>message.model</code>) =E2=80=94=
+ 6, 7</li>
+<li><strong>Not valid JSON</strong> (parse failure as a problem string) =E2=
+=80=94 B.7, B.8</li>
+<li><strong>paste path</strong> (no 4096 px downsample) =E2=80=94 A.2</li>
+<li><strong>perception, division of labour</strong> =E2=80=94 0, 1.5, B.6</=
+li>
+<li><strong>persistence</strong> (dirty flush =E2=86=92 SQLite) =E2=80=94 D=
+.3</li>
+<li><strong>progress texts</strong> =E2=80=94 2 (diagram), 6</li>
+<li><strong>prompt, system</strong> =E2=80=94 B.3</li>
+<li><strong>prompt, user turn</strong> =E2=80=94 B.4</li>
+<li><strong>refusal</strong> =E2=80=94 B.7, B.9</li>
+<li><strong>rendering of draft rows</strong> =E2=80=94 D.4</li>
+<li><strong>retry</strong> (single, with validation error) =E2=80=94 B.8; S=
+DK retries =E2=80=94 B.2</li>
+<li><strong>rotation</strong> =E2=80=94 C.1, 9</li>
+<li><strong>sandbox</strong> (<code>sandbox: false</code>, context bridge) =
+=E2=80=94 1.4</li>
+<li><strong>schema, JSON</strong> (<code>output_config.format</code>) =E2=
+=80=94 B.2, B.5</li>
+<li><strong>selection after insert</strong> =E2=80=94 D.2</li>
+<li><strong>Settings dialog</strong> =E2=80=94 A.4, B.1, App. F</li>
+<li><strong>stale state</strong> (snapshot taken before the call) =E2=80=94=
+ D.1, 9</li>
+<li><strong>structured output</strong> =E2=80=94 B.2, B.5</li>
+<li><strong>SVG references</strong> (unverified) =E2=80=94 A.3</li>
+<li><strong>test seam</strong> =E2=80=94 see fake result</li>
+<li><strong>text nodes</strong> (free text) =E2=80=94 B.3, C.2, C.5</li>
+<li><strong>thinking / effort</strong> (not set) =E2=80=94 B.2, 9</li>
+<li><strong>timeout</strong> (180 s; 5 s keychain) =E2=80=94 B.1, B.2, 8</l=
+i>
+<li><strong>toast</strong> =E2=80=94 6</li>
+<li><strong>tokens</strong> (summed; toast) =E2=80=94 B.7, 6, 9</li>
+<li><strong>trust boundary</strong> =E2=80=94 1.4</li>
+<li><strong>undo</strong> (one step; side effects) =E2=80=94 D.2</li>
+<li><strong>Ungroup</strong> (=E2=8C=98=E2=87=A7G) =E2=80=94 D.2</li>
+<li><strong>validateResult</strong> =E2=80=94 B.7, App. B</li>
+<li><strong>VectorizeRequest / VectorizeResponse / VectorShape / VectorConn=
+ector</strong> =E2=80=94 7</li>
+<li><strong>z-order</strong> =E2=80=94 D.2, 9</li>
+</ul></article></body></html>
+------MultipartBoundary--Whq3HRU452vuSPEJHbdkIl5O6StIxtN0QkbWCL0zPw----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-a198c425-644f-4b22-909d-d2529d2dc62f@mhtml.blink
+
+@charset "utf-8";
+
+@media (prefers-color-scheme: dark) {
+  body, [data-theme=3D"dark"] {
+  & .highlight { background-color: rgb(22, 27, 34); color: rgb(248, 248, 24=
+2); }
+  & .highlight .hll { background-color: rgb(110, 118, 129); }
+  & .highlight .c { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .err { color: rgb(248, 81, 73); }
+  & .highlight .esc { color: rgb(230, 237, 243); }
+  & .highlight .g { color: rgb(230, 237, 243); }
+  & .highlight .k { color: rgb(255, 123, 114); }
+  & .highlight .l { color: rgb(165, 214, 255); }
+  & .highlight .n { color: rgb(230, 237, 243); }
+  & .highlight .o { color: rgb(255, 123, 114); font-weight: bold; }
+  & .highlight .x { color: rgb(230, 237, 243); }
+  & .highlight .p { color: rgb(230, 237, 243); }
+  & .highlight .ch { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cm { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cp { color: rgb(139, 148, 158); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .cpf { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .c1 { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cs { color: rgb(139, 148, 158); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .gd { color: rgb(255, 161, 152); background-color: rgb(73, 2=
+, 2); }
+  & .highlight .ge { color: rgb(230, 237, 243); font-style: italic; }
+  & .highlight .ges { color: rgb(230, 237, 243); font-weight: bold; font-st=
+yle: italic; }
+  & .highlight .gr { color: rgb(255, 161, 152); }
+  & .highlight .gh { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .gi { color: rgb(86, 211, 100); background-color: rgb(15, 83=
+, 35); }
+  & .highlight .go { color: rgb(139, 148, 158); }
+  & .highlight .gp { color: rgb(139, 148, 158); }
+  & .highlight .gs { color: rgb(230, 237, 243); font-weight: bold; }
+  & .highlight .gu { color: rgb(121, 192, 255); }
+  & .highlight .gt { color: rgb(255, 123, 114); }
+  & .highlight .g-Underline { color: rgb(230, 237, 243); text-decoration: u=
+nderline; }
+  & .highlight .kc { color: rgb(121, 192, 255); }
+  & .highlight .kd { color: rgb(255, 123, 114); }
+  & .highlight .kn { color: rgb(255, 123, 114); }
+  & .highlight .kp { color: rgb(121, 192, 255); }
+  & .highlight .kr { color: rgb(255, 123, 114); }
+  & .highlight .kt { color: rgb(255, 123, 114); }
+  & .highlight .ld { color: rgb(121, 192, 255); }
+  & .highlight .m { color: rgb(165, 214, 255); }
+  & .highlight .s { color: rgb(165, 214, 255); }
+  & .highlight .na { color: rgb(230, 237, 243); }
+  & .highlight .nb { color: rgb(230, 237, 243); }
+  & .highlight .nc { color: rgb(240, 136, 62); font-weight: bold; }
+  & .highlight .no { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .nd { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .ni { color: rgb(255, 166, 87); }
+  & .highlight .ne { color: rgb(240, 136, 62); font-weight: bold; }
+  & .highlight .nf { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .nl { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .nn { color: rgb(255, 123, 114); }
+  & .highlight .nx { color: rgb(230, 237, 243); }
+  & .highlight .py { color: rgb(121, 192, 255); }
+  & .highlight .nt { color: rgb(126, 231, 135); }
+  & .highlight .nv { color: rgb(121, 192, 255); }
+  & .highlight .ow { color: rgb(255, 123, 114); font-weight: bold; }
+  & .highlight .pm { color: rgb(230, 237, 243); }
+  & .highlight .w { color: rgb(110, 118, 129); }
+  & .highlight .mb { color: rgb(165, 214, 255); }
+  & .highlight .mf { color: rgb(165, 214, 255); }
+  & .highlight .mh { color: rgb(165, 214, 255); }
+  & .highlight .mi { color: rgb(165, 214, 255); }
+  & .highlight .mo { color: rgb(165, 214, 255); }
+  & .highlight .sa { color: rgb(121, 192, 255); }
+  & .highlight .sb { color: rgb(165, 214, 255); }
+  & .highlight .sc { color: rgb(165, 214, 255); }
+  & .highlight .dl { color: rgb(121, 192, 255); }
+  & .highlight .sd { color: rgb(165, 214, 255); }
+  & .highlight .s2 { color: rgb(165, 214, 255); }
+  & .highlight .se { color: rgb(121, 192, 255); }
+  & .highlight .sh { color: rgb(121, 192, 255); }
+  & .highlight .si { color: rgb(165, 214, 255); }
+  & .highlight .sx { color: rgb(165, 214, 255); }
+  & .highlight .sr { color: rgb(121, 192, 255); }
+  & .highlight .s1 { color: rgb(165, 214, 255); }
+  & .highlight .ss { color: rgb(165, 214, 255); }
+  & .highlight .bp { color: rgb(230, 237, 243); }
+  & .highlight .fm { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .vc { color: rgb(121, 192, 255); }
+  & .highlight .vg { color: rgb(121, 192, 255); }
+  & .highlight .vi { color: rgb(121, 192, 255); }
+  & .highlight .vm { color: rgb(121, 192, 255); }
+  & .highlight .il { color: rgb(165, 214, 255); }
+}
+}
+
+@media (prefers-color-scheme: light) {
+  body, [data-theme=3D"light"] {
+  & .highlight { background-color: rgb(247, 247, 247); color: rgb(51, 51, 5=
+1); }
+  & .highlight .hll { background-color: rgb(255, 255, 204); }
+  & .highlight .c { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .err { color: rgb(166, 23, 23); background-color: rgb(227, 2=
+10, 210); }
+  & .highlight .k { font-weight: bold; }
+  & .highlight .o { font-weight: bold; }
+  & .highlight .cm { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .cp { color: rgb(153, 153, 153); font-weight: bold; }
+  & .highlight .c1 { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .cs { color: rgb(153, 153, 153); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .gd { color: rgb(0, 0, 0); background-color: rgb(255, 221, 2=
+21); }
+  & .highlight .ge { font-style: italic; }
+  & .highlight .gr { color: rgb(170, 0, 0); }
+  & .highlight .gh { color: rgb(153, 153, 153); }
+  & .highlight .gi { color: rgb(0, 0, 0); background-color: rgb(221, 255, 2=
+21); }
+  & .highlight .go { color: rgb(136, 136, 136); }
+  & .highlight .gp { color: rgb(85, 85, 85); }
+  & .highlight .gs { font-weight: bold; }
+  & .highlight .gu { color: rgb(128, 0, 128); font-weight: bold; }
+  & .highlight .gt { color: rgb(170, 0, 0); }
+  & .highlight .kc { font-weight: bold; }
+  & .highlight .kd { font-weight: bold; }
+  & .highlight .kn { font-weight: bold; }
+  & .highlight .kp { font-weight: bold; }
+  & .highlight .kr { font-weight: bold; }
+  & .highlight .kt { color: rgb(68, 85, 136); font-weight: bold; }
+  & .highlight .m { color: rgb(0, 153, 153); }
+  & .highlight .s { color: rgb(221, 17, 68); }
+  & .highlight .n { color: rgb(51, 51, 51); }
+  & .highlight .na { color: teal; }
+  & .highlight .nb { color: rgb(0, 134, 179); }
+  & .highlight .nc { color: rgb(68, 85, 136); font-weight: bold; }
+  & .highlight .no { color: teal; }
+  & .highlight .ni { color: purple; }
+  & .highlight .ne { color: rgb(153, 0, 0); font-weight: bold; }
+  & .highlight .nf { color: rgb(153, 0, 0); font-weight: bold; }
+  & .highlight .nn { color: rgb(85, 85, 85); }
+  & .highlight .nt { color: navy; }
+  & .highlight .nv { color: teal; }
+  & .highlight .ow { font-weight: bold; }
+  & .highlight .w { color: rgb(187, 187, 187); }
+  & .highlight .mf { color: rgb(0, 153, 153); }
+  & .highlight .mh { color: rgb(0, 153, 153); }
+  & .highlight .mi { color: rgb(0, 153, 153); }
+  & .highlight .mo { color: rgb(0, 153, 153); }
+  & .highlight .sb { color: rgb(221, 17, 68); }
+  & .highlight .sc { color: rgb(221, 17, 68); }
+  & .highlight .sd { color: rgb(221, 17, 68); }
+  & .highlight .s2 { color: rgb(221, 17, 68); }
+  & .highlight .se { color: rgb(221, 17, 68); }
+  & .highlight .sh { color: rgb(221, 17, 68); }
+  & .highlight .si { color: rgb(221, 17, 68); }
+  & .highlight .sx { color: rgb(221, 17, 68); }
+  & .highlight .sr { color: rgb(0, 153, 38); }
+  & .highlight .s1 { color: rgb(221, 17, 68); }
+  & .highlight .ss { color: rgb(153, 0, 115); }
+  & .highlight .bp { color: rgb(153, 153, 153); }
+  & .highlight .vc { color: teal; }
+  & .highlight .vg { color: teal; }
+  & .highlight .vi { color: teal; }
+  & .highlight .il { color: rgb(0, 153, 153); }
+  & .highlight .gc { color: rgb(153, 153, 153); background-color: rgb(234, =
+242, 245); }
+}
+}
+------MultipartBoundary--Whq3HRU452vuSPEJHbdkIl5O6StIxtN0QkbWCL0zPw----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-a6ae707a-1b58-4a99-9b01-17dd1c878c23@mhtml.blink
+
+@charset "utf-8";
+
+@font-face { font-family: fontawesome-mini; src: url("data:application/octe=
+t-stream;base64,d09GMgABAAAAABAAAA8AAAAAIIQAAA+nAAEAAAAAAAAAAAAAAAAAAAAAAAA=
+AAAAAHFQGYACDfggOCZwMEQgKknyQRwsYAAE2AiQDLAQgBYYtB4ElDIEcGy4eRUWwcQBQ8OnJ/j=
+8ccGMIvmn4RKttUBuoGdqn/Wo0V1nlpkC/YoxFf7EPPW8Mb8dxsKfR1DnTvl/z5Vb39K5hi6BYj=
+j0qQus6GvxOFCpysY312mqKOEX62AhJZuG/Wvv33O6emX0QZE/kiT6hCiHIVGSEBRIyFaOAVj7/=
+aS57/2cCvBuYtJwFupRhCgzy9BnRc6a27py44d/TXuFBbTZ3IqtBHZUOTu6cHtR28xegA/0JKBi=
+52eMz6wYYLYHnUZfyMLWswld/geQCBVA+aDlhqSjlnBvmDLO36cnBgjc8sR4UsM0/cpJQ8Jk5Vv=
+tyfn3AV32bc5TWLFnOEL9l4lFaSf5x2mEZ8f+b68u+W0nNzwALhSgcSnaufuXnT16lmwfS+ZweA=
+lKAFhh7aIFQrnB0/MqVbv1KtWflPmRTGEYF9R9js8fpogLEPuhVvPvIT4IATcYEIG6OiOMDlRNi=
+SRXQRaatSWvMFtaJ0mIxoJeKCASClTJoX+onCAdIwK4RN4EXo99eP6yKCAzdaf/pfYfCC8CJWse=
+k4GXSfZLXQD7YEAmOpRRjdKnKZ5iASm1JOK3JbEYVVpgl6tK54+G7pAZAbytxahntgFjEwo7jH1=
+6m3aRNsyemN0FNxUGydjBZO7isHULWDknWDlnWDkXWDlWzzg6NZh07oFn4z1VuGBJwFfpR5MsFg=
+tsvGPc/A1NbtF/TWNqrF9jzf0vGpT/SA2MtuAMb2utAwuQdBPI6djDUqnVokOZYW74y4WtiSkq+=
+8HLtS2NoA+bOkeAZzDo3iJujjnu8kTyVwS0Ls+6Clcn1WwJTfRenuE5ewWk4jJ1MnBiJObQgZSD=
+lJ+lhP6yRRvjnIvLPrp38jf6oj3EYLJrHrV/BOKdpb5XTmyerMsfcZPrca5SCGnJDO3gLShNjZo=
+yK/s0mY2m/2kEOp5fJNxtnImZoJkwx2p4DOx5H4DyAgxLbu2+CGJh74DxflGREfMWFLl2MTY5Qx=
+Aie4teIpPro0CF9QXhuBJMbAdM8lnljbYSqwxC1Ioqpxey8YDSrCZN1PQjBa96AXqzw4Slt/v+d=
+ooyNNBB5M6QNk7di0GijoO4DGSMTLxuPcpjA5rMOrGKyZrfNq4Cqnwx3Y6i/FGZx2BCgSwUcXQj=
+pJHSMqhGfTz3naQ46exbs+6fWaMhd04gSXgyvplCwgfAk/bbWpBF0Dr3KmEW+hRJWiOZqohf99v=
+hBs9T/ANbpUqCZ+cqO/WkMHW4Ea9TGp9YRonBvi8/Wc5QAVRFCfg5cvk01Hykt4BylBkcZpSuQk=
+nIhpN/WGmUmaV+1UiJpyQhfdkIRP714H3+gRy+Kx2+GL9uVrLG5FXedoCCqd/1ofj7UPOWIYAN2=
+X0IXpdLQqgqab4RCwoTAqP3SJBcuFatQmyUMibh8dOuTIyGHmcJyZi2KWh/1vbAAl7QHEax0lKj=
+2laWYKPDhTiAyL30C8/gGXr2k8671SSxMXJrw3nNPyRuGWknGC/7G1r3okChInzmyVRB1CaZuoV=
+GPENQrdOoTBvULkwaERYPCri2gsn8gRv2yE1Qq6HNH2dcxhCmT9m//w2VN+++S5ZhgUvA4HmqnF=
+Y3W4A0V5KhCUYOiDkUDiiYULSjaUHSg+AUtjkCWjJVG50x0Van1GtTqjKkyYq+ZMSh+5LemOMYh=
+MhRNxprndK++/kRjOKeJinJcgtEta3sY46XoKe2Hl5HDxKRo1p9cnIK8A10zjQm0jcP0IihgrHt=
+TDHmC9lK9FZ0rUynl85LMQJZkCD0EG+kfyDGL6tqSY85fA8SRdfF5FJbVB1IlEajtKF/jp/br2I=
+aaJRwYGyHz3Vyi9PJTxwKAJDOPcIT7KV082cfls8N2xESW2rloIIt5qUozBcM8ZSS8Hk4WV7fhW=
+OhsbuYX5Nme6L0KDqWtUYc6SOmBCAPXB7qKE9J9BFOj6MxNsZRgNuhM5bXSF7KK88VZB3nOKA4H=
+sOMwhZ0mcY0iVpbT2oDueVyrjwiRMyCctdk7iK6WzsToWJJDLyKCnkNdmvsuW87jkPwB6AQ5l41=
+WXEYqpPxUcBkqWVJr4DVGICUFNmv4bYtPly0VClynpXuaMmbuqdWWK3mvrqoD5nXsVao3VFCPlq=
+AaS2cMG2YrBlmKVRlLyTNlwLWRt8zGttfDrTf1KW+AhUhs9k2wGG1eavvaxXbO3xwYrBhz01Ye0=
+jYTWerTM555trVx+mqfIJXOxV2/jeL42ONGN+e/xdCCNT/6EHbsks4ZaytjbIRIO7VYeCYR3r2p=
+coxVT3OyBvvYS6TbfK7Dzu1f4pyZMjj7kw9QQJcss9RwCOYXOnoSZF+lkkFba5LKHcOYsxwdcwA=
+76GQ7gSsirwngi0xAxo4INaKoCVAQzVnEsWAjRsmKyk2BihVV2wihZkX1pkDDyjTTw5ZoaYfaTY=
+COyHTJ2BU9jajfBBiIgiEkbIqRW6NxU2BiFUyRRphZ0bwpsLCatUTRr7xgtZDFzOw1LLMRuOvA9=
+refCcgOO4m1l9BhnHaMONobJ3snzlPYdAEwcfWwdJPQfZxOXHjYB0/74GUfvD1EHwl9JfyDsovY=
+vkjsi9S+yDxEuYSEDJOEotRunnVR+95nqXrzZCIpPNXUWM84LS3EdpZeOEsyS2o6Uj/AHggIx4W=
+g3YQFHI4puiAa5zTrIjY78Z9JJdTBQQB/M2akplzS0GCz1ayUTRUKy8DI+P5AdchNuV1NQOVMJq=
+m1KnYEAETGYoFJJFWk41YvzCZG7tzB7nXnvH9fevduNQbsWJiBcpZ8rZgEgD58dvOUXdeqmRq2z=
+pl2bO3dkK61FhzBOEVyFBIppOzC4ikWyBC4BWG6eKOCreUnm8lAM3XN8o+Y1e2x0MyGdA0go2aL=
+dwxI10NnLC0VExODguwtLuAJk0ALHEf/aqdVcAQgX2qxQigoYBJaESu+UDQhtRaMtaIcoRzTtpb=
+J2Gxk1AyTyzk2owhbIJO2QRGmSot/ZCm0tZF3UwjohLnUV56/YKIQ8eNvYgHCY2hiyonRgwJFx6=
+X+gqNIXPLpl0mt0rt3wSSz+NmGlrQoDazFy5EjmBxCLzHnjEJx/9IuHhWg967dw+5cuaOP+Ftb3=
+xWw7osUE9BxEZI0unlHewggWjKAmFUlVpldq2fWdbF1PRQaJkQkn82y59S0za2V73d0982KUSZ2=
+zAjFAHLTU5qPbDKZyB3sHuGjQJg4LWdE6KAZm7wyBRAta1aA+Bc/6ZOcRu+meRhOWfo8Ia3GfcF=
+9MvX3dkf8cbkcvdEHKXheX3v6LPzyPFx5mvKq+fQG/HUNbj8d7ZNSJmRoFW6mI+X+QL3g3oEcWk=
+hrodaH0un/u5JbTF+iqeqe1nAJQdTV0jU094e46N7WQDQtNH185vb39/UY9mRTxg3HMjN2tuwmj=
++uvZ2Tg7DqlJf0DY/qcn3lG45ZWyB8HTTlXf48+9CUZ2Oq9T7yvw9mfl2HvvCuiYc+laA9Xqh1x=
+N8arX4OdNuHgG0zWcn5jjVrd47KHviv3knl5i1GXqBpbtpj4RUVmU5SUKK4O9q5UT3n0Rk0Nal6=
+8uH7j5Su3mz0GbpmZL15mZrj58o1fqPsOlxsT0H8Yxh0+CUyOUwyhf0n02w9dBVyH/3Xwe/v/yU=
+n4rgHOh7o63O6sT/5vh1dv8r0DOGTS78+Qz3MZtwtGXJp61L7UhlD4bOfzRE1TVEEnfV9kdrwzL=
+/xux/s6+Omu5V9pWPc2S3IWrj39GnruxIoWuHxU0Hott/ye5y6NlhJGb6WHpdCOkKpgwL+MIqxH=
+jf6j9BDS2TCg/Rg1M/ST10T6VuahT2OhuFjoqXkozTuDQIzkU5M6aUkRfEEaPyPCS7QP0zEKthk=
+w0rp2jW2wv01Z11dn9LE6nuj6MvyK/QbsZ8+0jAb0jP7sHhB5Ouck+hebFhOKLeO93fOFf3PoDG=
+Nctgaj013DODdq0G3w25fHa+DxfH+X/6NWbjryTLPUdxLi+FsPlqhGs6B/c59S1l6pKnoQ8BLY2=
+41zHJO/+OtwAQDgL2aZaA3AT1hCCgPg66QuUjQAL/Oo+U+wfrudM2liNtNscuBdfFKu0mFAlnUY=
+uwjjKCklRkmUvWyU/hmy2WyWm7WazaJCzfaWeawhE9ZFLT1kbg85kHMYRWgUKXYTRe+suVarWTO=
+YXyjpC6nLEHoI/JmeRRpzCpXYa1O4k+dHzGyaudWheiIfKeYWfocn83SLxaLYUQqUUmya873zXl=
+DunzFQxLKZtrJY+FdnA+S0QAYbbnM0Oy6J6Nr1Hbm3qgU/6w/zaeJMxqMcKfZ4B+mbp5pUO+Gh+=
+zOMqwhUtCsrhVeRydNNZhWqZ4EujW5jxTTXKt41UvBtzUaxXY/lvno1g+SNSOdQMXSOj6fKj3Jg=
+NjhKKIpyDOds49jYJIvmqblAsafGHe+IFNkd73njKiiPZVlfO+vq6Uoczf4wa+0BbsxMg3Gzrgy=
+IRBymmCc7zEg+yrj2Ile/tLTUKvUvIyqZ0Fa75JmFutBlqHvH1szEiNGwLh6FiDsiKdKtQspK+R=
+bkByrcKj+KpWyR3pBM/WM3a2pleXGhJ6snkc08UkfkW2aqLSFG+WHi1Q+/tECcYeQGp/guY9G/q=
+BrVanFksqCAAAT/Izo6VY6q37ev6jXg75tm8eil+LdXNl/iAUAFA2r3lYsC8Fqhb2trRNCKI/Zx=
+/B9Rz8bY90VOWxNvHWf56s1uyA4tniC/xEh42AsuTFSiXTfVs/hpnTfrJErcOxkmW+ycjOMAmdk=
+p4fKbM8jGTk0KO1/dIjbPoWgAjnEWdSLyHDsxgXpZA5nFAmR7Jx1ZPxsgFzo5XOv2MS7NZf3/9K=
+MNa+7fua58tc571tgEfbhH5zfrfDiNInFjYR6bsX9t1PsZjrVW17roPZNzQOeRsfVrvNV6brih2=
+EUiKXrCJhmRZuU3sHnPNawB5UODUKqpoZk6SimmBAlcVkKxxuXCaZzigStPreGqplD4oirEVMAl=
+ph4JJRsZDhyEXHTjKoYLA1ecBQf5VbpyU0FMIx/Aq2pl+1nHpSpOuXExnlYFYuooN6wOoYYTlNJ=
+cPi5nDpxCIDKoChWIwacL+C7ANCQFFxIMijgM6tCBuCJ4reKq2cxlgfMxcJAoS5hT8+HIUTajib=
+SHoMlbb8nkCiVlFVVqqKmW2nh5tUn7n9QfV8DIXTWMV0+N/U+puhbqTo3Sa62VdEx9KMxVkHOD0=
++phRsViKupT8+or8ui56+/IXlwhAYBdX/FtIMwR4dX4LD34Wf7MHMrGObB4NGDz2DVAq/TcNTjY=
+/K7erv7UWbXrdpE+RTtatYCnsfG43lyrNNu6haDwjP3gr9Xte89h4uJVwmOy953fc3/QC6hgczM=
+AAA=3D=3D"); }
+
+[data-theme=3D"dark"] { color-scheme: dark; }
+
+[data-theme=3D"light"] { color-scheme: light; }
+
+@media (prefers-color-scheme: dark) {
+  [data-theme=3D"auto"], [data-theme=3D"dark"] { --color-bg: #0d1117; --col=
+or-bg-subtle: #161b22; --color-fg: #e6edf3; --color-link-fg: #2f81f7; --col=
+or-border: #30363d; --color-border-muted: #21262d; --color-fg-muted: #848d9=
+7; --color-note-fg: #2f81f7; --color-note-emphasis: #1f6feb; --color-tip-fg=
+: #3fb950; --color-tip-emphasis: #238636; --color-warning-fg: #d29922; --co=
+lor-warning-emphasis: #9e6a03; --color-attention-subtle: rgba(187,128,9,0.1=
+5); --color-caution-fg: #f85149; --color-caution-emphasis: #da3633; --color=
+-important-fg: #a371f7; --color-important-emphasis: #8957e5; --color-neutra=
+l-muted: rgba(110,118,129,0.4); --color-progress-shadow: #010101; --color-p=
+rogress-shadow2: rgba(0, 0, 0, .5); --color-progress-bg: #363c43; }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme=3D"auto"], [data-theme=3D"light"] { --color-bg: #ffffff; --co=
+lor-bg-subtle: #f6f8fa; --color-fg: #333333; --color-link-fg: #0969da; --co=
+lor-border: #d0d7de; --color-border-muted: #d8dee4; --color-fg-muted: #656d=
+76; --color-note-fg: #0969da; --color-note-emphasis: #0969da; --color-tip-f=
+g: #1a7f37; --color-tip-emphasis: #1f883d; --color-warning-fg: #9a6700; --c=
+olor-warning-emphasis: #9a6700; --color-attention-subtle: #fff8c5; --color-=
+caution-fg: #d1242f; --color-caution-emphasis: #cf222e; --color-important-f=
+g: #8250df; --color-important-emphasis: #8250df; --color-neutral-muted: rgb=
+a(175,184,193,0.2); --color-progress-shadow: #fefefe; --color-progress-shad=
+ow2: rgba(0, 0, 0, .1); --color-progress-bg: #efefef; }
+}
+
+body { max-width: 980px; margin: 16px auto; background-color: var(--color-b=
+g); }
+
+body .markdown-body { padding: 45px; }
+
+.markdown-body { text-size-adjust: 100%; color: var(--color-fg); overflow: =
+hidden; font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesa=
+ns, sans-serif; font-size: 16px; line-height: 1.6; overflow-wrap: break-wor=
+d; }
+
+.markdown-body a { background: transparent; }
+
+.markdown-body a:active, .markdown-body a:hover { outline: 0px; }
+
+.markdown-body b, .markdown-body strong { font-weight: bold; }
+
+.markdown-body mark { background: rgb(255, 255, 0); color: rgb(0, 0, 0); fo=
+nt-style: italic; font-weight: bold; }
+
+.markdown-body sub, .markdown-body sup { font-size: 75%; line-height: 0; po=
+sition: relative; vertical-align: baseline; }
+
+.markdown-body sup { top: -0.5em; }
+
+.markdown-body sub { bottom: -0.25em; }
+
+.markdown-body h1 { font-size: 2em; margin: 0.67em 0px; }
+
+.markdown-body img { border: 0px; }
+
+.markdown-body hr { box-sizing: content-box; height: 0px; }
+
+.markdown-body pre { overflow: auto; }
+
+.markdown-body code, .markdown-body kbd, .markdown-body pre, .markdown-body=
+ samp { font-family: monospace, monospace; font-size: 1em; }
+
+.markdown-body input { color: inherit; font: inherit; margin: 0px; }
+
+.markdown-body html input[disabled] { cursor: default; }
+
+.markdown-body input { line-height: normal; }
+
+.markdown-body input[type=3D"checkbox"] { box-sizing: border-box; padding: =
+0px; }
+
+.markdown-body table { border-collapse: collapse; border-spacing: 0px; }
+
+.markdown-body td, .markdown-body th { padding: 0px; }
+
+.markdown-body .codehilitetable, .markdown-body .highlighttable { border: 0=
+px; border-spacing: 0px; }
+
+.markdown-body .codehilitetable tr, .markdown-body .highlighttable { border=
+: 0px; }
+
+.markdown-body .codehilitetable pre, .markdown-body .codehilitetable div.co=
+dehilite, .markdown-body .highlighttable pre, .markdown-body .highlighttabl=
+e div.highlight { margin: 0px; }
+
+.markdown-body .linenos, .markdown-body .code, .markdown-body .codehiliteta=
+ble td, .markdown-body .highlighttable td { border: 0px; padding: 0px; }
+
+.markdown-body td:not(.linenos) .linenodiv { padding: 0px !important; }
+
+.markdown-body .code { width: 100%; }
+
+.markdown-body .linenos div pre, .markdown-body .linenodiv pre, .markdown-b=
+ody .linenodiv { border: 0px; border-radius: 3px 0px 0px 3px; }
+
+.markdown-body .code div pre, .markdown-body .code div { border: 0px; borde=
+r-radius: 0px 3px 3px 0px; }
+
+.markdown-body * { box-sizing: border-box; }
+
+.markdown-body input { font: 13px / 1.4 Helvetica, arial, freesans, clean, =
+sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+
+.markdown-body a { color: var(--color-link-fg); }
+
+.markdown-body hr { height: 0px; margin: 15px 0px; overflow: hidden; backgr=
+ound: transparent; border-top: 0px; border-right: 0px; border-left: 0px; bo=
+rder-image: none; border-bottom: 1px solid var(--color-border); }
+
+.markdown-body hr::before, .markdown-body hr::after { display: table; conte=
+nt: " "; }
+
+.markdown-body hr::after { clear: both; }
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4,=
+ .markdown-body h5, .markdown-body h6 { margin-top: 15px; margin-bottom: 15=
+px; line-height: 1.1; }
+
+.markdown-body h1 { font-size: 30px; }
+
+.markdown-body h2 { font-size: 21px; }
+
+.markdown-body h3 { font-size: 16px; }
+
+.markdown-body h4 { font-size: 14px; }
+
+.markdown-body h5 { font-size: 12px; }
+
+.markdown-body h6 { font-size: 11px; }
+
+.markdown-body blockquote { margin: 0px; }
+
+.markdown-body ul, .markdown-body ol { padding: 0px; margin-top: 0px; margi=
+n-bottom: 0px; }
+
+.markdown-body ol ol, .markdown-body ul ol { list-style-type: lower-roman; =
+}
+
+.markdown-body ul ul ol, .markdown-body ul ol ol, .markdown-body ol ul ol, =
+.markdown-body ol ol ol { list-style-type: lower-alpha; }
+
+.markdown-body dd { margin-left: 0px; }
+
+.markdown-body code, .markdown-body pre, .markdown-body samp { font-family:=
+ Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 12px; }
+
+.markdown-body pre { margin-top: 0px; margin-bottom: 0px; }
+
+.markdown-body kbd { display: inline-block; padding: 3px 5px; color: var(--=
+color-fg-default); vertical-align: middle; background-color: var(--color-bg=
+-subtle); border-top-color: ; border-top-style: ; border-top-width: ; borde=
+r-right-color: ; border-right-style: ; border-right-width: ; border-bottom-=
+style: ; border-bottom-width: ; border-left-color: ; border-left-style: ; b=
+order-left-width: ; border-image-source: ; border-image-slice: ; border-ima=
+ge-width: ; border-image-outset: ; border-image-repeat: ; border-bottom-col=
+or: var(--color-neutral-muted); border-radius: 6px; box-shadow: inset 0 -1p=
+x 0 var(--color-neutral-muted); font: 11px Consolas, "Liberation Mono", Men=
+lo, Courier, monospace; }
+
+.markdown-body > :first-child { margin-top: 0px !important; }
+
+.markdown-body > :last-child { margin-bottom: 0px !important; }
+
+.markdown-body .headerlink { font: 16px fontawesome-mini; vertical-align: m=
+iddle; margin-left: -20px; float: left; display: inline-block; text-decorat=
+ion: none; opacity: 0; color: var(--color-fg); }
+
+.markdown-body .headerlink:focus { outline: none; }
+
+.markdown-body h1 .headerlink { margin-top: 0.8rem; }
+
+.markdown-body h2 .headerlink, .markdown-body h3 .headerlink { margin-top: =
+0.6rem; }
+
+.markdown-body h4 .headerlink { margin-top: 0.2rem; }
+
+.markdown-body h5 .headerlink, .markdown-body h6 .headerlink { margin-top: =
+0px; }
+
+.markdown-body .headerlink:hover, .markdown-body h1:hover .headerlink, .mar=
+kdown-body h2:hover .headerlink, .markdown-body h3:hover .headerlink, .mark=
+down-body h4:hover .headerlink, .markdown-body h5:hover .headerlink, .markd=
+own-body h6:hover .headerlink { opacity: 1; text-decoration: none; }
+
+.markdown-body h1 { padding-bottom: 0.3em; font-size: 2.25em; line-height: =
+1.2; border-bottom: 1px solid var(--color-border-muted); }
+
+.markdown-body h2 { padding-bottom: 0.3em; font-size: 1.75em; line-height: =
+1.225; border-bottom: 1px solid var(--color-border-muted); }
+
+.markdown-body h3 { font-size: 1.5em; line-height: 1.43; }
+
+.markdown-body h4 { font-size: 1.25em; }
+
+.markdown-body h5 { font-size: 1em; }
+
+.markdown-body h6 { font-size: 1em; color: var(--color-fg-muted); }
+
+.markdown-body p, .markdown-body blockquote, .markdown-body ul, .markdown-b=
+ody ol, .markdown-body dl, .markdown-body table, .markdown-body pre, .markd=
+own-body .admonition, .markdown-body details { margin-top: 0px; margin-bott=
+om: 16px; }
+
+.markdown-body hr { height: 4px; padding: 0px; margin: 16px 0px; background=
+-color: var(--color-border); border: 0px; }
+
+.markdown-body ul, .markdown-body ol { padding-left: 2em; }
+
+.markdown-body ul ul, .markdown-body ul ol, .markdown-body ol ol, .markdown=
+-body ol ul { margin-top: 0px; margin-bottom: 0px; }
+
+.markdown-body li > p { margin-top: 16px; }
+
+.markdown-body dl { padding: 0px; }
+
+.markdown-body dl dt { padding: 0px; margin-top: 16px; font-size: 1em; font=
+-style: italic; font-weight: bold; }
+
+.markdown-body dl dd { padding: 0px 16px; margin-bottom: 16px; }
+
+.markdown-body blockquote { padding: 0px 15px; color: var(--color-fg-muted)=
+; border-left: 4px solid var(--color-border); }
+
+.markdown-body blockquote > :first-child { margin-top: 0px; }
+
+.markdown-body blockquote > :last-child { margin-bottom: 0px; }
+
+.markdown-body table { display: block; width: 100%; overflow: auto; word-br=
+eak: keep-all; }
+
+.markdown-body table th { font-weight: bold; }
+
+.markdown-body table th, .markdown-body table td { padding: 6px 13px; borde=
+r: 1px solid var(--color-border-muted); }
+
+.markdown-body table tr { border-top: 1px solid var(--color-border-muted); =
+}
+
+.markdown-body table tr:nth-child(2n) { background-color: var(--color-bg-su=
+btle); }
+
+.markdown-body img { max-width: 100%; box-sizing: border-box; }
+
+.markdown-body code, .markdown-body samp { padding: 0.2em 0px; margin: 0px;=
+ font-size: 85%; border-radius: 3px; }
+
+.markdown-body :not(pre) > code:not(.highlight):not(.codehilite), .markdown=
+-body samp { background-color: var(--color-bg-subtle); }
+
+.markdown-body code::before, .markdown-body code::after { letter-spacing: -=
+0.2em; content: "=C2=A0"; }
+
+.markdown-body pre > code { padding: 0px; margin: 0px; font-size: 100%; wor=
+d-break: normal; white-space: pre; background: transparent; border: 0px; }
+
+.markdown-body .codehilite, .markdown-body .highlight { margin-bottom: 16px=
+; }
+
+.markdown-body .codehilite pre, .markdown-body .highlight pre, .markdown-bo=
+dy pre { padding: 16px; overflow: auto; font-size: 85%; line-height: 1.45; =
+}
+
+.markdown-body .codehilite, .markdown-body .highlight, .markdown-body pre {=
+ border-radius: 3px; }
+
+.markdown-body :not(.highlight) > pre { background-color: var(--color-bg-su=
+btle); }
+
+.markdown-body .codehilite pre, .markdown-body .highlight pre { margin-bott=
+om: 0px; word-break: normal; }
+
+.markdown-body pre { overflow-wrap: normal; }
+
+.markdown-body pre code { display: inline; max-width: initial; padding: 0px=
+; margin: 0px; overflow: initial; line-height: inherit; overflow-wrap: norm=
+al; background-color: transparent; border: 0px; }
+
+.markdown-body pre code::before, .markdown-body pre code::after { content: =
+normal; }
+
+.markdown-body .admonition, .markdown-body details[class] { position: relat=
+ive; border-left: 4px solid var(--color-fg); padding: 10px; }
+
+.markdown-body details[class] > summary { list-style: none; }
+
+.markdown-body .admonition p { padding: 0px; }
+
+.markdown-body .admonition > .admonition-title, .markdown-body details[clas=
+s] > summary { position: relative; font-weight: bold; margin: 0px; padding-=
+left: 20px; }
+
+.markdown-body .admonition-title::before, .markdown-body details[class] > s=
+ummary::before { font: 16px / 1.5 fontawesome-mini; user-select: none; colo=
+r: var(--color-fg); position: absolute; left: 0px; top: 0px; }
+
+.markdown-body details[class] > summary::after { font: 16px / 1.5 fontaweso=
+me-mini; user-select: none; color: var(--color-fg); position: absolute; rig=
+ht: 0px; top: 0px; }
+
+.markdown-body details[class] > summary::after { content: "=EE=A0=83"; }
+
+.markdown-body details[class][open] > summary::after { content: "=EE=A0=82"=
+; }
+
+.markdown-body details[class] > summary::after { color: var(--color-fg); }
+
+.markdown-body details.question > summary::after, .markdown-body details.im=
+portant > summary::after, .markdown-body details.attention > summary::after=
+ { color: var(--color-important-emphasis); }
+
+.markdown-body details.warning > summary::after { color: var(--color-warnin=
+g-emphasis); }
+
+.markdown-body details.tip > summary::after, .markdown-body details.hint > =
+summary::after { color: var(--color-tip-emphasis); }
+
+.markdown-body details.caution > summary::after, .markdown-body details.dan=
+ger > summary::after { color: var(--color-caution-emphasis); }
+
+.markdown-body details.note > summary::after { color: var(--color-note-emph=
+asis); }
+
+.markdown-body .admonition-title::before, .markdown-body details[class] sum=
+mary::before { content: "=EE=A0=80=C2=A0"; color: var(--color-fg); }
+
+.markdown-body .important > :is(.admonition-title, summary)::before, .markd=
+own-body .attention > :is(.admonition-title, summary)::before { content: "=
+=EF=83=B3=C2=A0"; color: var(--color-important-emphasis); }
+
+.markdown-body .question > :is(.admonition-title, summary)::before { conten=
+t: "=EE=A0=84=C2=A0"; color: var(--color-important-emphasis); }
+
+.markdown-body .warning > :is(.admonition-title, summary)::before { content=
+: "=EE=A0=81=C2=A0"; color: var(--color-warning-emphasis); }
+
+.markdown-body .tip > :is(.admonition-title, summary)::before, .markdown-bo=
+dy .hint > :is(.admonition-title, summary)::before { content: "=EF=83=AB=C2=
+=A0"; color: var(--color-tip-emphasis); }
+
+.markdown-body .caution > :is(.admonition-title, summary)::before, .markdow=
+n-body .danger > :is(.admonition-title, summary)::before { content: "=EE=A0=
+=87=C2=A0"; color: var(--color-caution-emphasis); }
+
+.markdown-body .note > :is(.admonition-title, summary)::before { content: "=
+=EE=A0=80=C2=A0"; color: var(--color-note-emphasis); }
+
+.markdown-body .admonition > :is(.admonition-title, summary)::after, .markd=
+own-body details::after { content: normal; }
+
+.markdown-body .question:is(.admonition, details[class]), .markdown-body .i=
+mportant:is(.admonition, details[class]), .markdown-body .attention:is(.adm=
+onition, details[class]) { border-left-color: var(--color-important-emphasi=
+s); }
+
+.markdown-body .warning:is(.admonition, details[class]) { border-left-color=
+: var(--color-warning-emphasis); }
+
+.markdown-body .tip:is(.admonition, details[class]), .markdown-body .hint:i=
+s(.admonition, details[class]) { border-left-color: var(--color-tip-emphasi=
+s); }
+
+.markdown-body .caution:is(.admonition, details[class]), .markdown-body .da=
+nger:is(.admonition, details[class]) { border-left-color: var(--color-cauti=
+on-emphasis); }
+
+.markdown-body .note:is(.admonition, details[class]) { border-left-color: v=
+ar(--color-note-emphasis); }
+
+.markdown-body .admonition > :first-child, .markdown-body details[class] > =
+:first-child { margin-top: 0px !important; }
+
+.markdown-body .admonition > :last-child, .markdown-body details[class] > :=
+last-child { margin-bottom: 0px !important; }
+
+.markdown-body .progress { display: block; width: 300px; margin: 10px 0px; =
+height: 24px; border-radius: 3px; background-color: var(--color-progress-bg=
+); position: relative; box-shadow: inset -1px 1px 3px var(--color-progress-=
+shadow2); }
+
+.markdown-body .progress-label { position: absolute; text-align: center; fo=
+nt-weight: bold; width: 100%; margin: 0px; line-height: 24px; color: var(--=
+color-fg); text-shadow: 1px 1px 0 var(--color-progress-shadow), -1px -1px 0=
+ var(--color-progress-shadow), -1px 1px 0 var(--color-progress-shadow),
+               1px -1px 0 var(--color-progress-shadow), 0 1px 0 var(--color=
+-progress-shadow), 0 -1px 0 var(--color-progress-shadow),
+               1px 0 0 var(--color-progress-shadow), -1px 0 0 var(--color-p=
+rogress-shadow), 1px 1px 2px #000; white-space: nowrap; overflow: hidden; -=
+webkit-font-smoothing: antialiased !important; }
+
+.markdown-body .progress-bar { height: 24px; float: left; border-radius: 3p=
+x; background-color: rgb(150, 198, 215); box-shadow: rgba(255, 255, 255, 0.=
+5) 0px 1px 0px inset, rgba(0, 0, 0, 0.1) 0px -1px 0px inset; background-siz=
+e: 30px 30px; background-image: linear-gradient(135deg, rgba(255, 255, 255,=
+ 0.4) 27%, transparent 27%, transparent 52%, rgba(255, 255, 255, 0.4) 52%, =
+rgba(255, 255, 255, 0.4) 77%, transparent 77%, transparent); }
+
+.markdown-body .progress-100plus .progress-bar { background-color: rgb(166,=
+ 215, 150); }
+
+.markdown-body .progress-80plus .progress-bar { background-color: rgb(198, =
+215, 150); }
+
+.markdown-body .progress-60plus .progress-bar { background-color: rgb(215, =
+200, 150); }
+
+.markdown-body .progress-40plus .progress-bar { background-color: rgb(215, =
+167, 150); }
+
+.markdown-body .progress-20plus .progress-bar { background-color: rgb(215, =
+150, 166); }
+
+.markdown-body .progress-0plus .progress-bar { background-color: rgb(194, 9=
+5, 119); }
+
+.markdown-body .candystripe-animate .progress-bar { animation: 3s linear 0s=
+ infinite normal none running animate-stripes; }
+
+@-webkit-keyframes animate-stripes {=20
+  0% { background-position: 0px 0px; }
+  100% { background-position: 60px 0px; }
+}
+
+@keyframes animate-stripes {=20
+  0% { background-position: 0px 0px; }
+  100% { background-position: 60px 0px; }
+}
+
+.markdown-body .gloss .progress-bar { box-shadow: rgba(255, 255, 255, 0.7) =
+0px 4px 12px inset, rgba(0, 0, 0, 0.05) 0px -12px 0px inset; }
+
+.markdown-body .critic_mark { background: rgb(255, 255, 0); }
+
+.markdown-body .critic_delete { color: var(--color-caution-emphasis); text-=
+decoration: line-through; }
+
+.markdown-body .critic_insert { color: var(--color-tip-emphasis); text-deco=
+ration: underline; }
+
+.markdown-body .critic_comment { color: var(--color-fg-muted); font-style: =
+italic; }
+
+.markdown-body .headeranchor { font: 16px / 1 fontawesome-mini; display: in=
+line-block; text-decoration: none; -webkit-font-smoothing: antialiased; use=
+r-select: none; }
+
+.markdown-body .task-list-item { list-style-type: none; }
+
+.markdown-body .task-list-item + .task-list-item { margin-top: 3px; }
+
+.markdown-body .task-list-item input { margin: 0px 4px 0.25em -20px; vertic=
+al-align: middle; }
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, .markd=
+own-body, div.uml-flowchart { overflow: auto; }
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, div.um=
+l-flowchart { background-color: rgb(255, 255, 255); }
+
+@media only screen and (min-width: 480px) {
+  .markdown-body { font-size: 14px; }
+}
+
+@media only screen and (min-width: 768px) {
+  .markdown-body { font-size: 16px; }
+}
+
+@media print {
+  .markdown-body * { background: transparent !important; color: black !impo=
+rtant; filter: none !important; }
+  .markdown-body { font-size: 12pt; max-width: 100%; outline: none; border:=
+ 0px; }
+  .markdown-body .headeranchor-link { display: none; }
+  .markdown-body a[href]::after { content: " (" attr(href) ")"; }
+  .markdown-body abbr[title]::after { content: " (" attr(title) ")"; }
+  .markdown-body .ir a::after, .markdown-body a[href^=3D"javascript:"]::aft=
+er, .markdown-body a[href^=3D"#"]::after { content: ""; }
+  .markdown-body pre { white-space: pre-wrap; overflow-wrap: break-word; }
+  .markdown-body pre, .markdown-body blockquote { padding-right: 1em; break=
+-inside: avoid; }
+  .markdown-body .progress, .markdown-body .progress-bar { box-shadow: none=
+; }
+  .markdown-body .progress { border: 1px solid rgb(221, 221, 221); }
+  .markdown-body .progress-bar { height: 22px; border-right: 1px solid rgb(=
+221, 221, 221); }
+  .markdown-body tr, .markdown-body img { break-inside: avoid; }
+  .markdown-body img { max-width: 100% !important; }
+  .markdown-body p, .markdown-body h2, .markdown-body h3 { orphans: 3; wido=
+ws: 3; }
+  .markdown-body h2, .markdown-body h3 { break-after: avoid; }
+}
+------MultipartBoundary--Whq3HRU452vuSPEJHbdkIl5O6StIxtN0QkbWCL0zPw------

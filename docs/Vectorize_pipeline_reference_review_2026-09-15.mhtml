@@ -1,0 +1,1127 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html
+Subject: Vectorize_pipeline_reference_review_2026-09-15
+Date: Wed, 16 Sep 2026 18:26:45 GMT
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--VNReT88Gv4MnZDmRPhkMUyTYbB0VdOCABoVLdp5uk5----"
+
+
+------MultipartBoundary--VNReT88Gv4MnZDmRPhkMUyTYbB0VdOCABoVLdp5uk5----
+Content-Type: text/html
+Content-ID: <frame-53123F44891E4EA80430D6E42926821B@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html
+
+<!DOCTYPE html><html><head><meta http-equiv=3D"Content-Type" content=3D"tex=
+t/html; charset=3DUTF-8"><link rel=3D"stylesheet" type=3D"text/css" href=3D=
+"cid:css-fa76dd74-3567-4b05-a386-bbd6a6317a03@mhtml.blink" /><link rel=3D"s=
+tylesheet" type=3D"text/css" href=3D"cid:css-a30545e8-ab31-4e86-ad15-87854e=
+85077c@mhtml.blink" /><meta name=3D"viewport" content=3D"width=3Ddevice-wid=
+th, initial-scale=3D1"><title>Vectorize_pipeline_reference_review_2026-09-1=
+5</title></head><body data-theme=3D"auto"><article class=3D"markdown-body">=
+<h1 id=3D"review-of-docsvectorize_pipeline_referencemd-2026-09-15">Review o=
+f docs/Vectorize_pipeline_reference.md =E2=80=94 2026-09-15<a class=3D"head=
+erlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000=
+gv/T/61.html#review-of-docsvectorize_pipeline_referencemd-2026-09-15" title=
+=3D"Permanent link">=EE=A0=86</a></h1>
+<p>Independent review of the first draft by a fresh sub-agent that read the=
+ document and every source file it cites. The report is reproduced verbatim=
+ below. Disposition of each item is recorded first.</p>
+<h2 id=3D"disposition">Disposition<a class=3D"headerlink" href=3D"file:///p=
+rivate/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#disposition"=
+ title=3D"Permanent link">=EE=A0=86</a></h2>
+<p><strong>Applied in full:</strong> Errors 1=E2=80=9313; Inferences 1=E2=
+=80=937; Omissions 1=E2=80=937, 9, 10, 11; Structure 2 (overview diagram re=
+drawn, column widths machine-checked) and 4 (U+2011 non-breaking hyphens re=
+placed globally; all 48 contents links verified against the GitHub slug rul=
+e); Clarity 1=E2=80=936; Cuts 1, 2, 5.</p>
+<p><strong>Applied in part:</strong> Omission 8 (sandbox flag added to =C2=
+=A71.4 as one sentence).</p>
+<p><strong>Not applied, deliberately:</strong>
+- Structure 5, index entries as links: the index keeps plain section refere=
+nces, in the manner of a printed index; the new entries the reviewer listed=
+ were added.
+- Cut 3, =C2=A7B.5 closing paragraph: already a single sentence.
+- Cut 4, removing the third column of the =C2=A7B.3 table: kept, now labell=
+ed as interpretation with a pointer to =C2=A7B.6 as the canonical list.
+- Omission 12, API-side image size caps: not added; no source in the reposi=
+tory and not exercised.</p>
+<h2 id=3D"report-verbatim">Report (verbatim)<a class=3D"headerlink" href=3D=
+"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#re=
+port-verbatim" title=3D"Permanent link">=EE=A0=86</a></h2>
+<h1 id=3D"review-docsvectorize_pipeline_referencemd-092">Review: docs/Vecto=
+rize_pipeline_reference.md (0.9.2)<a class=3D"headerlink" href=3D"file:///p=
+rivate/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#review-docsv=
+ectorize_pipeline_referencemd-092" title=3D"Permanent link">=EE=A0=86</a></=
+h1>
+<p>Overall: the document is accurate to a high degree. The system prompt bl=
+ock is byte-identical to <code>SYSTEM_PROMPT</code> (verified programmatica=
+lly), the schema, validation strings and order, error messages, constants, =
+formulas, insertMany semantics, render ordering and the four commit-message=
+ font-size values all check out. The items below are what does not.</p>
+<h2 id=3D"errors-must-fix">Errors (must fix)<a class=3D"headerlink" href=3D=
+"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#er=
+rors-must-fix" title=3D"Permanent link">=EE=A0=86</a></h2>
+<ol>
+<li>
+<p><strong>=C2=A7B.2, <code>messages</code> row =E2=80=94 =E2=80=9Cthree mo=
+re messages on attempt 1=E2=80=9D.</strong> Attempt 1 sends three messages =
+in total (original user turn + assistant + user), i.e. two more. <code>elec=
+tron/vectorize.ts:182-183</code>. Replace: =E2=80=9Cone user turn on attemp=
+t 0; on attempt 1 the same turn plus the rejected assistant text and a corr=
+ection request (three messages in all)=E2=80=9D. =C2=A7B.8=E2=80=99s diagra=
+m already shows this correctly.</p>
+</li>
+<li>
+<p><strong>=C2=A7B.7 =E2=80=94 =E2=80=9CRules 6=E2=80=938 duplicate what th=
+e schema already enforces.=E2=80=9D</strong> Only rule 6 (kind enum) and th=
+e type half of rule 7 (<code>number</code>) are schema-enforced. Positivity=
+ (rule 8) and finiteness are not in <code>OUTPUT_SCHEMA</code> (<code>elect=
+ron/vectorize.ts:61-64</code> type <code>number</code> only). Replace: =E2=
+=80=9CRule 6 and the type check in rule 7 duplicate the schema; rules 8 and=
+ 9 are enforced nowhere else.=E2=80=9D</p>
+</li>
+<li>
+<p><strong>=C2=A7A.5 (and =C2=A76 =E2=80=9CError toast=E2=80=9D) =E2=80=94 =
+wrapped message is <code>=E2=80=A6: VectorizeError: &lt;msg&gt;</code>.</st=
+rong> <code>VectorizeError</code> does not set <code>name</code> (<code>ele=
+ctron/vectorize.ts:27-31</code>), so Electron=E2=80=99s <code>error.toStrin=
+g()</code> yields <code>Error: &lt;msg&gt;</code>; the code comment at <cod=
+e>src/util/vectorize.ts:181</code> says exactly <code>Error: &lt;msg&gt;</c=
+ode>. The regex accepts either. Replace: =E2=80=9C<code>Error invoking remo=
+te method 'vectorize:run': Error: &lt;msg&gt;</code> (the subclass name is =
+not carried because <code>VectorizeError</code> never sets <code>name</code=
+>)=E2=80=9D.</p>
+</li>
+<li>
+<p><strong>=C2=A7D.2, third consequence =E2=80=94 draft nodes sit =E2=80=9C=
+above anything else that later lands on the Draft layer=E2=80=9D.</strong> =
+False. <code>addNode</code> assigns <code>maxZIndex(nodes) + 1</code> (<cod=
+e>src/store/canvasStore.ts:494</code>), so anything added afterwards, on an=
+y layer, stacks above the draft. Replace: =E2=80=9C=E2=80=A6which orders th=
+em among themselves in model order; later additions get higher <code>zIndex=
+</code> values and paint above them.=E2=80=9D</p>
+</li>
+<li>
+<p><strong>=C2=A7B.1 =E2=80=94 =E2=80=9CThat exact string is exported as <c=
+ode>KEYCHAIN_ADD_COMMAND</code> =E2=80=A6 and shown (with a Copy button) in=
+ the Settings dialog.=E2=80=9D</strong> The dialog uses its own duplicate l=
+iteral (<code>src/panels/SettingsModal.tsx:4</code>); the renderer cannot i=
+mport the electron module. Replace: =E2=80=9C=E2=80=A6embedded in the no-ke=
+y error; the Settings dialog shows a second, hand-duplicated copy of the sa=
+me string (<code>SettingsModal.tsx:4</code>), which must be kept in sync.=
+=E2=80=9D</p>
+</li>
+<li>
+<p><strong>=C2=A7A.1 table, row 2 =E2=80=94 =E2=80=9Cevery locked node of t=
+ype <code>image</code> gets a row=E2=80=9D.</strong> Every node with <code>=
+locked: true</code> gets a row regardless of type; only image rows get the =
+sparkle (<code>src/panels/PropertiesPanel.tsx:1111-1113</code>, <code>1184<=
+/code>). Replace accordingly.</p>
+</li>
+<li>
+<p><strong>=C2=A7A.2 and =C2=A7A.3 diagram =E2=80=94 =E2=80=9Cstored image =
+(=E2=89=A4 4096 px long side)=E2=80=9D / =E2=80=9Cthe importer downsamples =
+rasters whose long side exceeds 4096 px=E2=80=9D.</strong> True only for fi=
+le import and drop (<code>decodeAndStore</code>, <code>src/canvas/BoardEdit=
+or.tsx:201</code>). Pasted images are stored at full size via <code>images.=
+store</code> with no downsample (<code>BoardEditor.tsx:163-172</code>). Rep=
+lace: =E2=80=9CFiles imported or dropped are downsampled to 4096 px before =
+storage; pasted images are stored as pasted.=E2=80=9D</p>
+</li>
+<li>
+<p><strong>=C2=A7D.1 =E2=80=94 =E2=80=9CIf the reference=E2=80=99s layer ca=
+nnot be found, <code>abovePosition</code> is -1 and the new layer lands at =
+the bottom.=E2=80=9D</strong> Incomplete: <code>findIndex</code> returns -1=
+, so <code>above =3D ordered[0]</code> (the bottom layer); if that layer is=
+ named =E2=80=9CDraft=E2=80=9D it is reused instead (<code>src/util/vectori=
+ze.ts:190-191</code>). Add the clause.</p>
+</li>
+<li>
+<p><strong>=C2=A7D.2, second consequence =E2=80=94 =E2=80=9Cthen **Ungroup<=
+/strong> to edit pieces=E2=80=9D.** There is no Ungroup control in the pane=
+l; it is <code>=E2=8C=98=E2=87=A7G</code> (<code>src/canvas/BoardEditor.tsx=
+:532</code>, <code>src/panels/ShortcutHelp.tsx:68</code>). Replace bold wit=
+h =E2=80=9C=E2=8C=98=E2=87=A7G (Ungroup)=E2=80=9D.</p>
+</li>
+<li>
+<p><strong>Appendix E, text-colour row =E2=80=94 luminance of <code>#1f6f3f=
+</code> =E2=80=9C=E2=89=88 0.136=E2=80=9D.</strong> Recomputed: 0.1202. Con=
+clusion (white) unchanged.</p>
+</li>
+<li>
+<p><strong>Table of contents =E2=80=94 six anchors will not resolve on GitH=
+ub.</strong> Headings 1.2, D.2 and Appendices A=E2=80=93D contain U+2011 NO=
+N-BREAKING HYPHEN (doc lines 78, 685, 898, 970, 995, 1045). github-slugger =
+keeps only ASCII hyphen-minus and strips U+2011, producing <code>#12-level0=
+-diagram</code>, <code>#d2-insertmany-ids-zorder-group-selection-undo</code=
+>, <code>#appendix-a--endtoend-pseudocode</code>, <code>#appendix-b--valida=
+teresult-pseudocode</code>, <code>#appendix-c--colour-and-fontsize-helpers-=
+pseudocode</code>, <code>#appendix-d--insertmany-pseudocode</code>, while t=
+he TOC uses ASCII hyphens. Em dashes are fine (dropped, leaving <code>--</c=
+ode>, which the TOC already uses). Fix: replace U+2011 with <code>-</code> =
+in headings; 92 lines in the file contain U+2011, so a global replace is si=
+mplest and also fixes search/grep on terms like <code>z=E2=80=91order</code=
+>.</p>
+</li>
+<li>
+<p><strong>=C2=A7B.8 =E2=80=94 =E2=80=9CThe <code>&lt;problem&gt;</code> is=
+ exactly one of the strings in =C2=A7B.7.=E2=80=9D</strong> It can also be =
+<code>Not valid JSON: &lt;message&gt;</code> (<code>electron/vectorize.ts:1=
+77</code>), which is in B.7=E2=80=99s numbered steps but not its rule table=
+. Say =E2=80=9Cone of the rule strings or the <code>Not valid JSON:</code> =
+form=E2=80=9D.</p>
+</li>
+<li>
+<p><strong>=C2=A7C.5 =E2=80=9Cverified values=E2=80=9D table, rows 1 and 3 =
+=E2=80=94 =E2=80=9C(width-bound)=E2=80=9D.</strong> The commit message give=
+s no text. Row 1 (397=C3=97119 rect, 36 chars) yields 27 only if the longes=
+t line is =E2=89=A5 24 chars (byArea 37.8, byWidth 27.07); with two 18-char=
+ lines it is 36. Row 3 (298=C3=97159 ellipse) yields 20 for any text whose =
+longest line =E2=89=A5 24 and length &lt; ~84 chars; longer text is area-bo=
+und at =E2=89=A4 20. Either state the assumption or drop the parenthetical.=
+</p>
+</li>
+</ol>
+<h2 id=3D"inferences-stated-as-fact">Inferences stated as fact<a class=3D"h=
+eaderlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0=
+000gv/T/61.html#inferences-stated-as-fact" title=3D"Permanent link">=EE=A0=
+=86</a></h2>
+<ol>
+<li><strong>=C2=A7B.2 =E2=80=9CAbsent field=E2=80=9D table, <code>thinking<=
+/code> / <code>effort</code> / <code>temperature</code> rows.</strong> Adap=
+tive-thinking defaults for Opus 5 / Sonnet 5, <code>effort</code> default <=
+code>high</code>, and =E2=80=9Cnot settable on the Claude 5 family=E2=80=9D=
+ are external API-documentation claims not verifiable from the repo (the SD=
+K types only show <code>effort?: 'low'|'medium'|'high'|'xhigh'|'max'|null</=
+code>, <code>messages.d.ts:2039</code>). Label =E2=80=9Cper Anthropic docum=
+entation on 2026-09-15; not exercised here.=E2=80=9D</li>
+<li><strong>=C2=A7B.4 =E2=80=9Cthe ordering Anthropic recommends=E2=80=9D.<=
+/strong> External; label.</li>
+<li><strong>=C2=A7C.3 =E2=80=94 =E2=80=9CThe threshold 0.35 is deliberately=
+ above the neutral 0.179 crossover so mid-tone fills =E2=80=A6 get white te=
+xt, matching how such diagrams are usually drawn.=E2=80=9D</strong> Neither=
+ the code comment (<code>src/util/vectorize.ts:46</code>) nor commit 77136d=
+6 states this rationale. Label as the author=E2=80=99s reading.</li>
+<li><strong>=C2=A7C.5 last paragraph =E2=80=94 =E2=80=9Cslightly optimistic=
+ =E2=80=A6 which is intentional=E2=80=9D.</strong> Rationale not in code or=
+ commits. Label.</li>
+<li><strong>=C2=A7C.1 =E2=80=94 =E2=80=9CThe floor of 4 units keeps a degen=
+erate box selectable.=E2=80=9D</strong> No comment in code; label as readin=
+g.</li>
+<li><strong>=C2=A7B.3 table, =E2=80=9CWhat it deliberately gives up=E2=80=
+=9D column</strong> =E2=80=94 e.g. =E2=80=9Cmay over-report decorative elem=
+ents=E2=80=9D: model-behaviour predictions, not code facts. One sentence sa=
+ying the column is interpretation would suffice.</li>
+<li><strong>=C2=A76 and =C2=A79 observations</strong> (=E2=80=9C3106 =C3=97=
+ 2667 bubble-chart =E2=80=A6 13833 tokens=E2=80=9D, =E2=80=9Ctimeline bars =
+came back as tall thin rectangles=E2=80=9D) are session observations; say s=
+o (=E2=80=9Cobserved once on =E2=80=A6=E2=80=9D).</li>
+<li><strong>=C2=A7A.3 SVG remark</strong> is already labelled unverified; f=
+ine.</li>
+</ol>
+<h2 id=3D"omissions">Omissions<a class=3D"headerlink" href=3D"file:///priva=
+te/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#omissions" title=
+=3D"Permanent link">=EE=A0=86</a></h2>
+<ol>
+<li><strong>Stale state across the network round-trip.</strong> <code>vecto=
+rizeNode</code> captures <code>store =3D useCanvas.getState()</code> before=
+ any <code>await</code> (<code>src/util/vectorize.ts:163</code>) and reads =
+<code>store.board.background</code>, <code>store.layers[ref.layerId]</code>=
+ and <code>layerOrder(store.layers)</code> after the reply (lines 185-188),=
+ while <code>insertMany</code> operates on fresh state (line 192). The <cod=
+e>ref</code> node object is likewise the pre-call one. If the user moves/re=
+sizes the reference or edits layers during the call (tens of seconds), the =
+draft is placed against the old rectangle and the Draft-layer decision uses=
+ stale layer positions. Belongs in =C2=A7D.1 or =C2=A79.</li>
+<li><strong>Concurrency.</strong> Nothing serialises calls; the disabled fl=
+ag is per <code>VectorizeButton</code> instance (<code>PropertiesPanel.tsx:=
+558</code>). Two rows=E2=80=99 sparkles can run at once, and if the Image s=
+ection unmounts (selection change) mid-call the progress state is lost whil=
+e the call continues and the toast still fires. Belongs in =C2=A7A.1 next t=
+o =E2=80=9Cthere is no cancel=E2=80=9D.</li>
+<li><strong>Non-<code>APIError</code> exceptions</strong> fall through <cod=
+e>throw err</code> (<code>electron/vectorize.ts:164</code>) and reach the t=
+oast with their raw message; likewise a malformed fake file throws a raw <c=
+ode>SyntaxError</code> from <code>JSON.parse</code> (line 130), not a <code=
+>VectorizeError</code>. =C2=A7B.9 table should have a final row.</li>
+<li><strong>Undo side-effects.</strong> Undo clears selection and, because =
+the Draft layer (current) disappears, <code>currentLayerId</code> falls to =
+the bottom layer (<code>layerOrder(last.layers)[0]</code>, <code>canvasStor=
+e.ts</code> undo), typically =E2=80=9CReference=E2=80=9D, not the layer the=
+ user was on before. Redo does not restore selection. =C2=A7D.2 bullet 1 sh=
+ould say so.</li>
+<li><strong><code>HISTORY_LIMIT =3D 200</code></strong> (<code>canvasStore.=
+ts:320</code>) bounds the history; missing from =C2=A78.</li>
+<li><strong>Entry-point gap.</strong> An image whose own <code>locked</code=
+> flag is false but which sits on a locked layer is neither clickable (<cod=
+e>isNodeInteractive</code>, <code>canvasStore.ts:~215</code>) nor listed un=
+der Reference images (filter is <code>n.locked</code>, <code>PropertiesPane=
+l.tsx:1112</code>), so it has no Vectorize entry point. Worth a line in =C2=
+=A7A.1.</li>
+<li><strong>=C2=A71.6 table</strong> could add: design note=E2=80=99s =E2=
+=80=9Cor File menu=E2=80=9D entry point (not shipped); =E2=80=9Cexactly one=
+ <strong>locked</strong> image selected=E2=80=9D =E2=86=92 any single image=
+; =E2=80=9CProgress toast=E2=80=9D =E2=86=92 progress shown in the button l=
+abel / under the row, not a toast.</li>
+<li><strong><code>sandbox: false</code></strong> in <code>electron/main.ts:=
+97</code>; =C2=A71.4=E2=80=99s trust-boundary line lists contextIsolation a=
+nd nodeIntegration only.</li>
+<li><strong>=C2=A7D.3</strong> omits that <code>flushSave</code> writes the=
+ viewport (<code>boards.setViewport</code>) before the current layer, and t=
+hat the unmount path is fire-and-forget (no <code>await</code>, <code>Board=
+Editor.tsx:148-158</code>).</li>
+<li><strong>=C2=A7A.4</strong> =E2=80=94 the Settings select offers only th=
+e four ids, so =E2=80=9CModel =E2=80=A6 was not found=E2=80=9D arises only =
+from a hand-edited <code>meta</code> row or a retired id. One clause.</li>
+<li><strong>=C2=A7D.2 step 4</strong> =E2=80=94 =E2=80=9Can edge whose ends=
+ are unknown is dropped silently=E2=80=9D cannot occur from <code>vectorize=
+Node</code> because <code>validateResult</code> has already checked referen=
+ces; say it guards other callers.</li>
+<li><strong>API-side image limits</strong> (per-image size/pixel caps) woul=
+d surface as <code>API error 400: =E2=80=A6</code>; if mentioned, label ext=
+ernal.</li>
+</ol>
+<h2 id=3D"structure-and-diagrams">Structure and diagrams<a class=3D"headerl=
+ink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/=
+T/61.html#structure-and-diagrams" title=3D"Permanent link">=EE=A0=86</a></h=
+2>
+<ol>
+<li>Partitioning matches the brief: overview =E2=86=92 five steps =E2=86=92=
+ sub-steps, Level-0 diagram plus per-step diagrams (A, B tree, C inputs/out=
+puts, C.1 mapping, D.2 layer stack, D.4 anchor rule), TOC, index, appendice=
+s. Step D has no flow diagram of <code>insertMany</code> itself (the number=
+ed list and Appendix D cover it); acceptable.</li>
+<li><strong>Level-0 diagram (lines 80-104) is misaligned.</strong> Line 89 =
+(<code>=E2=94=82 dirty flush  =E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=98  =E2=94=82</code>) overruns the renderer box=E2=80=99s righ=
+t border; the =E2=80=9CSQLite (images, nodes, edges, layers, meta)=E2=80=9D=
+ label is wedged inside the main-process box and breaks its bottom border a=
+t line 101. Redraw with SQLite as its own box to the right of [B], fed by t=
+he <code>IPC upsertMany</code> arrow.</li>
+<li>=C2=A73 tree, =C2=A7B.8 message list, C.1/C.6/D.2/D.4 sketches are legi=
+ble and correct. The =C2=A74 =E2=80=9Cdiagram=E2=80=9D is a monospace table=
+; fine.</li>
+<li>TOC anchors: see Error 11. All ASCII-only anchors resolve (checked <cod=
+e>models</code> for the apostrophe, <code>--</code> for em dashes, colon re=
+moval in D.2).</li>
+<li>Index: useful, correctly targeted. Entries are plain text; making each =
+a link to the section anchor would make it usable on GitHub. Add: stale sta=
+te, concurrency, HISTORY_LIMIT, paste path, SVG, sandbox, Ungroup (=E2=8C=
+=98=E2=87=A7G), <code>Not valid JSON</code>.</li>
+<li>Appendices A=E2=80=93D: pseudo-code matches the code line for line, inc=
+luding the trimmed-text detail in <code>ESTIMATE_FONT_SIZE</code> that the =
+prose in =C2=A7C.5 elides (<code>lines =3D text.split</code> should read th=
+e trimmed <code>t</code>).</li>
+</ol>
+<h2 id=3D"clarity">Clarity<a class=3D"headerlink" href=3D"file:///private/v=
+ar/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#clarity" title=3D"Pe=
+rmanent link">=EE=A0=86</a></h2>
+<ol>
+<li>=C2=A71.5 row =E2=80=9CWhich colour if the model said <code>""</code>?=
+=E2=80=9D says =E2=80=9Cblack/white by luminance for text=E2=80=9D =E2=80=
+=94 incomplete (only when fill is a known hex; else board default). =C2=A7C=
+.3 is right; make the summary match.</li>
+<li>=C2=A7B.5 =E2=80=9Cat both levels=E2=80=9D =E2=80=94 there are three ob=
+ject levels (root, shape item, connector item).</li>
+<li>=C2=A7B.2 <code>thinking</code> row is the longest cell in the document=
+ for a parameter the app does not send; cut to one sentence plus the extern=
+al-docs label.</li>
+<li>=C2=A7A.3 point 1=E2=80=99s parenthetical =E2=80=9C(This was found by r=
+unning the real app, not by static checks.)=E2=80=9D is provenance, not ref=
+erence content.</li>
+<li>=C2=A7C.5 prose says <code>text.split('\n')</code>; the code splits the=
+ trimmed string and uses its length for <code>byArea</code> (<code>src/util=
+/vectorize.ts:70-73</code>).</li>
+<li>=C2=A7B.10 =E2=80=9CBecause the fake bypasses the schema constraint, th=
+is path is why <code>validateResult</code> re-checks kinds and numeric type=
+s=E2=80=9D =E2=80=94 fine, but pair it with Error 2=E2=80=99s correction so=
+ the two passages agree.</li>
+</ol>
+<h2 id=3D"suggested-cuts">Suggested cuts<a class=3D"headerlink" href=3D"fil=
+e:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/61.html#sugges=
+ted-cuts" title=3D"Permanent link">=EE=A0=86</a></h2>
+<ol>
+<li>=C2=A7A.3 =E2=80=9CWhy 1568=E2=80=9D second half (the =C3=97/750 token =
+arithmetic) =E2=80=94 background; keep one sentence or move to =C2=A79.</li=
+>
+<li>=C2=A7A.3 =E2=80=9C(This was found by running the real app=E2=80=A6)=E2=
+=80=9D.</li>
+<li>=C2=A7B.5 closing =E2=80=9Cdivision of labour=E2=80=9D paragraph repeat=
+s =C2=A70 and =C2=A71.5; one sentence is enough.</li>
+<li>=C2=A7B.3 table=E2=80=99s =E2=80=9CWhat it deliberately gives up=E2=80=
+=9D column overlaps =C2=A7B.6=E2=80=99s =E2=80=9CNot asked for=E2=80=9D lis=
+t and =C2=A79=E2=80=99s coverage bullets; keep one of the three as the cano=
+nical list and cross-reference.</li>
+<li>=C2=A79 =E2=80=9CValidation gaps by design=E2=80=9D bullet 4 (empty sha=
+pes + non-empty connectors impossible) is already stated in =C2=A7B.7=E2=80=
+=99s =E2=80=9CNot validated=E2=80=9D line.</li>
+</ol>
+<p>Files consulted: <code>/Users/harryAtMac/p33_haldraw_info_and_repo/haldr=
+aw/docs/Vectorize_pipeline_reference.md</code>, <code>electron/vectorize.ts=
+</code>, <code>electron/ipc.ts</code>, <code>electron/preload.ts</code>, <c=
+ode>electron/main.ts</code>, <code>electron/repo/images.ts</code>, <code>el=
+ectron/repo/meta.ts</code>, <code>shared/types.ts</code>, <code>src/util/ve=
+ctorize.ts</code>, <code>src/util/geometry.ts</code>, <code>src/util/import=
+Image.ts</code>, <code>src/store/canvasStore.ts</code>, <code>src/panels/Pr=
+opertiesPanel.tsx</code>, <code>src/panels/SettingsModal.tsx</code>, <code>=
+src/canvas/BoardEditor.tsx</code>, <code>src/canvas/Canvas.tsx</code>, <cod=
+e>src/canvas/Shape.tsx</code>, <code>src/canvas/Edge.tsx</code>, <code>src/=
+canvas/routing.ts</code>, <code>src/index.html</code>, <code>docs/Vectorize=
+_raster_design.md</code>, <code>CHANGELOG.md</code>, <code>node_modules/@an=
+thropic-ai/sdk/client.js</code> (retry policy), commits 8ee54aa d0233eb e02=
+91bd 77136d6.</p></article></body></html>
+------MultipartBoundary--VNReT88Gv4MnZDmRPhkMUyTYbB0VdOCABoVLdp5uk5----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-a30545e8-ab31-4e86-ad15-87854e85077c@mhtml.blink
+
+@charset "utf-8";
+
+@media (prefers-color-scheme: dark) {
+  body, [data-theme=3D"dark"] {
+  & .highlight { background-color: rgb(22, 27, 34); color: rgb(248, 248, 24=
+2); }
+  & .highlight .hll { background-color: rgb(110, 118, 129); }
+  & .highlight .c { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .err { color: rgb(248, 81, 73); }
+  & .highlight .esc { color: rgb(230, 237, 243); }
+  & .highlight .g { color: rgb(230, 237, 243); }
+  & .highlight .k { color: rgb(255, 123, 114); }
+  & .highlight .l { color: rgb(165, 214, 255); }
+  & .highlight .n { color: rgb(230, 237, 243); }
+  & .highlight .o { color: rgb(255, 123, 114); font-weight: bold; }
+  & .highlight .x { color: rgb(230, 237, 243); }
+  & .highlight .p { color: rgb(230, 237, 243); }
+  & .highlight .ch { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cm { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cp { color: rgb(139, 148, 158); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .cpf { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .c1 { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cs { color: rgb(139, 148, 158); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .gd { color: rgb(255, 161, 152); background-color: rgb(73, 2=
+, 2); }
+  & .highlight .ge { color: rgb(230, 237, 243); font-style: italic; }
+  & .highlight .ges { color: rgb(230, 237, 243); font-weight: bold; font-st=
+yle: italic; }
+  & .highlight .gr { color: rgb(255, 161, 152); }
+  & .highlight .gh { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .gi { color: rgb(86, 211, 100); background-color: rgb(15, 83=
+, 35); }
+  & .highlight .go { color: rgb(139, 148, 158); }
+  & .highlight .gp { color: rgb(139, 148, 158); }
+  & .highlight .gs { color: rgb(230, 237, 243); font-weight: bold; }
+  & .highlight .gu { color: rgb(121, 192, 255); }
+  & .highlight .gt { color: rgb(255, 123, 114); }
+  & .highlight .g-Underline { color: rgb(230, 237, 243); text-decoration: u=
+nderline; }
+  & .highlight .kc { color: rgb(121, 192, 255); }
+  & .highlight .kd { color: rgb(255, 123, 114); }
+  & .highlight .kn { color: rgb(255, 123, 114); }
+  & .highlight .kp { color: rgb(121, 192, 255); }
+  & .highlight .kr { color: rgb(255, 123, 114); }
+  & .highlight .kt { color: rgb(255, 123, 114); }
+  & .highlight .ld { color: rgb(121, 192, 255); }
+  & .highlight .m { color: rgb(165, 214, 255); }
+  & .highlight .s { color: rgb(165, 214, 255); }
+  & .highlight .na { color: rgb(230, 237, 243); }
+  & .highlight .nb { color: rgb(230, 237, 243); }
+  & .highlight .nc { color: rgb(240, 136, 62); font-weight: bold; }
+  & .highlight .no { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .nd { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .ni { color: rgb(255, 166, 87); }
+  & .highlight .ne { color: rgb(240, 136, 62); font-weight: bold; }
+  & .highlight .nf { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .nl { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .nn { color: rgb(255, 123, 114); }
+  & .highlight .nx { color: rgb(230, 237, 243); }
+  & .highlight .py { color: rgb(121, 192, 255); }
+  & .highlight .nt { color: rgb(126, 231, 135); }
+  & .highlight .nv { color: rgb(121, 192, 255); }
+  & .highlight .ow { color: rgb(255, 123, 114); font-weight: bold; }
+  & .highlight .pm { color: rgb(230, 237, 243); }
+  & .highlight .w { color: rgb(110, 118, 129); }
+  & .highlight .mb { color: rgb(165, 214, 255); }
+  & .highlight .mf { color: rgb(165, 214, 255); }
+  & .highlight .mh { color: rgb(165, 214, 255); }
+  & .highlight .mi { color: rgb(165, 214, 255); }
+  & .highlight .mo { color: rgb(165, 214, 255); }
+  & .highlight .sa { color: rgb(121, 192, 255); }
+  & .highlight .sb { color: rgb(165, 214, 255); }
+  & .highlight .sc { color: rgb(165, 214, 255); }
+  & .highlight .dl { color: rgb(121, 192, 255); }
+  & .highlight .sd { color: rgb(165, 214, 255); }
+  & .highlight .s2 { color: rgb(165, 214, 255); }
+  & .highlight .se { color: rgb(121, 192, 255); }
+  & .highlight .sh { color: rgb(121, 192, 255); }
+  & .highlight .si { color: rgb(165, 214, 255); }
+  & .highlight .sx { color: rgb(165, 214, 255); }
+  & .highlight .sr { color: rgb(121, 192, 255); }
+  & .highlight .s1 { color: rgb(165, 214, 255); }
+  & .highlight .ss { color: rgb(165, 214, 255); }
+  & .highlight .bp { color: rgb(230, 237, 243); }
+  & .highlight .fm { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .vc { color: rgb(121, 192, 255); }
+  & .highlight .vg { color: rgb(121, 192, 255); }
+  & .highlight .vi { color: rgb(121, 192, 255); }
+  & .highlight .vm { color: rgb(121, 192, 255); }
+  & .highlight .il { color: rgb(165, 214, 255); }
+}
+}
+
+@media (prefers-color-scheme: light) {
+  body, [data-theme=3D"light"] {
+  & .highlight { background-color: rgb(247, 247, 247); color: rgb(51, 51, 5=
+1); }
+  & .highlight .hll { background-color: rgb(255, 255, 204); }
+  & .highlight .c { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .err { color: rgb(166, 23, 23); background-color: rgb(227, 2=
+10, 210); }
+  & .highlight .k { font-weight: bold; }
+  & .highlight .o { font-weight: bold; }
+  & .highlight .cm { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .cp { color: rgb(153, 153, 153); font-weight: bold; }
+  & .highlight .c1 { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .cs { color: rgb(153, 153, 153); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .gd { color: rgb(0, 0, 0); background-color: rgb(255, 221, 2=
+21); }
+  & .highlight .ge { font-style: italic; }
+  & .highlight .gr { color: rgb(170, 0, 0); }
+  & .highlight .gh { color: rgb(153, 153, 153); }
+  & .highlight .gi { color: rgb(0, 0, 0); background-color: rgb(221, 255, 2=
+21); }
+  & .highlight .go { color: rgb(136, 136, 136); }
+  & .highlight .gp { color: rgb(85, 85, 85); }
+  & .highlight .gs { font-weight: bold; }
+  & .highlight .gu { color: rgb(128, 0, 128); font-weight: bold; }
+  & .highlight .gt { color: rgb(170, 0, 0); }
+  & .highlight .kc { font-weight: bold; }
+  & .highlight .kd { font-weight: bold; }
+  & .highlight .kn { font-weight: bold; }
+  & .highlight .kp { font-weight: bold; }
+  & .highlight .kr { font-weight: bold; }
+  & .highlight .kt { color: rgb(68, 85, 136); font-weight: bold; }
+  & .highlight .m { color: rgb(0, 153, 153); }
+  & .highlight .s { color: rgb(221, 17, 68); }
+  & .highlight .n { color: rgb(51, 51, 51); }
+  & .highlight .na { color: teal; }
+  & .highlight .nb { color: rgb(0, 134, 179); }
+  & .highlight .nc { color: rgb(68, 85, 136); font-weight: bold; }
+  & .highlight .no { color: teal; }
+  & .highlight .ni { color: purple; }
+  & .highlight .ne { color: rgb(153, 0, 0); font-weight: bold; }
+  & .highlight .nf { color: rgb(153, 0, 0); font-weight: bold; }
+  & .highlight .nn { color: rgb(85, 85, 85); }
+  & .highlight .nt { color: navy; }
+  & .highlight .nv { color: teal; }
+  & .highlight .ow { font-weight: bold; }
+  & .highlight .w { color: rgb(187, 187, 187); }
+  & .highlight .mf { color: rgb(0, 153, 153); }
+  & .highlight .mh { color: rgb(0, 153, 153); }
+  & .highlight .mi { color: rgb(0, 153, 153); }
+  & .highlight .mo { color: rgb(0, 153, 153); }
+  & .highlight .sb { color: rgb(221, 17, 68); }
+  & .highlight .sc { color: rgb(221, 17, 68); }
+  & .highlight .sd { color: rgb(221, 17, 68); }
+  & .highlight .s2 { color: rgb(221, 17, 68); }
+  & .highlight .se { color: rgb(221, 17, 68); }
+  & .highlight .sh { color: rgb(221, 17, 68); }
+  & .highlight .si { color: rgb(221, 17, 68); }
+  & .highlight .sx { color: rgb(221, 17, 68); }
+  & .highlight .sr { color: rgb(0, 153, 38); }
+  & .highlight .s1 { color: rgb(221, 17, 68); }
+  & .highlight .ss { color: rgb(153, 0, 115); }
+  & .highlight .bp { color: rgb(153, 153, 153); }
+  & .highlight .vc { color: teal; }
+  & .highlight .vg { color: teal; }
+  & .highlight .vi { color: teal; }
+  & .highlight .il { color: rgb(0, 153, 153); }
+  & .highlight .gc { color: rgb(153, 153, 153); background-color: rgb(234, =
+242, 245); }
+}
+}
+------MultipartBoundary--VNReT88Gv4MnZDmRPhkMUyTYbB0VdOCABoVLdp5uk5----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-fa76dd74-3567-4b05-a386-bbd6a6317a03@mhtml.blink
+
+@charset "utf-8";
+
+@font-face { font-family: fontawesome-mini; src: url("data:application/octe=
+t-stream;base64,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
+AAA=3D=3D"); }
+
+[data-theme=3D"dark"] { color-scheme: dark; }
+
+[data-theme=3D"light"] { color-scheme: light; }
+
+@media (prefers-color-scheme: dark) {
+  [data-theme=3D"auto"], [data-theme=3D"dark"] { --color-bg: #0d1117; --col=
+or-bg-subtle: #161b22; --color-fg: #e6edf3; --color-link-fg: #2f81f7; --col=
+or-border: #30363d; --color-border-muted: #21262d; --color-fg-muted: #848d9=
+7; --color-note-fg: #2f81f7; --color-note-emphasis: #1f6feb; --color-tip-fg=
+: #3fb950; --color-tip-emphasis: #238636; --color-warning-fg: #d29922; --co=
+lor-warning-emphasis: #9e6a03; --color-attention-subtle: rgba(187,128,9,0.1=
+5); --color-caution-fg: #f85149; --color-caution-emphasis: #da3633; --color=
+-important-fg: #a371f7; --color-important-emphasis: #8957e5; --color-neutra=
+l-muted: rgba(110,118,129,0.4); --color-progress-shadow: #010101; --color-p=
+rogress-shadow2: rgba(0, 0, 0, .5); --color-progress-bg: #363c43; }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme=3D"auto"], [data-theme=3D"light"] { --color-bg: #ffffff; --co=
+lor-bg-subtle: #f6f8fa; --color-fg: #333333; --color-link-fg: #0969da; --co=
+lor-border: #d0d7de; --color-border-muted: #d8dee4; --color-fg-muted: #656d=
+76; --color-note-fg: #0969da; --color-note-emphasis: #0969da; --color-tip-f=
+g: #1a7f37; --color-tip-emphasis: #1f883d; --color-warning-fg: #9a6700; --c=
+olor-warning-emphasis: #9a6700; --color-attention-subtle: #fff8c5; --color-=
+caution-fg: #d1242f; --color-caution-emphasis: #cf222e; --color-important-f=
+g: #8250df; --color-important-emphasis: #8250df; --color-neutral-muted: rgb=
+a(175,184,193,0.2); --color-progress-shadow: #fefefe; --color-progress-shad=
+ow2: rgba(0, 0, 0, .1); --color-progress-bg: #efefef; }
+}
+
+body { max-width: 980px; margin: 16px auto; background-color: var(--color-b=
+g); }
+
+body .markdown-body { padding: 45px; }
+
+.markdown-body { text-size-adjust: 100%; color: var(--color-fg); overflow: =
+hidden; font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesa=
+ns, sans-serif; font-size: 16px; line-height: 1.6; overflow-wrap: break-wor=
+d; }
+
+.markdown-body a { background: transparent; }
+
+.markdown-body a:active, .markdown-body a:hover { outline: 0px; }
+
+.markdown-body b, .markdown-body strong { font-weight: bold; }
+
+.markdown-body mark { background: rgb(255, 255, 0); color: rgb(0, 0, 0); fo=
+nt-style: italic; font-weight: bold; }
+
+.markdown-body sub, .markdown-body sup { font-size: 75%; line-height: 0; po=
+sition: relative; vertical-align: baseline; }
+
+.markdown-body sup { top: -0.5em; }
+
+.markdown-body sub { bottom: -0.25em; }
+
+.markdown-body h1 { font-size: 2em; margin: 0.67em 0px; }
+
+.markdown-body img { border: 0px; }
+
+.markdown-body hr { box-sizing: content-box; height: 0px; }
+
+.markdown-body pre { overflow: auto; }
+
+.markdown-body code, .markdown-body kbd, .markdown-body pre, .markdown-body=
+ samp { font-family: monospace, monospace; font-size: 1em; }
+
+.markdown-body input { color: inherit; font: inherit; margin: 0px; }
+
+.markdown-body html input[disabled] { cursor: default; }
+
+.markdown-body input { line-height: normal; }
+
+.markdown-body input[type=3D"checkbox"] { box-sizing: border-box; padding: =
+0px; }
+
+.markdown-body table { border-collapse: collapse; border-spacing: 0px; }
+
+.markdown-body td, .markdown-body th { padding: 0px; }
+
+.markdown-body .codehilitetable, .markdown-body .highlighttable { border: 0=
+px; border-spacing: 0px; }
+
+.markdown-body .codehilitetable tr, .markdown-body .highlighttable { border=
+: 0px; }
+
+.markdown-body .codehilitetable pre, .markdown-body .codehilitetable div.co=
+dehilite, .markdown-body .highlighttable pre, .markdown-body .highlighttabl=
+e div.highlight { margin: 0px; }
+
+.markdown-body .linenos, .markdown-body .code, .markdown-body .codehiliteta=
+ble td, .markdown-body .highlighttable td { border: 0px; padding: 0px; }
+
+.markdown-body td:not(.linenos) .linenodiv { padding: 0px !important; }
+
+.markdown-body .code { width: 100%; }
+
+.markdown-body .linenos div pre, .markdown-body .linenodiv pre, .markdown-b=
+ody .linenodiv { border: 0px; border-radius: 3px 0px 0px 3px; }
+
+.markdown-body .code div pre, .markdown-body .code div { border: 0px; borde=
+r-radius: 0px 3px 3px 0px; }
+
+.markdown-body * { box-sizing: border-box; }
+
+.markdown-body input { font: 13px / 1.4 Helvetica, arial, freesans, clean, =
+sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+
+.markdown-body a { color: var(--color-link-fg); }
+
+.markdown-body hr { height: 0px; margin: 15px 0px; overflow: hidden; backgr=
+ound: transparent; border-top: 0px; border-right: 0px; border-left: 0px; bo=
+rder-image: none; border-bottom: 1px solid var(--color-border); }
+
+.markdown-body hr::before, .markdown-body hr::after { display: table; conte=
+nt: " "; }
+
+.markdown-body hr::after { clear: both; }
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4,=
+ .markdown-body h5, .markdown-body h6 { margin-top: 15px; margin-bottom: 15=
+px; line-height: 1.1; }
+
+.markdown-body h1 { font-size: 30px; }
+
+.markdown-body h2 { font-size: 21px; }
+
+.markdown-body h3 { font-size: 16px; }
+
+.markdown-body h4 { font-size: 14px; }
+
+.markdown-body h5 { font-size: 12px; }
+
+.markdown-body h6 { font-size: 11px; }
+
+.markdown-body blockquote { margin: 0px; }
+
+.markdown-body ul, .markdown-body ol { padding: 0px; margin-top: 0px; margi=
+n-bottom: 0px; }
+
+.markdown-body ol ol, .markdown-body ul ol { list-style-type: lower-roman; =
+}
+
+.markdown-body ul ul ol, .markdown-body ul ol ol, .markdown-body ol ul ol, =
+.markdown-body ol ol ol { list-style-type: lower-alpha; }
+
+.markdown-body dd { margin-left: 0px; }
+
+.markdown-body code, .markdown-body pre, .markdown-body samp { font-family:=
+ Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 12px; }
+
+.markdown-body pre { margin-top: 0px; margin-bottom: 0px; }
+
+.markdown-body kbd { display: inline-block; padding: 3px 5px; color: var(--=
+color-fg-default); vertical-align: middle; background-color: var(--color-bg=
+-subtle); border-top-color: ; border-top-style: ; border-top-width: ; borde=
+r-right-color: ; border-right-style: ; border-right-width: ; border-bottom-=
+style: ; border-bottom-width: ; border-left-color: ; border-left-style: ; b=
+order-left-width: ; border-image-source: ; border-image-slice: ; border-ima=
+ge-width: ; border-image-outset: ; border-image-repeat: ; border-bottom-col=
+or: var(--color-neutral-muted); border-radius: 6px; box-shadow: inset 0 -1p=
+x 0 var(--color-neutral-muted); font: 11px Consolas, "Liberation Mono", Men=
+lo, Courier, monospace; }
+
+.markdown-body > :first-child { margin-top: 0px !important; }
+
+.markdown-body > :last-child { margin-bottom: 0px !important; }
+
+.markdown-body .headerlink { font: 16px fontawesome-mini; vertical-align: m=
+iddle; margin-left: -20px; float: left; display: inline-block; text-decorat=
+ion: none; opacity: 0; color: var(--color-fg); }
+
+.markdown-body .headerlink:focus { outline: none; }
+
+.markdown-body h1 .headerlink { margin-top: 0.8rem; }
+
+.markdown-body h2 .headerlink, .markdown-body h3 .headerlink { margin-top: =
+0.6rem; }
+
+.markdown-body h4 .headerlink { margin-top: 0.2rem; }
+
+.markdown-body h5 .headerlink, .markdown-body h6 .headerlink { margin-top: =
+0px; }
+
+.markdown-body .headerlink:hover, .markdown-body h1:hover .headerlink, .mar=
+kdown-body h2:hover .headerlink, .markdown-body h3:hover .headerlink, .mark=
+down-body h4:hover .headerlink, .markdown-body h5:hover .headerlink, .markd=
+own-body h6:hover .headerlink { opacity: 1; text-decoration: none; }
+
+.markdown-body h1 { padding-bottom: 0.3em; font-size: 2.25em; line-height: =
+1.2; border-bottom: 1px solid var(--color-border-muted); }
+
+.markdown-body h2 { padding-bottom: 0.3em; font-size: 1.75em; line-height: =
+1.225; border-bottom: 1px solid var(--color-border-muted); }
+
+.markdown-body h3 { font-size: 1.5em; line-height: 1.43; }
+
+.markdown-body h4 { font-size: 1.25em; }
+
+.markdown-body h5 { font-size: 1em; }
+
+.markdown-body h6 { font-size: 1em; color: var(--color-fg-muted); }
+
+.markdown-body p, .markdown-body blockquote, .markdown-body ul, .markdown-b=
+ody ol, .markdown-body dl, .markdown-body table, .markdown-body pre, .markd=
+own-body .admonition, .markdown-body details { margin-top: 0px; margin-bott=
+om: 16px; }
+
+.markdown-body hr { height: 4px; padding: 0px; margin: 16px 0px; background=
+-color: var(--color-border); border: 0px; }
+
+.markdown-body ul, .markdown-body ol { padding-left: 2em; }
+
+.markdown-body ul ul, .markdown-body ul ol, .markdown-body ol ol, .markdown=
+-body ol ul { margin-top: 0px; margin-bottom: 0px; }
+
+.markdown-body li > p { margin-top: 16px; }
+
+.markdown-body dl { padding: 0px; }
+
+.markdown-body dl dt { padding: 0px; margin-top: 16px; font-size: 1em; font=
+-style: italic; font-weight: bold; }
+
+.markdown-body dl dd { padding: 0px 16px; margin-bottom: 16px; }
+
+.markdown-body blockquote { padding: 0px 15px; color: var(--color-fg-muted)=
+; border-left: 4px solid var(--color-border); }
+
+.markdown-body blockquote > :first-child { margin-top: 0px; }
+
+.markdown-body blockquote > :last-child { margin-bottom: 0px; }
+
+.markdown-body table { display: block; width: 100%; overflow: auto; word-br=
+eak: keep-all; }
+
+.markdown-body table th { font-weight: bold; }
+
+.markdown-body table th, .markdown-body table td { padding: 6px 13px; borde=
+r: 1px solid var(--color-border-muted); }
+
+.markdown-body table tr { border-top: 1px solid var(--color-border-muted); =
+}
+
+.markdown-body table tr:nth-child(2n) { background-color: var(--color-bg-su=
+btle); }
+
+.markdown-body img { max-width: 100%; box-sizing: border-box; }
+
+.markdown-body code, .markdown-body samp { padding: 0.2em 0px; margin: 0px;=
+ font-size: 85%; border-radius: 3px; }
+
+.markdown-body :not(pre) > code:not(.highlight):not(.codehilite), .markdown=
+-body samp { background-color: var(--color-bg-subtle); }
+
+.markdown-body code::before, .markdown-body code::after { letter-spacing: -=
+0.2em; content: "=C2=A0"; }
+
+.markdown-body pre > code { padding: 0px; margin: 0px; font-size: 100%; wor=
+d-break: normal; white-space: pre; background: transparent; border: 0px; }
+
+.markdown-body .codehilite, .markdown-body .highlight { margin-bottom: 16px=
+; }
+
+.markdown-body .codehilite pre, .markdown-body .highlight pre, .markdown-bo=
+dy pre { padding: 16px; overflow: auto; font-size: 85%; line-height: 1.45; =
+}
+
+.markdown-body .codehilite, .markdown-body .highlight, .markdown-body pre {=
+ border-radius: 3px; }
+
+.markdown-body :not(.highlight) > pre { background-color: var(--color-bg-su=
+btle); }
+
+.markdown-body .codehilite pre, .markdown-body .highlight pre { margin-bott=
+om: 0px; word-break: normal; }
+
+.markdown-body pre { overflow-wrap: normal; }
+
+.markdown-body pre code { display: inline; max-width: initial; padding: 0px=
+; margin: 0px; overflow: initial; line-height: inherit; overflow-wrap: norm=
+al; background-color: transparent; border: 0px; }
+
+.markdown-body pre code::before, .markdown-body pre code::after { content: =
+normal; }
+
+.markdown-body .admonition, .markdown-body details[class] { position: relat=
+ive; border-left: 4px solid var(--color-fg); padding: 10px; }
+
+.markdown-body details[class] > summary { list-style: none; }
+
+.markdown-body .admonition p { padding: 0px; }
+
+.markdown-body .admonition > .admonition-title, .markdown-body details[clas=
+s] > summary { position: relative; font-weight: bold; margin: 0px; padding-=
+left: 20px; }
+
+.markdown-body .admonition-title::before, .markdown-body details[class] > s=
+ummary::before { font: 16px / 1.5 fontawesome-mini; user-select: none; colo=
+r: var(--color-fg); position: absolute; left: 0px; top: 0px; }
+
+.markdown-body details[class] > summary::after { font: 16px / 1.5 fontaweso=
+me-mini; user-select: none; color: var(--color-fg); position: absolute; rig=
+ht: 0px; top: 0px; }
+
+.markdown-body details[class] > summary::after { content: "=EE=A0=83"; }
+
+.markdown-body details[class][open] > summary::after { content: "=EE=A0=82"=
+; }
+
+.markdown-body details[class] > summary::after { color: var(--color-fg); }
+
+.markdown-body details.question > summary::after, .markdown-body details.im=
+portant > summary::after, .markdown-body details.attention > summary::after=
+ { color: var(--color-important-emphasis); }
+
+.markdown-body details.warning > summary::after { color: var(--color-warnin=
+g-emphasis); }
+
+.markdown-body details.tip > summary::after, .markdown-body details.hint > =
+summary::after { color: var(--color-tip-emphasis); }
+
+.markdown-body details.caution > summary::after, .markdown-body details.dan=
+ger > summary::after { color: var(--color-caution-emphasis); }
+
+.markdown-body details.note > summary::after { color: var(--color-note-emph=
+asis); }
+
+.markdown-body .admonition-title::before, .markdown-body details[class] sum=
+mary::before { content: "=EE=A0=80=C2=A0"; color: var(--color-fg); }
+
+.markdown-body .important > :is(.admonition-title, summary)::before, .markd=
+own-body .attention > :is(.admonition-title, summary)::before { content: "=
+=EF=83=B3=C2=A0"; color: var(--color-important-emphasis); }
+
+.markdown-body .question > :is(.admonition-title, summary)::before { conten=
+t: "=EE=A0=84=C2=A0"; color: var(--color-important-emphasis); }
+
+.markdown-body .warning > :is(.admonition-title, summary)::before { content=
+: "=EE=A0=81=C2=A0"; color: var(--color-warning-emphasis); }
+
+.markdown-body .tip > :is(.admonition-title, summary)::before, .markdown-bo=
+dy .hint > :is(.admonition-title, summary)::before { content: "=EF=83=AB=C2=
+=A0"; color: var(--color-tip-emphasis); }
+
+.markdown-body .caution > :is(.admonition-title, summary)::before, .markdow=
+n-body .danger > :is(.admonition-title, summary)::before { content: "=EE=A0=
+=87=C2=A0"; color: var(--color-caution-emphasis); }
+
+.markdown-body .note > :is(.admonition-title, summary)::before { content: "=
+=EE=A0=80=C2=A0"; color: var(--color-note-emphasis); }
+
+.markdown-body .admonition > :is(.admonition-title, summary)::after, .markd=
+own-body details::after { content: normal; }
+
+.markdown-body .question:is(.admonition, details[class]), .markdown-body .i=
+mportant:is(.admonition, details[class]), .markdown-body .attention:is(.adm=
+onition, details[class]) { border-left-color: var(--color-important-emphasi=
+s); }
+
+.markdown-body .warning:is(.admonition, details[class]) { border-left-color=
+: var(--color-warning-emphasis); }
+
+.markdown-body .tip:is(.admonition, details[class]), .markdown-body .hint:i=
+s(.admonition, details[class]) { border-left-color: var(--color-tip-emphasi=
+s); }
+
+.markdown-body .caution:is(.admonition, details[class]), .markdown-body .da=
+nger:is(.admonition, details[class]) { border-left-color: var(--color-cauti=
+on-emphasis); }
+
+.markdown-body .note:is(.admonition, details[class]) { border-left-color: v=
+ar(--color-note-emphasis); }
+
+.markdown-body .admonition > :first-child, .markdown-body details[class] > =
+:first-child { margin-top: 0px !important; }
+
+.markdown-body .admonition > :last-child, .markdown-body details[class] > :=
+last-child { margin-bottom: 0px !important; }
+
+.markdown-body .progress { display: block; width: 300px; margin: 10px 0px; =
+height: 24px; border-radius: 3px; background-color: var(--color-progress-bg=
+); position: relative; box-shadow: inset -1px 1px 3px var(--color-progress-=
+shadow2); }
+
+.markdown-body .progress-label { position: absolute; text-align: center; fo=
+nt-weight: bold; width: 100%; margin: 0px; line-height: 24px; color: var(--=
+color-fg); text-shadow: 1px 1px 0 var(--color-progress-shadow), -1px -1px 0=
+ var(--color-progress-shadow), -1px 1px 0 var(--color-progress-shadow),
+               1px -1px 0 var(--color-progress-shadow), 0 1px 0 var(--color=
+-progress-shadow), 0 -1px 0 var(--color-progress-shadow),
+               1px 0 0 var(--color-progress-shadow), -1px 0 0 var(--color-p=
+rogress-shadow), 1px 1px 2px #000; white-space: nowrap; overflow: hidden; -=
+webkit-font-smoothing: antialiased !important; }
+
+.markdown-body .progress-bar { height: 24px; float: left; border-radius: 3p=
+x; background-color: rgb(150, 198, 215); box-shadow: rgba(255, 255, 255, 0.=
+5) 0px 1px 0px inset, rgba(0, 0, 0, 0.1) 0px -1px 0px inset; background-siz=
+e: 30px 30px; background-image: linear-gradient(135deg, rgba(255, 255, 255,=
+ 0.4) 27%, transparent 27%, transparent 52%, rgba(255, 255, 255, 0.4) 52%, =
+rgba(255, 255, 255, 0.4) 77%, transparent 77%, transparent); }
+
+.markdown-body .progress-100plus .progress-bar { background-color: rgb(166,=
+ 215, 150); }
+
+.markdown-body .progress-80plus .progress-bar { background-color: rgb(198, =
+215, 150); }
+
+.markdown-body .progress-60plus .progress-bar { background-color: rgb(215, =
+200, 150); }
+
+.markdown-body .progress-40plus .progress-bar { background-color: rgb(215, =
+167, 150); }
+
+.markdown-body .progress-20plus .progress-bar { background-color: rgb(215, =
+150, 166); }
+
+.markdown-body .progress-0plus .progress-bar { background-color: rgb(194, 9=
+5, 119); }
+
+.markdown-body .candystripe-animate .progress-bar { animation: 3s linear 0s=
+ infinite normal none running animate-stripes; }
+
+@-webkit-keyframes animate-stripes {=20
+  0% { background-position: 0px 0px; }
+  100% { background-position: 60px 0px; }
+}
+
+@keyframes animate-stripes {=20
+  0% { background-position: 0px 0px; }
+  100% { background-position: 60px 0px; }
+}
+
+.markdown-body .gloss .progress-bar { box-shadow: rgba(255, 255, 255, 0.7) =
+0px 4px 12px inset, rgba(0, 0, 0, 0.05) 0px -12px 0px inset; }
+
+.markdown-body .critic_mark { background: rgb(255, 255, 0); }
+
+.markdown-body .critic_delete { color: var(--color-caution-emphasis); text-=
+decoration: line-through; }
+
+.markdown-body .critic_insert { color: var(--color-tip-emphasis); text-deco=
+ration: underline; }
+
+.markdown-body .critic_comment { color: var(--color-fg-muted); font-style: =
+italic; }
+
+.markdown-body .headeranchor { font: 16px / 1 fontawesome-mini; display: in=
+line-block; text-decoration: none; -webkit-font-smoothing: antialiased; use=
+r-select: none; }
+
+.markdown-body .task-list-item { list-style-type: none; }
+
+.markdown-body .task-list-item + .task-list-item { margin-top: 3px; }
+
+.markdown-body .task-list-item input { margin: 0px 4px 0.25em -20px; vertic=
+al-align: middle; }
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, .markd=
+own-body, div.uml-flowchart { overflow: auto; }
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, div.um=
+l-flowchart { background-color: rgb(255, 255, 255); }
+
+@media only screen and (min-width: 480px) {
+  .markdown-body { font-size: 14px; }
+}
+
+@media only screen and (min-width: 768px) {
+  .markdown-body { font-size: 16px; }
+}
+
+@media print {
+  .markdown-body * { background: transparent !important; color: black !impo=
+rtant; filter: none !important; }
+  .markdown-body { font-size: 12pt; max-width: 100%; outline: none; border:=
+ 0px; }
+  .markdown-body .headeranchor-link { display: none; }
+  .markdown-body a[href]::after { content: " (" attr(href) ")"; }
+  .markdown-body abbr[title]::after { content: " (" attr(title) ")"; }
+  .markdown-body .ir a::after, .markdown-body a[href^=3D"javascript:"]::aft=
+er, .markdown-body a[href^=3D"#"]::after { content: ""; }
+  .markdown-body pre { white-space: pre-wrap; overflow-wrap: break-word; }
+  .markdown-body pre, .markdown-body blockquote { padding-right: 1em; break=
+-inside: avoid; }
+  .markdown-body .progress, .markdown-body .progress-bar { box-shadow: none=
+; }
+  .markdown-body .progress { border: 1px solid rgb(221, 221, 221); }
+  .markdown-body .progress-bar { height: 22px; border-right: 1px solid rgb(=
+221, 221, 221); }
+  .markdown-body tr, .markdown-body img { break-inside: avoid; }
+  .markdown-body img { max-width: 100% !important; }
+  .markdown-body p, .markdown-body h2, .markdown-body h3 { orphans: 3; wido=
+ws: 3; }
+  .markdown-body h2, .markdown-body h3 { break-after: avoid; }
+}
+------MultipartBoundary--VNReT88Gv4MnZDmRPhkMUyTYbB0VdOCABoVLdp5uk5------

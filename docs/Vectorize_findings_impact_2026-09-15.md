@@ -1,6 +1,6 @@
 # Vectorize 0.9.2: what the review findings mean in use, and what to do about them
 
-Written 2026-09-15 from the code review behind [Vectorize_pipeline_reference.md](./Vectorize_pipeline_reference.md) and its [review](./Vectorize_pipeline_reference_review_2026-09-15.md). This note is for the person using the app, not the person reading the code: each item says what you would see, when, what it costs, and what the fix is.
+Written 2026-09-15 from the code review behind [Vectorize_pipeline_implementation_reference_2026-09-15.md](./Vectorize_pipeline_implementation_reference_2026-09-15.md) and its [review](./Vectorize_pipeline_reference_review_2026-09-15.md). This note is for the person using the app, not the person reading the code: each item says what you would see, when, what it costs, and what the fix is.
 
 **Status of every item below: derived from reading the code, not reproduced in the running app.** None was seen during the 0.9.x test runs. The mechanisms are unambiguous in the source, but "you would see X" should be read as "the code will do X", pending a run that confirms it.
 

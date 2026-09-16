@@ -1,0 +1,1171 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html
+Subject: Vectorize_findings_impact_2026-09-15
+Date: Wed, 16 Sep 2026 18:27:15 GMT
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--FS1l6z1FfSlFuEPJ4O45Jctz8SSP9vuGQ8xRYtM4a8----"
+
+
+------MultipartBoundary--FS1l6z1FfSlFuEPJ4O45Jctz8SSP9vuGQ8xRYtM4a8----
+Content-Type: text/html
+Content-ID: <frame-4ABD5AB6DEDD011927469E40E80983A3@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html
+
+<!DOCTYPE html><html><head><meta http-equiv=3D"Content-Type" content=3D"tex=
+t/html; charset=3DUTF-8"><link rel=3D"stylesheet" type=3D"text/css" href=3D=
+"cid:css-5d3c3af4-a1e4-4036-91d0-64f27af0d2f2@mhtml.blink" /><link rel=3D"s=
+tylesheet" type=3D"text/css" href=3D"cid:css-2da0e0d3-fa75-4d0d-ac21-dacfa4=
+80eb89@mhtml.blink" /><meta name=3D"viewport" content=3D"width=3Ddevice-wid=
+th, initial-scale=3D1"><title>Vectorize_findings_impact_2026-09-15</title><=
+/head><body data-theme=3D"auto"><article class=3D"markdown-body"><h1 id=3D"=
+vectorize-092-what-the-review-findings-mean-in-use-and-what-to-do-about-the=
+m">Vectorize 0.9.2: what the review findings mean in use, and what to do ab=
+out them<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1h=
+qg8908nf89fbssd6mq5h0000gv/T/77.html#vectorize-092-what-the-review-findings=
+-mean-in-use-and-what-to-do-about-them" title=3D"Permanent link">=EE=A0=86<=
+/a></h1>
+<p>Written 2026-09-15 from the code review behind <a href=3D"file:///Users/=
+harryAtMac/p33_haldraw_info_and_repo/haldraw/docs/Vectorize_pipeline_refere=
+nce.md">Vectorize_pipeline_reference.md</a> and its <a href=3D"file:///User=
+s/harryAtMac/p33_haldraw_info_and_repo/haldraw/docs/Vectorize_pipeline_refe=
+rence_review_2026-09-15.md">review</a>. This note is for the person using t=
+he app, not the person reading the code: each item says what you would see,=
+ when, what it costs, and what the fix is.</p>
+<p><strong>Status of every item below: derived from reading the code, not r=
+eproduced in the running app.</strong> None was seen during the 0.9.x test =
+runs. The mechanisms are unambiguous in the source, but =E2=80=9Cyou would =
+see X=E2=80=9D should be read as =E2=80=9Cthe code will do X=E2=80=9D, pend=
+ing a run that confirms it.</p>
+<h2 id=3D"summary">Summary<a class=3D"headerlink" href=3D"file:///private/v=
+ar/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#summary" title=3D"Pe=
+rmanent link">=EE=A0=86</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Finding</th>
+<th>What you would see</th>
+<th>How likely during your testing</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Placement uses the image=E2=80=99s position from <em>before</em> the ca=
+ll</td>
+<td>Draft offset or mis-scaled if you moved or resized the image while wait=
+ing</td>
+<td>Moderate: calls take 10 to 60 s and the canvas stays live</td>
+<td>Fix before extended testing (small change)</td>
+</tr>
+<tr>
+<td>1b</td>
+<td>Same root cause: switching boards mid-call</td>
+<td>Draft inserted into whichever board is open when the reply arrives</td>
+<td>Low, but the outcome is confusing and persists</td>
+<td>Same fix, plus a guard</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Undo after a vectorize leaves the locked Reference layer current</td>
+<td>The next shape you draw cannot be selected or moved</td>
+<td>Moderate: undo-and-retry is a natural testing loop</td>
+<td>Fix soon (small change, not vectorize-specific)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>No coordination between simultaneous calls</td>
+<td>Two Draft layers, or lost progress text; possibly a double charge</td>
+<td>Low</td>
+<td>Fix when convenient</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Keychain command string exists in two places</td>
+<td>Nothing today</td>
+<td>Only matters if the keychain names change</td>
+<td>Housekeeping</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Some errors reach the toast unclassified</td>
+<td>Raw error wording in a red toast</td>
+<td>Rare</td>
+<td>Cosmetic</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Pasted images skip the 4096 px storage downsample</td>
+<td>Larger database rows; no effect on vectorize output</td>
+<td>Only with very large pastes</td>
+<td>No action</td>
+</tr>
+<tr>
+<td>7</td>
+<td>A validation retry sends the image a second time</td>
+<td>Roughly double the input tokens for that run</td>
+<td>Rare, and correct behaviour</td>
+<td>Awareness only</td>
+</tr>
+<tr>
+<td>8</td>
+<td>SVG references untested</td>
+<td>Unknown: may work, may fail with a decode error</td>
+<td>Only if you vectorize an SVG</td>
+<td>Test once before relying on it</td>
+</tr>
+</tbody>
+</table>
+<p>Items 1 and 2 are the ones I would fix before a long testing session. Ev=
+erything else can wait.</p>
+<hr>
+<h2 id=3D"1-the-draft-is-placed-against-the-image-as-it-was-when-you-presse=
+d-vectorize">1. The draft is placed against the image as it was when you pr=
+essed Vectorize<a class=3D"headerlink" href=3D"file:///private/var/folders/=
+hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#1-the-draft-is-placed-against-t=
+he-image-as-it-was-when-you-pressed-vectorize" title=3D"Permanent link">=EE=
+=A0=86</a></h2>
+<p><strong>What happens.</strong> When you press Vectorize=E2=80=A6, the ap=
+p records the image=E2=80=99s rectangle (position and size on the board) an=
+d the layer list at that moment, then waits for the model. When the reply a=
+rrives, tens of seconds later, it scales the model=E2=80=99s coordinates in=
+to <em>that recorded</em> rectangle and picks the Draft layer from <em>that=
+ recorded</em> layer list. It does not look again.</p>
+<p><strong>What you would see.</strong></p>
+<ul>
+<li>If you nudge, drag or resize the reference image while the progress tex=
+t is showing, the draft lands where the image <em>was</em>, at the size it =
+<em>was</em>. On a board where you are lining things up by eye this looks l=
+ike the model got everything wrong by a constant offset. It did not; the ap=
+p used a stale frame.</li>
+<li>If you reorder layers while waiting, the new Draft layer is slotted int=
+o the old order, so it can end up in a different place in the stack than =
+=E2=80=9Cdirectly above the reference=E2=80=9D.</li>
+<li>If you delete the reference while waiting, the draft is still inserted,=
+ floating over empty canvas.</li>
+</ul>
+<p><strong>The more serious variant, 1b.</strong> If you go back to the Lib=
+rary and open a <em>different</em> board while a call is in flight, the rep=
+ly is inserted into the board that is open when it arrives. The draft=E2=80=
+=99s coordinates are relative to the original image, which is not on this b=
+oard, and its Draft layer is created at the bottom of the stack because the=
+ original layer does not exist here. The rows are then autosaved with the n=
+ew board. You would open a board and find a group of strange shapes on a ne=
+w layer at the bottom, with no indication of where they came from. One =E2=
+=8C=98Z removes them if you notice immediately; otherwise they persist.</p>
+<p><strong>How likely.</strong> The window is the whole call: 10 to 60 s on=
+ Opus 5 for a dense diagram. The canvas is fully live during that time and =
+nothing suggests you should wait. The first variant is easy to trigger by a=
+ccident; the board switch is less likely but the outcome is the most confus=
+ing of anything in this note.</p>
+<p><strong>Cost.</strong> A misplaced draft is a wasted call (tens of cents=
+ at Opus 5 rates for a large image, see item 7) plus the confusion. Nothing=
+ is corrupted; undo removes it.</p>
+<p><strong>Fix.</strong> Small. After the reply, re-read the image node and=
+ the layer list from the live store instead of the copies taken before the =
+call; if the node is gone or the board has changed, show a toast (=E2=80=9C=
+The image was removed while the model was working; nothing inserted=E2=80=
+=9D) and stop. About ten lines in <code>src/util/vectorize.ts</code> (the <=
+code>vectorizeNode</code> function, lines 163 to 192). A second, optional l=
+ine of defence is to disable the Library button and layer reordering while =
+a call runs, but the re-read alone removes the wrong outcomes.</p>
+<h2 id=3D"2-after-you-undo-a-vectorize-the-next-shape-you-draw-may-be-untou=
+chable">2. After you undo a vectorize, the next shape you draw may be untou=
+chable<a class=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg=
+8908nf89fbssd6mq5h0000gv/T/77.html#2-after-you-undo-a-vectorize-the-next-sh=
+ape-you-draw-may-be-untouchable" title=3D"Permanent link">=EE=A0=86</a></h2=
+>
+<p><strong>What happens.</strong> Vectorize creates the Draft layer and mak=
+es it current, so your next drawing lands there. Undo removes the Draft lay=
+er. The store then has to pick a new current layer, and it picks the bottom=
+ of the stack, which on a board made by importing a reference image is the =
+locked =E2=80=9CReference=E2=80=9D layer. The app does not stop you drawing=
+ on a locked layer: the shape is created, placed on Reference, and from the=
+n on it ignores the pointer, because everything on a locked layer does.</p>
+<p><strong>What you would see.</strong> You vectorize, dislike the result, =
+press =E2=8C=98Z, and draw a rectangle to start by hand. The rectangle appe=
+ars but you cannot select, move or resize it. It shows up in the Reference =
+images list in the Board panel (as a locked non-image row), which is the on=
+ly place you can unlock it. Until you notice the current-layer selector in =
+the toolbar says =E2=80=9CReference=E2=80=9D, every further shape does the =
+same.</p>
+<p><strong>How likely.</strong> Moderate. Vectorize, judge, undo, try a dif=
+ferent model or a cleaner image, is exactly the loop you have described for=
+ testing. Each undo puts you on the locked layer.</p>
+<p><strong>Cost.</strong> Confusion and a few minutes per occurrence; the s=
+hapes are recoverable by unlocking from the Board panel, or by switching la=
+yer and redrawing.</p>
+<p><strong>Fix.</strong> Two independent small changes, either sufficient:<=
+/p>
+<ul>
+<li>In the store=E2=80=99s undo (and redo), when the current layer disappea=
+rs, fall back to the topmost <em>unlocked</em> layer, or to the layer that =
+was current before the undone step, rather than the bottom layer. This is n=
+ot vectorize-specific: any undo that removes the current layer behaves this=
+ way today.</li>
+<li>In vectorize, remember the layer that was current before the call and r=
+estore it as current after insertion, leaving Draft selected but not curren=
+t. That changes the deliberate 0.9.0 decision that =E2=80=9Cdrawing continu=
+es on Draft=E2=80=9D, so it is a product choice, not just a fix.</li>
+</ul>
+<p>The first is the better one and is a few lines in <code>src/store/canvas=
+Store.ts</code> (the <code>currentLayerId</code> fallback inside <code>undo=
+</code> and <code>redo</code>, around lines 701 and 736).</p>
+<h2 id=3D"3-two-calls-at-once-do-not-know-about-each-other">3. Two calls at=
+ once do not know about each other<a class=3D"headerlink" href=3D"file:///p=
+rivate/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#3-two-calls-=
+at-once-do-not-know-about-each-other" title=3D"Permanent link">=EE=A0=86</a=
+></h2>
+<p><strong>What happens.</strong> Each Vectorize button keeps its own =E2=
+=80=9Cbusy=E2=80=9D flag. There is no app-wide notion of =E2=80=9Ca vectori=
+ze is running=E2=80=9D. Three consequences:</p>
+<ul>
+<li>Two different reference images can be vectorized simultaneously by clic=
+king both rows=E2=80=99 sparkles. Each call is correct on its own, but both=
+ decide where the Draft layer goes from the layer list as it was when <em>t=
+hey</em> started, so neither sees the Draft layer the other is about to cre=
+ate. You get two layers both named =E2=80=9CDraft=E2=80=9D.</li>
+<li>If you click Vectorize=E2=80=A6 in the Image section and then change th=
+e selection, the Image section disappears and with it the progress text. Th=
+e call continues; the toast still arrives; you just have no indication anyt=
+hing is running in between. Clicking the row sparkle for the same image at =
+that point starts a second call for the same picture, billed again.</li>
+<li>There is no cancel. Closing the window does not stop the request; the r=
+eply is simply discarded.</li>
+</ul>
+<p><strong>How likely.</strong> Low in ordinary use. The lost-progress case=
+ is the one most likely to happen by accident.</p>
+<p><strong>Cost.</strong> At worst one duplicate call and an extra layer to=
+ delete.</p>
+<p><strong>Fix.</strong> A single module-level set of =E2=80=9Cnode ids in =
+flight=E2=80=9D checked and displayed by both buttons, and reuse of any lay=
+er named Draft anywhere above the reference rather than only the one direct=
+ly above. Small.</p>
+<h2 id=3D"4-the-keychain-command-is-written-out-twice">4. The keychain comm=
+and is written out twice<a class=3D"headerlink" href=3D"file:///private/var=
+/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#4-the-keychain-command=
+-is-written-out-twice" title=3D"Permanent link">=EE=A0=86</a></h2>
+<p><strong>What happens.</strong> The one-line <code>security add-generic-p=
+assword =E2=80=A6</code> command appears in two source files: the main-proc=
+ess module that reads the key, and the Settings dialog that shows it. They =
+agree today. If the keychain service or account name is ever changed in one=
+ place and not the other, the Settings dialog would show a command that sto=
+res the key where the app does not look, and the app would keep reporting =
+=E2=80=9Cno key=E2=80=9D after you followed the instructions.</p>
+<p><strong>How likely.</strong> Zero unless the names change.</p>
+<p><strong>Fix.</strong> Move the string to the shared types module that bo=
+th processes already import. Five minutes.</p>
+<h2 id=3D"5-a-few-error-paths-bypass-the-friendly-messages">5. A few error =
+paths bypass the friendly messages<a class=3D"headerlink" href=3D"file:///p=
+rivate/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#5-a-few-erro=
+r-paths-bypass-the-friendly-messages" title=3D"Permanent link">=EE=A0=86</a=
+></h2>
+<p><strong>What happens.</strong> Errors from the API client are mapped to =
+the messages you have seen (=E2=80=9CNo API key=E2=80=A6=E2=80=9D, =E2=80=
+=9CRate limited=E2=80=A6=E2=80=9D, =E2=80=9CCould not reach the API=E2=80=
+=A6=E2=80=9D). Anything that is not one of those known error types, for exa=
+mple a bug inside the SDK, a JSON-parse failure of the fake test file, or a=
+n unexpected exception in the main process, passes through with its raw wor=
+ding.</p>
+<p><strong>What you would see.</strong> A red toast with developer-style te=
+xt such as <code>Unexpected token &lt; in JSON at position 0</code>. Nothin=
+g is inserted, so no harm.</p>
+<p><strong>Fix.</strong> Wrap the fall-through cases in the same error type=
+ with a generic sentence and keep the raw text after a line break. Cosmetic=
+.</p>
+<h2 id=3D"6-pasted-images-are-stored-at-full-size">6. Pasted images are sto=
+red at full size<a class=3D"headerlink" href=3D"file:///private/var/folders=
+/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#6-pasted-images-are-stored-at-=
+full-size" title=3D"Permanent link">=EE=A0=86</a></h2>
+<p><strong>What happens.</strong> Images brought in through Import Image=E2=
+=80=A6 or by dropping a file are shrunk to at most 4096 px on the long side=
+ before being stored in the database. Images pasted from the clipboard are =
+stored as pasted. Vectorize always shrinks what it sends to 1568 px, so the=
+ model sees the same thing either way.</p>
+<p><strong>Effect on you.</strong> None on the draft. A very large paste (a=
+ 5000 px screenshot, say) makes a larger database row and a larger <code>.h=
+aldraw</code> export than the same image imported as a file. The paste is a=
+lso placed on the board at 400 canvas units wide, so the reference rectangl=
+e is small and the draft is correspondingly small, which is correct behavio=
+ur.</p>
+<p><strong>Recommendation.</strong> No action. If you want parity, route th=
+e paste through the same downsample as import; it is one call.</p>
+<h2 id=3D"7-a-rejected-reply-costs-a-second-full-call">7. A rejected reply =
+costs a second full call<a class=3D"headerlink" href=3D"file:///private/var=
+/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#7-a-rejected-reply-cos=
+ts-a-second-full-call" title=3D"Permanent link">=EE=A0=86</a></h2>
+<p><strong>What happens.</strong> If the model=E2=80=99s JSON fails the app=
+=E2=80=99s structural checks (a connector naming a shape id that does not e=
+xist, a duplicate id, a zero-size box), the app sends the whole conversatio=
+n again once, with the specific complaint appended. The image is part of th=
+at conversation, so it is transmitted and billed a second time. The toast=
+=E2=80=99s token count is the sum of both attempts, which is why one run ca=
+n show roughly double the tokens of an otherwise similar one.</p>
+<p><strong>How likely.</strong> Rare. The output is schema-constrained, so =
+malformed JSON is close to impossible; the retry mostly catches a connector=
+ pointing at an id the model forgot to define.</p>
+<p><strong>Cost.</strong> For a 1568 px image, the image alone is on the or=
+der of 3,000 input tokens per attempt. At Opus 5 list pricing the image par=
+t of a retried run is a few cents; the output tokens (often 5,000 to 12,000=
+ for a dense diagram) dominate. Awareness only; the behaviour is right.</p>
+<h2 id=3D"8-svg-reference-images-are-an-untested-path">8. SVG reference ima=
+ges are an untested path<a class=3D"headerlink" href=3D"file:///private/var=
+/folders/hj/hx1hqg8908nf89fbssd6mq5h0000gv/T/77.html#8-svg-reference-images=
+-are-an-untested-path" title=3D"Permanent link">=EE=A0=86</a></h2>
+<p><strong>What happens.</strong> An imported SVG is stored as SVG, untouch=
+ed. Vectorize has to turn it into a bitmap before sending it, using the bro=
+wser=E2=80=99s image decoder. Chromium=E2=80=99s support for decoding SVG t=
+hrough that particular call has historically been limited. The code path ex=
+ists and may well work; it has not been run.</p>
+<p><strong>What you might see.</strong> Either a normal draft, or an error =
+toast about image decoding, with nothing inserted.</p>
+<p><strong>Recommendation.</strong> Try it once with a small SVG before dep=
+ending on it. If it fails, the fix is to rasterise via an <code>&lt;img&gt;=
+</code> element instead, which does support SVG; a modest change.</p>
+<hr>
+<h2 id=3D"what-does-not-need-action">What does not need action<a class=3D"h=
+eaderlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0=
+000gv/T/77.html#what-does-not-need-action" title=3D"Permanent link">=EE=A0=
+=86</a></h2>
+<ul>
+<li><strong>The model call itself.</strong> Prompt, schema, validation orde=
+r, retry logic, error mapping and key handling were all checked line by lin=
+e and found to do what the design note says. The key never leaves the main =
+process.</li>
+<li><strong>Coordinate mapping, colour rules, dashed low-confidence marking=
+, font-size estimate, layer placement, grouping, single-step undo and persi=
+stence</strong> all behave as documented. The findings above are about what=
+ happens <em>around</em> the call, not inside it.</li>
+<li><strong>=E2=80=9C0 connectors=E2=80=9D on bubble charts</strong> is exp=
+ected: a line must visibly join two shapes to count.</li>
+<li><strong>Elements the model does not report</strong> (free lines, axes, =
+legends, arrows touching one shape, corner radius, connector colour and rou=
+te, a second arrowhead) are scope decisions, not defects. They are listed i=
+n =C2=A79 of the reference document.</li>
+</ul>
+<h2 id=3D"suggested-order-of-work">Suggested order of work<a class=3D"heade=
+rlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6mq5h0000g=
+v/T/77.html#suggested-order-of-work" title=3D"Permanent link">=EE=A0=86</a>=
+</h2>
+<ol>
+<li>Item 1 (re-read live state after the reply, abort if the image or board=
+ is gone). Ten lines; removes the most confusing outcomes.</li>
+<li>Item 2 (undo falls back to an unlocked layer). A few lines; removes a t=
+rap that is not limited to vectorize.</li>
+<li>Items 3, 4, 5 together as a small =E2=80=9Cvectorize hygiene=E2=80=9D r=
+elease when convenient.</li>
+<li>Item 8: one manual test with an SVG.</li>
+</ol>
+<p>Each of 1 to 3 is a candidate for a 0.9.3 with a CHANGELOG entry; none n=
+eeds a database migration.</p>
+<h2 id=3D"where-the-code-is-for-later">Where the code is, for later<a class=
+=3D"headerlink" href=3D"file:///private/var/folders/hj/hx1hqg8908nf89fbssd6=
+mq5h0000gv/T/77.html#where-the-code-is-for-later" title=3D"Permanent link">=
+=EE=A0=86</a></h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>File and region</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1, 1b</td>
+<td><code>src/util/vectorize.ts</code>, <code>vectorizeNode</code>, lines 1=
+63 to 192 (<code>store</code> captured at 163, used at 185 to 191)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>src/store/canvasStore.ts</code>, <code>undo</code> and <code>redo=
+</code>, <code>currentLayerId</code> fallback near lines 701 and 736; <code=
+>addNode</code> at 492 places on <code>currentLayerId</code> without a lock=
+ check</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>src/panels/PropertiesPanel.tsx</code>, <code>VectorizeButton</cod=
+e>, line 557 onward; Draft-layer reuse test in <code>vectorizeNode</code>, =
+line 190</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>electron/vectorize.ts</code> line 10 and <code>src/panels/Setting=
+sModal.tsx</code> line 4</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>electron/vectorize.ts</code> lines 130 and 164</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>src/canvas/BoardEditor.tsx</code>, <code>onRequestImagePaste</cod=
+e>, line 163 onward, versus <code>decodeAndStore</code> in <code>src/util/i=
+mportImage.ts</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>electron/vectorize.ts</code> lines 180 to 184</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>src/util/vectorize.ts</code>, <code>imageToPng</code>, line 25</t=
+d>
+</tr>
+</tbody>
+</table></article></body></html>
+------MultipartBoundary--FS1l6z1FfSlFuEPJ4O45Jctz8SSP9vuGQ8xRYtM4a8----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-2da0e0d3-fa75-4d0d-ac21-dacfa480eb89@mhtml.blink
+
+@charset "utf-8";
+
+@media (prefers-color-scheme: dark) {
+  body, [data-theme=3D"dark"] {
+  & .highlight { background-color: rgb(22, 27, 34); color: rgb(248, 248, 24=
+2); }
+  & .highlight .hll { background-color: rgb(110, 118, 129); }
+  & .highlight .c { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .err { color: rgb(248, 81, 73); }
+  & .highlight .esc { color: rgb(230, 237, 243); }
+  & .highlight .g { color: rgb(230, 237, 243); }
+  & .highlight .k { color: rgb(255, 123, 114); }
+  & .highlight .l { color: rgb(165, 214, 255); }
+  & .highlight .n { color: rgb(230, 237, 243); }
+  & .highlight .o { color: rgb(255, 123, 114); font-weight: bold; }
+  & .highlight .x { color: rgb(230, 237, 243); }
+  & .highlight .p { color: rgb(230, 237, 243); }
+  & .highlight .ch { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cm { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cp { color: rgb(139, 148, 158); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .cpf { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .c1 { color: rgb(139, 148, 158); font-style: italic; }
+  & .highlight .cs { color: rgb(139, 148, 158); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .gd { color: rgb(255, 161, 152); background-color: rgb(73, 2=
+, 2); }
+  & .highlight .ge { color: rgb(230, 237, 243); font-style: italic; }
+  & .highlight .ges { color: rgb(230, 237, 243); font-weight: bold; font-st=
+yle: italic; }
+  & .highlight .gr { color: rgb(255, 161, 152); }
+  & .highlight .gh { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .gi { color: rgb(86, 211, 100); background-color: rgb(15, 83=
+, 35); }
+  & .highlight .go { color: rgb(139, 148, 158); }
+  & .highlight .gp { color: rgb(139, 148, 158); }
+  & .highlight .gs { color: rgb(230, 237, 243); font-weight: bold; }
+  & .highlight .gu { color: rgb(121, 192, 255); }
+  & .highlight .gt { color: rgb(255, 123, 114); }
+  & .highlight .g-Underline { color: rgb(230, 237, 243); text-decoration: u=
+nderline; }
+  & .highlight .kc { color: rgb(121, 192, 255); }
+  & .highlight .kd { color: rgb(255, 123, 114); }
+  & .highlight .kn { color: rgb(255, 123, 114); }
+  & .highlight .kp { color: rgb(121, 192, 255); }
+  & .highlight .kr { color: rgb(255, 123, 114); }
+  & .highlight .kt { color: rgb(255, 123, 114); }
+  & .highlight .ld { color: rgb(121, 192, 255); }
+  & .highlight .m { color: rgb(165, 214, 255); }
+  & .highlight .s { color: rgb(165, 214, 255); }
+  & .highlight .na { color: rgb(230, 237, 243); }
+  & .highlight .nb { color: rgb(230, 237, 243); }
+  & .highlight .nc { color: rgb(240, 136, 62); font-weight: bold; }
+  & .highlight .no { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .nd { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .ni { color: rgb(255, 166, 87); }
+  & .highlight .ne { color: rgb(240, 136, 62); font-weight: bold; }
+  & .highlight .nf { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .nl { color: rgb(121, 192, 255); font-weight: bold; }
+  & .highlight .nn { color: rgb(255, 123, 114); }
+  & .highlight .nx { color: rgb(230, 237, 243); }
+  & .highlight .py { color: rgb(121, 192, 255); }
+  & .highlight .nt { color: rgb(126, 231, 135); }
+  & .highlight .nv { color: rgb(121, 192, 255); }
+  & .highlight .ow { color: rgb(255, 123, 114); font-weight: bold; }
+  & .highlight .pm { color: rgb(230, 237, 243); }
+  & .highlight .w { color: rgb(110, 118, 129); }
+  & .highlight .mb { color: rgb(165, 214, 255); }
+  & .highlight .mf { color: rgb(165, 214, 255); }
+  & .highlight .mh { color: rgb(165, 214, 255); }
+  & .highlight .mi { color: rgb(165, 214, 255); }
+  & .highlight .mo { color: rgb(165, 214, 255); }
+  & .highlight .sa { color: rgb(121, 192, 255); }
+  & .highlight .sb { color: rgb(165, 214, 255); }
+  & .highlight .sc { color: rgb(165, 214, 255); }
+  & .highlight .dl { color: rgb(121, 192, 255); }
+  & .highlight .sd { color: rgb(165, 214, 255); }
+  & .highlight .s2 { color: rgb(165, 214, 255); }
+  & .highlight .se { color: rgb(121, 192, 255); }
+  & .highlight .sh { color: rgb(121, 192, 255); }
+  & .highlight .si { color: rgb(165, 214, 255); }
+  & .highlight .sx { color: rgb(165, 214, 255); }
+  & .highlight .sr { color: rgb(121, 192, 255); }
+  & .highlight .s1 { color: rgb(165, 214, 255); }
+  & .highlight .ss { color: rgb(165, 214, 255); }
+  & .highlight .bp { color: rgb(230, 237, 243); }
+  & .highlight .fm { color: rgb(210, 168, 255); font-weight: bold; }
+  & .highlight .vc { color: rgb(121, 192, 255); }
+  & .highlight .vg { color: rgb(121, 192, 255); }
+  & .highlight .vi { color: rgb(121, 192, 255); }
+  & .highlight .vm { color: rgb(121, 192, 255); }
+  & .highlight .il { color: rgb(165, 214, 255); }
+}
+}
+
+@media (prefers-color-scheme: light) {
+  body, [data-theme=3D"light"] {
+  & .highlight { background-color: rgb(247, 247, 247); color: rgb(51, 51, 5=
+1); }
+  & .highlight .hll { background-color: rgb(255, 255, 204); }
+  & .highlight .c { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .err { color: rgb(166, 23, 23); background-color: rgb(227, 2=
+10, 210); }
+  & .highlight .k { font-weight: bold; }
+  & .highlight .o { font-weight: bold; }
+  & .highlight .cm { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .cp { color: rgb(153, 153, 153); font-weight: bold; }
+  & .highlight .c1 { color: rgb(153, 153, 136); font-style: italic; }
+  & .highlight .cs { color: rgb(153, 153, 153); font-weight: bold; font-sty=
+le: italic; }
+  & .highlight .gd { color: rgb(0, 0, 0); background-color: rgb(255, 221, 2=
+21); }
+  & .highlight .ge { font-style: italic; }
+  & .highlight .gr { color: rgb(170, 0, 0); }
+  & .highlight .gh { color: rgb(153, 153, 153); }
+  & .highlight .gi { color: rgb(0, 0, 0); background-color: rgb(221, 255, 2=
+21); }
+  & .highlight .go { color: rgb(136, 136, 136); }
+  & .highlight .gp { color: rgb(85, 85, 85); }
+  & .highlight .gs { font-weight: bold; }
+  & .highlight .gu { color: rgb(128, 0, 128); font-weight: bold; }
+  & .highlight .gt { color: rgb(170, 0, 0); }
+  & .highlight .kc { font-weight: bold; }
+  & .highlight .kd { font-weight: bold; }
+  & .highlight .kn { font-weight: bold; }
+  & .highlight .kp { font-weight: bold; }
+  & .highlight .kr { font-weight: bold; }
+  & .highlight .kt { color: rgb(68, 85, 136); font-weight: bold; }
+  & .highlight .m { color: rgb(0, 153, 153); }
+  & .highlight .s { color: rgb(221, 17, 68); }
+  & .highlight .n { color: rgb(51, 51, 51); }
+  & .highlight .na { color: teal; }
+  & .highlight .nb { color: rgb(0, 134, 179); }
+  & .highlight .nc { color: rgb(68, 85, 136); font-weight: bold; }
+  & .highlight .no { color: teal; }
+  & .highlight .ni { color: purple; }
+  & .highlight .ne { color: rgb(153, 0, 0); font-weight: bold; }
+  & .highlight .nf { color: rgb(153, 0, 0); font-weight: bold; }
+  & .highlight .nn { color: rgb(85, 85, 85); }
+  & .highlight .nt { color: navy; }
+  & .highlight .nv { color: teal; }
+  & .highlight .ow { font-weight: bold; }
+  & .highlight .w { color: rgb(187, 187, 187); }
+  & .highlight .mf { color: rgb(0, 153, 153); }
+  & .highlight .mh { color: rgb(0, 153, 153); }
+  & .highlight .mi { color: rgb(0, 153, 153); }
+  & .highlight .mo { color: rgb(0, 153, 153); }
+  & .highlight .sb { color: rgb(221, 17, 68); }
+  & .highlight .sc { color: rgb(221, 17, 68); }
+  & .highlight .sd { color: rgb(221, 17, 68); }
+  & .highlight .s2 { color: rgb(221, 17, 68); }
+  & .highlight .se { color: rgb(221, 17, 68); }
+  & .highlight .sh { color: rgb(221, 17, 68); }
+  & .highlight .si { color: rgb(221, 17, 68); }
+  & .highlight .sx { color: rgb(221, 17, 68); }
+  & .highlight .sr { color: rgb(0, 153, 38); }
+  & .highlight .s1 { color: rgb(221, 17, 68); }
+  & .highlight .ss { color: rgb(153, 0, 115); }
+  & .highlight .bp { color: rgb(153, 153, 153); }
+  & .highlight .vc { color: teal; }
+  & .highlight .vg { color: teal; }
+  & .highlight .vi { color: teal; }
+  & .highlight .il { color: rgb(0, 153, 153); }
+  & .highlight .gc { color: rgb(153, 153, 153); background-color: rgb(234, =
+242, 245); }
+}
+}
+------MultipartBoundary--FS1l6z1FfSlFuEPJ4O45Jctz8SSP9vuGQ8xRYtM4a8----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-5d3c3af4-a1e4-4036-91d0-64f27af0d2f2@mhtml.blink
+
+@charset "utf-8";
+
+@font-face { font-family: fontawesome-mini; src: url("data:application/octe=
+t-stream;base64,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
+AAA=3D=3D"); }
+
+[data-theme=3D"dark"] { color-scheme: dark; }
+
+[data-theme=3D"light"] { color-scheme: light; }
+
+@media (prefers-color-scheme: dark) {
+  [data-theme=3D"auto"], [data-theme=3D"dark"] { --color-bg: #0d1117; --col=
+or-bg-subtle: #161b22; --color-fg: #e6edf3; --color-link-fg: #2f81f7; --col=
+or-border: #30363d; --color-border-muted: #21262d; --color-fg-muted: #848d9=
+7; --color-note-fg: #2f81f7; --color-note-emphasis: #1f6feb; --color-tip-fg=
+: #3fb950; --color-tip-emphasis: #238636; --color-warning-fg: #d29922; --co=
+lor-warning-emphasis: #9e6a03; --color-attention-subtle: rgba(187,128,9,0.1=
+5); --color-caution-fg: #f85149; --color-caution-emphasis: #da3633; --color=
+-important-fg: #a371f7; --color-important-emphasis: #8957e5; --color-neutra=
+l-muted: rgba(110,118,129,0.4); --color-progress-shadow: #010101; --color-p=
+rogress-shadow2: rgba(0, 0, 0, .5); --color-progress-bg: #363c43; }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme=3D"auto"], [data-theme=3D"light"] { --color-bg: #ffffff; --co=
+lor-bg-subtle: #f6f8fa; --color-fg: #333333; --color-link-fg: #0969da; --co=
+lor-border: #d0d7de; --color-border-muted: #d8dee4; --color-fg-muted: #656d=
+76; --color-note-fg: #0969da; --color-note-emphasis: #0969da; --color-tip-f=
+g: #1a7f37; --color-tip-emphasis: #1f883d; --color-warning-fg: #9a6700; --c=
+olor-warning-emphasis: #9a6700; --color-attention-subtle: #fff8c5; --color-=
+caution-fg: #d1242f; --color-caution-emphasis: #cf222e; --color-important-f=
+g: #8250df; --color-important-emphasis: #8250df; --color-neutral-muted: rgb=
+a(175,184,193,0.2); --color-progress-shadow: #fefefe; --color-progress-shad=
+ow2: rgba(0, 0, 0, .1); --color-progress-bg: #efefef; }
+}
+
+body { max-width: 980px; margin: 16px auto; background-color: var(--color-b=
+g); }
+
+body .markdown-body { padding: 45px; }
+
+.markdown-body { text-size-adjust: 100%; color: var(--color-fg); overflow: =
+hidden; font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesa=
+ns, sans-serif; font-size: 16px; line-height: 1.6; overflow-wrap: break-wor=
+d; }
+
+.markdown-body a { background: transparent; }
+
+.markdown-body a:active, .markdown-body a:hover { outline: 0px; }
+
+.markdown-body b, .markdown-body strong { font-weight: bold; }
+
+.markdown-body mark { background: rgb(255, 255, 0); color: rgb(0, 0, 0); fo=
+nt-style: italic; font-weight: bold; }
+
+.markdown-body sub, .markdown-body sup { font-size: 75%; line-height: 0; po=
+sition: relative; vertical-align: baseline; }
+
+.markdown-body sup { top: -0.5em; }
+
+.markdown-body sub { bottom: -0.25em; }
+
+.markdown-body h1 { font-size: 2em; margin: 0.67em 0px; }
+
+.markdown-body img { border: 0px; }
+
+.markdown-body hr { box-sizing: content-box; height: 0px; }
+
+.markdown-body pre { overflow: auto; }
+
+.markdown-body code, .markdown-body kbd, .markdown-body pre, .markdown-body=
+ samp { font-family: monospace, monospace; font-size: 1em; }
+
+.markdown-body input { color: inherit; font: inherit; margin: 0px; }
+
+.markdown-body html input[disabled] { cursor: default; }
+
+.markdown-body input { line-height: normal; }
+
+.markdown-body input[type=3D"checkbox"] { box-sizing: border-box; padding: =
+0px; }
+
+.markdown-body table { border-collapse: collapse; border-spacing: 0px; }
+
+.markdown-body td, .markdown-body th { padding: 0px; }
+
+.markdown-body .codehilitetable, .markdown-body .highlighttable { border: 0=
+px; border-spacing: 0px; }
+
+.markdown-body .codehilitetable tr, .markdown-body .highlighttable { border=
+: 0px; }
+
+.markdown-body .codehilitetable pre, .markdown-body .codehilitetable div.co=
+dehilite, .markdown-body .highlighttable pre, .markdown-body .highlighttabl=
+e div.highlight { margin: 0px; }
+
+.markdown-body .linenos, .markdown-body .code, .markdown-body .codehiliteta=
+ble td, .markdown-body .highlighttable td { border: 0px; padding: 0px; }
+
+.markdown-body td:not(.linenos) .linenodiv { padding: 0px !important; }
+
+.markdown-body .code { width: 100%; }
+
+.markdown-body .linenos div pre, .markdown-body .linenodiv pre, .markdown-b=
+ody .linenodiv { border: 0px; border-radius: 3px 0px 0px 3px; }
+
+.markdown-body .code div pre, .markdown-body .code div { border: 0px; borde=
+r-radius: 0px 3px 3px 0px; }
+
+.markdown-body * { box-sizing: border-box; }
+
+.markdown-body input { font: 13px / 1.4 Helvetica, arial, freesans, clean, =
+sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+
+.markdown-body a { color: var(--color-link-fg); }
+
+.markdown-body hr { height: 0px; margin: 15px 0px; overflow: hidden; backgr=
+ound: transparent; border-top: 0px; border-right: 0px; border-left: 0px; bo=
+rder-image: none; border-bottom: 1px solid var(--color-border); }
+
+.markdown-body hr::before, .markdown-body hr::after { display: table; conte=
+nt: " "; }
+
+.markdown-body hr::after { clear: both; }
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4,=
+ .markdown-body h5, .markdown-body h6 { margin-top: 15px; margin-bottom: 15=
+px; line-height: 1.1; }
+
+.markdown-body h1 { font-size: 30px; }
+
+.markdown-body h2 { font-size: 21px; }
+
+.markdown-body h3 { font-size: 16px; }
+
+.markdown-body h4 { font-size: 14px; }
+
+.markdown-body h5 { font-size: 12px; }
+
+.markdown-body h6 { font-size: 11px; }
+
+.markdown-body blockquote { margin: 0px; }
+
+.markdown-body ul, .markdown-body ol { padding: 0px; margin-top: 0px; margi=
+n-bottom: 0px; }
+
+.markdown-body ol ol, .markdown-body ul ol { list-style-type: lower-roman; =
+}
+
+.markdown-body ul ul ol, .markdown-body ul ol ol, .markdown-body ol ul ol, =
+.markdown-body ol ol ol { list-style-type: lower-alpha; }
+
+.markdown-body dd { margin-left: 0px; }
+
+.markdown-body code, .markdown-body pre, .markdown-body samp { font-family:=
+ Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 12px; }
+
+.markdown-body pre { margin-top: 0px; margin-bottom: 0px; }
+
+.markdown-body kbd { display: inline-block; padding: 3px 5px; color: var(--=
+color-fg-default); vertical-align: middle; background-color: var(--color-bg=
+-subtle); border-top-color: ; border-top-style: ; border-top-width: ; borde=
+r-right-color: ; border-right-style: ; border-right-width: ; border-bottom-=
+style: ; border-bottom-width: ; border-left-color: ; border-left-style: ; b=
+order-left-width: ; border-image-source: ; border-image-slice: ; border-ima=
+ge-width: ; border-image-outset: ; border-image-repeat: ; border-bottom-col=
+or: var(--color-neutral-muted); border-radius: 6px; box-shadow: inset 0 -1p=
+x 0 var(--color-neutral-muted); font: 11px Consolas, "Liberation Mono", Men=
+lo, Courier, monospace; }
+
+.markdown-body > :first-child { margin-top: 0px !important; }
+
+.markdown-body > :last-child { margin-bottom: 0px !important; }
+
+.markdown-body .headerlink { font: 16px fontawesome-mini; vertical-align: m=
+iddle; margin-left: -20px; float: left; display: inline-block; text-decorat=
+ion: none; opacity: 0; color: var(--color-fg); }
+
+.markdown-body .headerlink:focus { outline: none; }
+
+.markdown-body h1 .headerlink { margin-top: 0.8rem; }
+
+.markdown-body h2 .headerlink, .markdown-body h3 .headerlink { margin-top: =
+0.6rem; }
+
+.markdown-body h4 .headerlink { margin-top: 0.2rem; }
+
+.markdown-body h5 .headerlink, .markdown-body h6 .headerlink { margin-top: =
+0px; }
+
+.markdown-body .headerlink:hover, .markdown-body h1:hover .headerlink, .mar=
+kdown-body h2:hover .headerlink, .markdown-body h3:hover .headerlink, .mark=
+down-body h4:hover .headerlink, .markdown-body h5:hover .headerlink, .markd=
+own-body h6:hover .headerlink { opacity: 1; text-decoration: none; }
+
+.markdown-body h1 { padding-bottom: 0.3em; font-size: 2.25em; line-height: =
+1.2; border-bottom: 1px solid var(--color-border-muted); }
+
+.markdown-body h2 { padding-bottom: 0.3em; font-size: 1.75em; line-height: =
+1.225; border-bottom: 1px solid var(--color-border-muted); }
+
+.markdown-body h3 { font-size: 1.5em; line-height: 1.43; }
+
+.markdown-body h4 { font-size: 1.25em; }
+
+.markdown-body h5 { font-size: 1em; }
+
+.markdown-body h6 { font-size: 1em; color: var(--color-fg-muted); }
+
+.markdown-body p, .markdown-body blockquote, .markdown-body ul, .markdown-b=
+ody ol, .markdown-body dl, .markdown-body table, .markdown-body pre, .markd=
+own-body .admonition, .markdown-body details { margin-top: 0px; margin-bott=
+om: 16px; }
+
+.markdown-body hr { height: 4px; padding: 0px; margin: 16px 0px; background=
+-color: var(--color-border); border: 0px; }
+
+.markdown-body ul, .markdown-body ol { padding-left: 2em; }
+
+.markdown-body ul ul, .markdown-body ul ol, .markdown-body ol ol, .markdown=
+-body ol ul { margin-top: 0px; margin-bottom: 0px; }
+
+.markdown-body li > p { margin-top: 16px; }
+
+.markdown-body dl { padding: 0px; }
+
+.markdown-body dl dt { padding: 0px; margin-top: 16px; font-size: 1em; font=
+-style: italic; font-weight: bold; }
+
+.markdown-body dl dd { padding: 0px 16px; margin-bottom: 16px; }
+
+.markdown-body blockquote { padding: 0px 15px; color: var(--color-fg-muted)=
+; border-left: 4px solid var(--color-border); }
+
+.markdown-body blockquote > :first-child { margin-top: 0px; }
+
+.markdown-body blockquote > :last-child { margin-bottom: 0px; }
+
+.markdown-body table { display: block; width: 100%; overflow: auto; word-br=
+eak: keep-all; }
+
+.markdown-body table th { font-weight: bold; }
+
+.markdown-body table th, .markdown-body table td { padding: 6px 13px; borde=
+r: 1px solid var(--color-border-muted); }
+
+.markdown-body table tr { border-top: 1px solid var(--color-border-muted); =
+}
+
+.markdown-body table tr:nth-child(2n) { background-color: var(--color-bg-su=
+btle); }
+
+.markdown-body img { max-width: 100%; box-sizing: border-box; }
+
+.markdown-body code, .markdown-body samp { padding: 0.2em 0px; margin: 0px;=
+ font-size: 85%; border-radius: 3px; }
+
+.markdown-body :not(pre) > code:not(.highlight):not(.codehilite), .markdown=
+-body samp { background-color: var(--color-bg-subtle); }
+
+.markdown-body code::before, .markdown-body code::after { letter-spacing: -=
+0.2em; content: "=C2=A0"; }
+
+.markdown-body pre > code { padding: 0px; margin: 0px; font-size: 100%; wor=
+d-break: normal; white-space: pre; background: transparent; border: 0px; }
+
+.markdown-body .codehilite, .markdown-body .highlight { margin-bottom: 16px=
+; }
+
+.markdown-body .codehilite pre, .markdown-body .highlight pre, .markdown-bo=
+dy pre { padding: 16px; overflow: auto; font-size: 85%; line-height: 1.45; =
+}
+
+.markdown-body .codehilite, .markdown-body .highlight, .markdown-body pre {=
+ border-radius: 3px; }
+
+.markdown-body :not(.highlight) > pre { background-color: var(--color-bg-su=
+btle); }
+
+.markdown-body .codehilite pre, .markdown-body .highlight pre { margin-bott=
+om: 0px; word-break: normal; }
+
+.markdown-body pre { overflow-wrap: normal; }
+
+.markdown-body pre code { display: inline; max-width: initial; padding: 0px=
+; margin: 0px; overflow: initial; line-height: inherit; overflow-wrap: norm=
+al; background-color: transparent; border: 0px; }
+
+.markdown-body pre code::before, .markdown-body pre code::after { content: =
+normal; }
+
+.markdown-body .admonition, .markdown-body details[class] { position: relat=
+ive; border-left: 4px solid var(--color-fg); padding: 10px; }
+
+.markdown-body details[class] > summary { list-style: none; }
+
+.markdown-body .admonition p { padding: 0px; }
+
+.markdown-body .admonition > .admonition-title, .markdown-body details[clas=
+s] > summary { position: relative; font-weight: bold; margin: 0px; padding-=
+left: 20px; }
+
+.markdown-body .admonition-title::before, .markdown-body details[class] > s=
+ummary::before { font: 16px / 1.5 fontawesome-mini; user-select: none; colo=
+r: var(--color-fg); position: absolute; left: 0px; top: 0px; }
+
+.markdown-body details[class] > summary::after { font: 16px / 1.5 fontaweso=
+me-mini; user-select: none; color: var(--color-fg); position: absolute; rig=
+ht: 0px; top: 0px; }
+
+.markdown-body details[class] > summary::after { content: "=EE=A0=83"; }
+
+.markdown-body details[class][open] > summary::after { content: "=EE=A0=82"=
+; }
+
+.markdown-body details[class] > summary::after { color: var(--color-fg); }
+
+.markdown-body details.question > summary::after, .markdown-body details.im=
+portant > summary::after, .markdown-body details.attention > summary::after=
+ { color: var(--color-important-emphasis); }
+
+.markdown-body details.warning > summary::after { color: var(--color-warnin=
+g-emphasis); }
+
+.markdown-body details.tip > summary::after, .markdown-body details.hint > =
+summary::after { color: var(--color-tip-emphasis); }
+
+.markdown-body details.caution > summary::after, .markdown-body details.dan=
+ger > summary::after { color: var(--color-caution-emphasis); }
+
+.markdown-body details.note > summary::after { color: var(--color-note-emph=
+asis); }
+
+.markdown-body .admonition-title::before, .markdown-body details[class] sum=
+mary::before { content: "=EE=A0=80=C2=A0"; color: var(--color-fg); }
+
+.markdown-body .important > :is(.admonition-title, summary)::before, .markd=
+own-body .attention > :is(.admonition-title, summary)::before { content: "=
+=EF=83=B3=C2=A0"; color: var(--color-important-emphasis); }
+
+.markdown-body .question > :is(.admonition-title, summary)::before { conten=
+t: "=EE=A0=84=C2=A0"; color: var(--color-important-emphasis); }
+
+.markdown-body .warning > :is(.admonition-title, summary)::before { content=
+: "=EE=A0=81=C2=A0"; color: var(--color-warning-emphasis); }
+
+.markdown-body .tip > :is(.admonition-title, summary)::before, .markdown-bo=
+dy .hint > :is(.admonition-title, summary)::before { content: "=EF=83=AB=C2=
+=A0"; color: var(--color-tip-emphasis); }
+
+.markdown-body .caution > :is(.admonition-title, summary)::before, .markdow=
+n-body .danger > :is(.admonition-title, summary)::before { content: "=EE=A0=
+=87=C2=A0"; color: var(--color-caution-emphasis); }
+
+.markdown-body .note > :is(.admonition-title, summary)::before { content: "=
+=EE=A0=80=C2=A0"; color: var(--color-note-emphasis); }
+
+.markdown-body .admonition > :is(.admonition-title, summary)::after, .markd=
+own-body details::after { content: normal; }
+
+.markdown-body .question:is(.admonition, details[class]), .markdown-body .i=
+mportant:is(.admonition, details[class]), .markdown-body .attention:is(.adm=
+onition, details[class]) { border-left-color: var(--color-important-emphasi=
+s); }
+
+.markdown-body .warning:is(.admonition, details[class]) { border-left-color=
+: var(--color-warning-emphasis); }
+
+.markdown-body .tip:is(.admonition, details[class]), .markdown-body .hint:i=
+s(.admonition, details[class]) { border-left-color: var(--color-tip-emphasi=
+s); }
+
+.markdown-body .caution:is(.admonition, details[class]), .markdown-body .da=
+nger:is(.admonition, details[class]) { border-left-color: var(--color-cauti=
+on-emphasis); }
+
+.markdown-body .note:is(.admonition, details[class]) { border-left-color: v=
+ar(--color-note-emphasis); }
+
+.markdown-body .admonition > :first-child, .markdown-body details[class] > =
+:first-child { margin-top: 0px !important; }
+
+.markdown-body .admonition > :last-child, .markdown-body details[class] > :=
+last-child { margin-bottom: 0px !important; }
+
+.markdown-body .progress { display: block; width: 300px; margin: 10px 0px; =
+height: 24px; border-radius: 3px; background-color: var(--color-progress-bg=
+); position: relative; box-shadow: inset -1px 1px 3px var(--color-progress-=
+shadow2); }
+
+.markdown-body .progress-label { position: absolute; text-align: center; fo=
+nt-weight: bold; width: 100%; margin: 0px; line-height: 24px; color: var(--=
+color-fg); text-shadow: 1px 1px 0 var(--color-progress-shadow), -1px -1px 0=
+ var(--color-progress-shadow), -1px 1px 0 var(--color-progress-shadow),
+               1px -1px 0 var(--color-progress-shadow), 0 1px 0 var(--color=
+-progress-shadow), 0 -1px 0 var(--color-progress-shadow),
+               1px 0 0 var(--color-progress-shadow), -1px 0 0 var(--color-p=
+rogress-shadow), 1px 1px 2px #000; white-space: nowrap; overflow: hidden; -=
+webkit-font-smoothing: antialiased !important; }
+
+.markdown-body .progress-bar { height: 24px; float: left; border-radius: 3p=
+x; background-color: rgb(150, 198, 215); box-shadow: rgba(255, 255, 255, 0.=
+5) 0px 1px 0px inset, rgba(0, 0, 0, 0.1) 0px -1px 0px inset; background-siz=
+e: 30px 30px; background-image: linear-gradient(135deg, rgba(255, 255, 255,=
+ 0.4) 27%, transparent 27%, transparent 52%, rgba(255, 255, 255, 0.4) 52%, =
+rgba(255, 255, 255, 0.4) 77%, transparent 77%, transparent); }
+
+.markdown-body .progress-100plus .progress-bar { background-color: rgb(166,=
+ 215, 150); }
+
+.markdown-body .progress-80plus .progress-bar { background-color: rgb(198, =
+215, 150); }
+
+.markdown-body .progress-60plus .progress-bar { background-color: rgb(215, =
+200, 150); }
+
+.markdown-body .progress-40plus .progress-bar { background-color: rgb(215, =
+167, 150); }
+
+.markdown-body .progress-20plus .progress-bar { background-color: rgb(215, =
+150, 166); }
+
+.markdown-body .progress-0plus .progress-bar { background-color: rgb(194, 9=
+5, 119); }
+
+.markdown-body .candystripe-animate .progress-bar { animation: 3s linear 0s=
+ infinite normal none running animate-stripes; }
+
+@-webkit-keyframes animate-stripes {=20
+  0% { background-position: 0px 0px; }
+  100% { background-position: 60px 0px; }
+}
+
+@keyframes animate-stripes {=20
+  0% { background-position: 0px 0px; }
+  100% { background-position: 60px 0px; }
+}
+
+.markdown-body .gloss .progress-bar { box-shadow: rgba(255, 255, 255, 0.7) =
+0px 4px 12px inset, rgba(0, 0, 0, 0.05) 0px -12px 0px inset; }
+
+.markdown-body .critic_mark { background: rgb(255, 255, 0); }
+
+.markdown-body .critic_delete { color: var(--color-caution-emphasis); text-=
+decoration: line-through; }
+
+.markdown-body .critic_insert { color: var(--color-tip-emphasis); text-deco=
+ration: underline; }
+
+.markdown-body .critic_comment { color: var(--color-fg-muted); font-style: =
+italic; }
+
+.markdown-body .headeranchor { font: 16px / 1 fontawesome-mini; display: in=
+line-block; text-decoration: none; -webkit-font-smoothing: antialiased; use=
+r-select: none; }
+
+.markdown-body .task-list-item { list-style-type: none; }
+
+.markdown-body .task-list-item + .task-list-item { margin-top: 3px; }
+
+.markdown-body .task-list-item input { margin: 0px 4px 0.25em -20px; vertic=
+al-align: middle; }
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, .markd=
+own-body, div.uml-flowchart { overflow: auto; }
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, div.um=
+l-flowchart { background-color: rgb(255, 255, 255); }
+
+@media only screen and (min-width: 480px) {
+  .markdown-body { font-size: 14px; }
+}
+
+@media only screen and (min-width: 768px) {
+  .markdown-body { font-size: 16px; }
+}
+
+@media print {
+  .markdown-body * { background: transparent !important; color: black !impo=
+rtant; filter: none !important; }
+  .markdown-body { font-size: 12pt; max-width: 100%; outline: none; border:=
+ 0px; }
+  .markdown-body .headeranchor-link { display: none; }
+  .markdown-body a[href]::after { content: " (" attr(href) ")"; }
+  .markdown-body abbr[title]::after { content: " (" attr(title) ")"; }
+  .markdown-body .ir a::after, .markdown-body a[href^=3D"javascript:"]::aft=
+er, .markdown-body a[href^=3D"#"]::after { content: ""; }
+  .markdown-body pre { white-space: pre-wrap; overflow-wrap: break-word; }
+  .markdown-body pre, .markdown-body blockquote { padding-right: 1em; break=
+-inside: avoid; }
+  .markdown-body .progress, .markdown-body .progress-bar { box-shadow: none=
+; }
+  .markdown-body .progress { border: 1px solid rgb(221, 221, 221); }
+  .markdown-body .progress-bar { height: 22px; border-right: 1px solid rgb(=
+221, 221, 221); }
+  .markdown-body tr, .markdown-body img { break-inside: avoid; }
+  .markdown-body img { max-width: 100% !important; }
+  .markdown-body p, .markdown-body h2, .markdown-body h3 { orphans: 3; wido=
+ws: 3; }
+  .markdown-body h2, .markdown-body h3 { break-after: avoid; }
+}
+------MultipartBoundary--FS1l6z1FfSlFuEPJ4O45Jctz8SSP9vuGQ8xRYtM4a8------

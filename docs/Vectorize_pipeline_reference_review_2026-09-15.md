@@ -1,4 +1,4 @@
-# Review of docs/Vectorize_pipeline_reference.md — 2026-09-15
+# Review of docs/Vectorize_pipeline_implementation_reference_2026-09-15.md (first draft, then named Vectorize_pipeline_reference.md) — 2026-09-15
 
 Independent review of the first draft by a fresh sub-agent that read the document and every source file it cites. The report is reproduced verbatim below. Disposition of each item is recorded first.
 
