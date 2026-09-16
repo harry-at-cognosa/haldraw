@@ -38,7 +38,7 @@ Rules:
 - Each box, circle, rounded rectangle or diamond is one shape. Classify as rect, ellipse or diamond; use rect when unsure.
 - Free-standing text that is not inside a shape is a shape of kind "text" whose box is the text's extent.
 - Text inside a shape goes in that shape's "text" field, exactly as written, line breaks as \\n. Use "" when the shape has no text.
-- Colours as 6-digit lowercase hex (#rrggbb). Use "" when you cannot tell. Do not invent colours.
+- Colours as 6-digit lowercase hex (#rrggbb): "fill" is the shape's interior, "stroke" its outline, "textColor" the colour of its text (white text on a dark shape is common; report it). Use "" when you cannot tell. Do not invent colours.
 - A connector is a line or arrow that visibly joins two shapes; "from" and "to" are the shape ids at its ends, "headEnd" is "arrow" when the "to" end has an arrowhead. A line whose ends do not touch shapes is not a connector; omit it.
 - "confidence" is your 0–1 estimate that the element is real and correctly placed.
 - Ids are short unique strings such as s1, s2.
@@ -54,7 +54,7 @@ const OUTPUT_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'kind', 'x', 'y', 'w', 'h', 'text', 'fill', 'stroke', 'confidence'],
+        required: ['id', 'kind', 'x', 'y', 'w', 'h', 'text', 'fill', 'stroke', 'textColor', 'confidence'],
         properties: {
           id: { type: 'string' },
           kind: { type: 'string', enum: ['rect', 'ellipse', 'diamond', 'text'] },
@@ -65,6 +65,7 @@ const OUTPUT_SCHEMA = {
           text: { type: 'string' },
           fill: { type: 'string' },
           stroke: { type: 'string' },
+          textColor: { type: 'string' },
           confidence: { type: 'number' },
         },
       },

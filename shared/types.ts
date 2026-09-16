@@ -171,6 +171,8 @@ export interface VectorShape {
   /** Hex colours or '' when not discernible. */
   fill: string;
   stroke: string;
+  /** Colour of the text inside the shape, or ''. */
+  textColor: string;
   /** 0–1. */
   confidence: number;
 }

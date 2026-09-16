@@ -575,14 +575,19 @@ function VectorizeButton({ node, compact }: { node: CanvasNode; compact?: boolea
   const title = 'Vectorize: ask the vision model for an editable draft of this image, placed on a Draft layer above it (Settings… sets the model and key)';
   if (compact) {
     return (
-      <button
-        onClick={run}
-        disabled={progress !== null}
-        title={progress ?? title}
-        className="p-1 rounded hover:bg-panel-hover text-fg-muted hover:text-fg disabled:opacity-60"
-      >
-        <Sparkles size={12} className={progress ? 'animate-pulse' : ''} />
-      </button>
+      <>
+        <button
+          onClick={run}
+          disabled={progress !== null}
+          title={progress ?? title}
+          className="p-1 rounded hover:bg-panel-hover text-fg-muted hover:text-fg disabled:opacity-60"
+        >
+          <Sparkles size={12} className={progress ? 'animate-pulse' : ''} />
+        </button>
+        {progress ? (
+          <span className="absolute left-2 -bottom-4 text-[10px] text-accent whitespace-nowrap animate-pulse">{progress}</span>
+        ) : null}
+      </>
     );
   }
   return (
@@ -1170,7 +1175,7 @@ function BoardPanel() {
             {lockedNodes.map((n) => (
               <div
                 key={n.id}
-                className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
+                className="relative flex items-center gap-2 rounded-md border border-border px-2 py-1.5 mb-3"
               >
                 <Lock size={12} className="text-fg-muted shrink-0" />
                 <span className="flex-1 truncate text-xs text-fg" title={n.id}>

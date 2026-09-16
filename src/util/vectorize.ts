@@ -43,6 +43,17 @@ export async function imageToPng(dataUrl: string): Promise<{ pngBase64: string; 
 const HEX = /^#[0-9a-f]{6}$/i;
 const colour = (v: string, fallback: string | undefined) => (HEX.test(v) ? v.toLowerCase() : fallback);
 
+/** Black or white, whichever reads on `hex` (WCAG relative luminance). */
+export function contrastingText(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const lum = 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255);
+  return lum > 0.35 ? '#0b0d10' : '#ffffff';
+}
+
 /** Average glyph width and line height as multiples of font size, for Inter-like faces. */
 const CHAR_W = 0.55;
 const LINE_H = 1.25;
@@ -96,6 +107,9 @@ export function convertResult(
     if (dashed) low++;
     const width = Math.max(4, s.w * sx);
     const height = Math.max(4, s.h * sy);
+    const fill = isText ? 'transparent' : colour(s.fill, 'transparent');
+    // Text colour: what the model saw; else black or white against a known fill; else the board default.
+    const textColor = colour(s.textColor, fill && fill !== 'transparent' ? contrastingText(fill) : base.color);
     return {
       tempId: s.id,
       type: s.kind,
@@ -108,8 +122,9 @@ export function convertResult(
       style: {
         ...base,
         // Unknown fill stays transparent so the reference shows through.
-        fill: isText ? 'transparent' : colour(s.fill, 'transparent'),
+        fill,
         stroke: isText ? 'transparent' : colour(s.stroke, base.stroke),
+        color: textColor,
         strokeDasharray: dashed && !isText ? '6 4' : undefined,
         fontSize: estimateFontSize(s.text, width, height, s.kind),
         textAlign: isText ? 'left' : base.textAlign,

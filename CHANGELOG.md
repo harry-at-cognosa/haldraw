@@ -2,6 +2,13 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.2 — 2026-09-15
+
+### Changed
+
+- **Vectorize drafts carry the text colour.** The model now reports each shape's text colour; when it can't, the draft picks black or white against the shape's fill by luminance, so white-on-dark-green stays white instead of the board's default dark text.
+- The sparkle on a Reference images row shows the same progress text ("Preparing image…", "Asking claude-opus-5…") as the full button while a call runs.
+
 ## 0.9.1 — 2026-09-15
 
 ### Changed
