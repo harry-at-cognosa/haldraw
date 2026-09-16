@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.1 — 2026-09-15
+
+### Changed
+
+- **Vectorize drafts:** a shape whose fill the model could not read is now transparent, so the reference stays visible through it, instead of the light default fill. Text size is derived from the box the model measured: free text fits its line count and longest line; text inside a shape is sized to the shape's usable area (rectangles 75 %, ellipses 50 %, diamonds 40 %), clamped to 8–48 px.
+
 ## 0.9.0 — 2026-09-15
 
 Vectorize: a first editable draft of a reference image. Spec: [docs/Vectorize_raster_design.md](./docs/Vectorize_raster_design.md), "Implementation plan — 0.9.0".

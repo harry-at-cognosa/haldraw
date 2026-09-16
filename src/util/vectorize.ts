@@ -1,4 +1,4 @@
-import type { CanvasEdge, CanvasNode, VectorizeResponse, VectorizeResult } from '@shared/types';
+import type { CanvasEdge, CanvasNode, VectorShapeKind, VectorizeResponse, VectorizeResult } from '@shared/types';
 import { useCanvas, layerOrder } from '@/store/canvasStore';
 import { defaultStyleForBackground, defaultEdgeStrokeForBackground } from '@/util/geometry';
 
@@ -43,6 +43,37 @@ export async function imageToPng(dataUrl: string): Promise<{ pngBase64: string; 
 const HEX = /^#[0-9a-f]{6}$/i;
 const colour = (v: string, fallback: string | undefined) => (HEX.test(v) ? v.toLowerCase() : fallback);
 
+/** Average glyph width and line height as multiples of font size, for Inter-like faces. */
+const CHAR_W = 0.55;
+const LINE_H = 1.25;
+const MIN_FONT = 8;
+const MAX_FONT = 48;
+
+/**
+ * Font size at which the text fits the box the model measured (canvas units).
+ * Free text: the box is the text's own extent, so fit the line count to the
+ * height and the longest line to the width. Shapes: the box is the shape, so
+ * size the wrapped text to a fraction of its area (ellipses lose the corners).
+ */
+export function estimateFontSize(text: string, w: number, h: number, kind: VectorShapeKind): number {
+  const t = text.trim();
+  if (!t) return 16;
+  const lines = t.split('\n');
+  const longest = Math.max(...lines.map((l) => l.length), 1);
+  let f: number;
+  if (kind === 'text') {
+    const byHeight = h / (lines.length * LINE_H);
+    const byWidth = w / (longest * CHAR_W);
+    f = Math.min(byHeight, byWidth);
+  } else {
+    const usable = (kind === 'ellipse' ? 0.5 : kind === 'diamond' ? 0.4 : 0.75) * w * h;
+    const byArea = Math.sqrt(usable / (t.length * CHAR_W * LINE_H));
+    const byWidth = (w * 0.9) / (Math.min(longest, 24) * CHAR_W);
+    f = Math.min(byArea, byWidth);
+  }
+  return Math.round(Math.max(MIN_FONT, Math.min(MAX_FONT, f)));
+}
+
 /**
  * Map the model's image-pixel boxes into the reference node's rectangle and
  * build node / edge rows. Ids are fresh; `tempIds` maps the model's ids so the
@@ -63,20 +94,24 @@ export function convertResult(
     const isText = s.kind === 'text';
     const dashed = s.confidence < LOW_CONFIDENCE;
     if (dashed) low++;
+    const width = Math.max(4, s.w * sx);
+    const height = Math.max(4, s.h * sy);
     return {
       tempId: s.id,
       type: s.kind,
       x: ref.x + s.x * sx,
       y: ref.y + s.y * sy,
-      width: Math.max(4, s.w * sx),
-      height: Math.max(4, s.h * sy),
+      width,
+      height,
       rotation: 0,
       locked: false,
       style: {
         ...base,
-        fill: isText ? 'transparent' : colour(s.fill, base.fill),
+        // Unknown fill stays transparent so the reference shows through.
+        fill: isText ? 'transparent' : colour(s.fill, 'transparent'),
         stroke: isText ? 'transparent' : colour(s.stroke, base.stroke),
         strokeDasharray: dashed && !isText ? '6 4' : undefined,
+        fontSize: estimateFontSize(s.text, width, height, s.kind),
         textAlign: isText ? 'left' : base.textAlign,
         verticalAlign: isText ? ('top' as const) : undefined,
       },
