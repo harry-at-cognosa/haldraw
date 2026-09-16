@@ -2,6 +2,7 @@ import { layerOrder, useCanvas } from '@/store/canvasStore';
 import LayersPanel from './LayersPanel';
 import { EDGE_HEADS, type Anchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type Layer, type NodeStyle } from '@shared/types';
 import { HEAD_LABELS, HeadGlyph } from '@/canvas/edgeHeads';
+import { notify, vectorizeNode } from '@/util/vectorize';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
 import {
@@ -23,6 +24,7 @@ import {
   AlignVerticalDistributeCenter,
   Lock,
   Unlock,
+  Sparkles,
 } from 'lucide-react';
 
 const PALETTE = [
@@ -334,6 +336,7 @@ export default function PropertiesPanel() {
                   onBegin={checkpoint}
                   onChange={(v) => patch({ opacity: v / 100 }, false)}
                 />
+                {selectedNodes.length === 1 && first?.type === 'image' ? <VectorizeButton node={first} /> : null}
                 <button
                   onClick={() => setLocked(selectedNodes.map((n) => n.id), true)}
                   className="w-full rounded-md border border-border px-3 py-2 text-fg-muted hover:text-fg hover:border-fg-muted text-sm inline-flex items-center justify-center gap-1.5"
@@ -544,6 +547,53 @@ export default function PropertiesPanel() {
         ) : null}
       </div>
     </aside>
+  );
+}
+
+/**
+ * Vectorize… for one image node. Full-width in the Image section; a small icon
+ * in the Reference images list, where locked images live.
+ */
+function VectorizeButton({ node, compact }: { node: CanvasNode; compact?: boolean }) {
+  const [progress, setProgress] = useState<string | null>(null);
+  const run = async () => {
+    setProgress('Starting…');
+    try {
+      const r = await vectorizeNode(node, setProgress);
+      notify(
+        'ok',
+        `Draft: ${r.shapes} shape${r.shapes === 1 ? '' : 's'}, ${r.connectors} connector${r.connectors === 1 ? '' : 's'}` +
+          (r.lowConfidence ? `, ${r.lowConfidence} dashed (low confidence)` : '') +
+          ` · ${r.model} · ${r.inputTokens + r.outputTokens} tokens`
+      );
+    } catch (err) {
+      notify('err', (err as Error).message);
+    } finally {
+      setProgress(null);
+    }
+  };
+  const title = 'Vectorize: ask the vision model for an editable draft of this image, placed on a Draft layer above it (Settings… sets the model and key)';
+  if (compact) {
+    return (
+      <button
+        onClick={run}
+        disabled={progress !== null}
+        title={progress ?? title}
+        className="p-1 rounded hover:bg-panel-hover text-fg-muted hover:text-fg disabled:opacity-60"
+      >
+        <Sparkles size={12} className={progress ? 'animate-pulse' : ''} />
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={run}
+      disabled={progress !== null}
+      title={title}
+      className="w-full rounded-md border border-accent px-3 py-2 text-fg hover:bg-accent-soft text-sm inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+    >
+      <Sparkles size={14} className={progress ? 'animate-pulse' : ''} /> {progress ?? 'Vectorize…'}
+    </button>
   );
 }
 
@@ -1127,6 +1177,7 @@ function BoardPanel() {
                   {n.type === 'image' ? 'Image' : n.type}{' '}
                   {Math.round(n.width)} × {Math.round(n.height)}
                 </span>
+                {n.type === 'image' ? <VectorizeButton node={n} compact /> : null}
                 <button
                   onClick={() => {
                     setLocked([n.id], false);

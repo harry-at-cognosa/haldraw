@@ -2,6 +2,20 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.0 — 2026-09-15
+
+Vectorize: a first editable draft of a reference image. Spec: [docs/Vectorize_raster_design.md](./docs/Vectorize_raster_design.md), "Implementation plan — 0.9.0".
+
+### Added
+
+- **Vectorize…** in the properties panel's Image section (one image selected). Sends the image to a Claude vision model and places the shapes, text and connectors it finds on a "Draft" layer directly above the image's layer, grouped and selected, as one undo step. Low-confidence elements are dashed. Coordinates follow the image's placement, so a reference at 50 % gets a draft at 50 %.
+- **Settings…** (File menu, `⌘,`, or the gear in the toolbar): model choice (Opus 5 default; Sonnet 5, Opus 4.8, Haiku 4.5), and the keychain status. The API key lives in the macOS keychain (`haldraw` / `anthropic-api-key`), read at call time, never stored by the app; the dialog shows the one-line `security` command to add it.
+- First network dependency: `@anthropic-ai/sdk`, used only from the main process. haldraw makes no other network calls.
+
+### Errors
+
+- No key: the toast shows the keychain command; no request is made. Rejected key, unknown model, rate limit and no network each get their own message. Output the app cannot use is retried once with the validation error, then reported with the raw text.
+
 ## 0.8.3 — 2026-09-15
 
 ### Fixed

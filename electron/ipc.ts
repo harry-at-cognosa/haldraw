@@ -7,7 +7,22 @@ import * as elementsRepo from './repo/elements';
 import * as imagesRepo from './repo/images';
 import * as metaRepo from './repo/meta';
 import * as layersRepo from './repo/layers';
-import type { CanvasEdge, CanvasNode, Layer, PickedImageFile, TextFileFilter, Viewport } from '@shared/types';
+import { hasApiKey, runVectorize } from './vectorize';
+import {
+  DEFAULT_VECTORIZE_MODEL,
+  type AppSettings,
+  type CanvasEdge,
+  type CanvasNode,
+  type Layer,
+  type PickedImageFile,
+  type TextFileFilter,
+  type VectorizeRequest,
+  type Viewport,
+} from '@shared/types';
+
+function readSettings(): AppSettings {
+  return { vectorizeModel: metaRepo.getMeta('vectorize.model') ?? DEFAULT_VECTORIZE_MODEL };
+}
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
 const MIME_BY_EXT: Record<string, string> = {
@@ -149,6 +164,16 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('theme:get', () => (metaRepo.getMeta('theme') ?? 'dark') as 'dark' | 'light');
   ipcMain.handle('theme:set', (_e, theme: 'dark' | 'light') => metaRepo.setMeta('theme', theme));
+
+  ipcMain.handle('settings:get', () => readSettings());
+  ipcMain.handle('settings:set', (_e, patch: Partial<AppSettings>) => {
+    if (typeof patch.vectorizeModel === 'string' && patch.vectorizeModel.trim()) {
+      metaRepo.setMeta('vectorize.model', patch.vectorizeModel.trim());
+    }
+    return readSettings();
+  });
+  ipcMain.handle('vectorize:keyStatus', () => ({ present: hasApiKey() }));
+  ipcMain.handle('vectorize:run', (_e, req: VectorizeRequest) => runVectorize(req));
 
   ipcMain.handle('openExternal', async (_e, url: string) => {
     if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) {

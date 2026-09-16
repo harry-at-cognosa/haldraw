@@ -1,6 +1,6 @@
 {
   "name": "haldraw",
-  "version": "0.8.3",
+  "version": "0.9.0",
   "description": "Local infinite-canvas diagramming app",
   "main": "out/main/index.js",
   "author": "harry",
@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
     "better-sqlite3": "^12.9.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
@@ -58,7 +59,9 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ]
     },

@@ -50,3 +50,40 @@ This is a first draft generator, not a converter. Model output will be approxima
 4. Invalid model output: error toast, nothing inserted.
 5. No key configured: clear message pointing at Settings, no network call.
 6. Airplane mode: network error surfaced, nothing inserted.
+
+## Implementation plan — 0.9.0 (M2, 2026-09-15)
+
+Agreed scope: the smaller contract below, not the board-file contract in "Pipeline" step 3. Everything else above stands unless noted.
+
+### Decisions
+
+1. **Provider.** Claude through the official TypeScript SDK (`@anthropic-ai/sdk`) in the main process; the renderer never holds the key. Default model `claude-opus-5`; a Settings dialog (app menu ▸ Settings…) stores the model choice in the `meta` table. Ollama deferred.
+2. **Key.** macOS keychain item, service `haldraw`, account `anthropic-api-key`, read at call time with `security find-generic-password -s haldraw -a anthropic-api-key -w`. Never stored or logged by the app. Missing item → toast pointing at the command. Add it once with:
+   `security add-generic-password -s haldraw -a anthropic-api-key -w '<key>' -U`
+3. **Contract.** Structured output (`output_config.format`, JSON schema) of a purpose-built object, not a `.haldraw` file:
+   ```
+   { shapes: [{ id, kind: rect|ellipse|diamond|text, x, y, w, h, text?, fill?, stroke?, confidence }],
+     connectors: [{ from: id, to: id, headEnd: none|arrow, label?, confidence }] }
+   ```
+   Coordinates are pixels of the image as sent (after downsampling), origin top-left. The converter in the renderer maps them into the reference node's rectangle, builds `CanvasNode` / `CanvasEdge` rows, and inserts them as one undo step.
+4. **Placement.** New layer "Draft" directly above the reference's layer (created if absent), current layer switched to it, result grouped and selected. Low-confidence elements get a dashed stroke (threshold 0.6).
+5. **Image.** Renderer downsamples to a 1568 px long side (Claude's full-resolution ceiling) as PNG and sends base64 to main over IPC. Main builds the request, returns the parsed object or a typed error.
+
+### Code map
+
+- `electron/vectorize.ts` — key lookup, request, schema, one retry on parse failure. `ipc.ts` handlers `vectorize:run`, `settings:get/set`. `preload.ts` + `HaldrawApi.vectorize` / `settings`.
+- `src/util/vectorize.ts` — downsample, convert contract → nodes/edges, validation.
+- `src/store/canvasStore.ts` — `insertMany({ nodes, edges }, { layerId, select, group })` under one checkpoint.
+- `src/panels/PropertiesPanel.tsx` — **Vectorize…** button in the Image section (one locked image selected).
+- `src/panels/SettingsModal.tsx` — model choice; shows whether the keychain item is present.
+- `electron/main.ts` — Settings… menu item (`menu:settings`).
+
+### Test plan
+
+1. No key: Vectorize… shows the keychain command; no request made.
+2. Screenshot board: draft appears on "Draft", grouped, one ⌘Z removes it.
+3. "harry's journey" board (second project): same; text content spot-checked.
+4. Ground truth: export `input_shared/harry_s_journey_260903=no_legend.haldraw` to PNG, import as a reference, vectorize, compare shape and text counts with the original board.
+5. Reference at 50 %: nodes land on the image, not at 2×.
+6. Invalid output (forced by a bad schema in a test build): error toast, nothing inserted.
+

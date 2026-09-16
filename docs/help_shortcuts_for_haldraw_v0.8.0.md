@@ -85,6 +85,7 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | `⌘V` | Paste screenshot as image |
 | `⌘⇧I` | Import image file (placement dialog) |
 | `⌘⇧O` | Import `.haldraw` board into this project |
+| `⌘,` | Settings… (vectorize model, API key status) |
 | `Shift` + resize handle | Keep aspect ratio |
 | `⌘E` | Export PNG |
 | `⌘`-click a shape | Open its link |
@@ -109,4 +110,5 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | Properties panel, Image section | Opacity slider | Image opacity |
 | Properties panel, Image section | Lock as reference | Make the image ignore the pointer |
 | Properties panel, Image section | Reset to original size | Restore intrinsic pixel size |
+| Properties panel, Image section | Vectorize… (0.9.0) | Editable draft of the image on a Draft layer above it, via the vision model |
 | Properties panel, Layer section | ▲ ▼ ⇈ ⇊ | Same as the stacking-order keys |

@@ -44,6 +44,12 @@ function buildMenu(): void {
           click: () => sendToFocused('menu:importBoard'),
         },
         { type: 'separator' },
+        {
+          label: 'Settings…',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => sendToFocused('menu:settings'),
+        },
+        { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
       ],
     },

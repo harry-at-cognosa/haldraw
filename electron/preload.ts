@@ -54,6 +54,14 @@ const api: HaldrawApi = {
     get: () => ipcRenderer.invoke('theme:get'),
     set: (theme) => ipcRenderer.invoke('theme:set', theme),
   },
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    set: (patch) => ipcRenderer.invoke('settings:set', patch),
+  },
+  vectorize: {
+    keyStatus: () => ipcRenderer.invoke('vectorize:keyStatus'),
+    run: (req) => ipcRenderer.invoke('vectorize:run', req),
+  },
 };
 
 contextBridge.exposeInMainWorld('haldraw', api);

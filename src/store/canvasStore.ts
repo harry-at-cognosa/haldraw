@@ -158,6 +158,19 @@ interface CanvasState {
   /** Move the selection (nodes and edges) one layer up or down. */
   shiftSelectionLayer: (dir: 'up' | 'down') => void;
 
+  /**
+   * Insert many nodes and edges as ONE undo step. Edges reference nodes by the
+   * caller's temporary ids. `layer` is an existing layer id, or a new layer to
+   * create directly above `abovePosition` (also part of the same undo step).
+   */
+  insertMany: (
+    items: {
+      nodes: Array<Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId' | 'layerId'> & { tempId: string }>;
+      edges: Array<Omit<CanvasEdge, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'layerId' | 'midpoint' | 'labelPoint'> & { fromTemp: string; toTemp: string }>;
+    },
+    opts: { layer: { id: string } | { name: string; abovePosition: number }; group?: boolean; select?: boolean }
+  ) => { nodeIds: string[]; edgeIds: string[]; layerId: string };
+
   consumeDirty: () => {
     upserts: CanvasNode[];
     deletions: string[];
@@ -1221,6 +1234,78 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     const target = ordered[dir === 'up' ? i + 1 : i - 1];
     if (!target) return;
     get().moveToLayer({ nodeIds, edgeIds }, target.id);
+  },
+
+  insertMany: ({ nodes: inNodes, edges: inEdges }, opts) => {
+    const s = get();
+    const prev = snapshot(s);
+    const now = Date.now();
+    let layers = s.layers;
+    const dirtyL = new Set(s.dirtyLayerIds);
+    let layerId: string;
+    if ('id' in opts.layer) {
+      layerId = opts.layer.id;
+    } else {
+      // Shift every layer above the anchor up by one, then slot the new layer in.
+      const shifted: Record<string, Layer> = {};
+      for (const l of Object.values(s.layers)) {
+        shifted[l.id] = l.position > opts.layer.abovePosition ? { ...l, position: l.position + 1, updatedAt: now } : l;
+      }
+      const layer: Layer = {
+        id: newId(),
+        boardId: s.boardId!,
+        name: opts.layer.name,
+        position: opts.layer.abovePosition + 1,
+        visible: true,
+        locked: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      layers = renumberLayers({ ...shifted, [layer.id]: layer });
+      for (const l of Object.values(layers)) if (l !== s.layers[l.id]) dirtyL.add(l.id);
+      layerId = layer.id;
+    }
+    const nodes = { ...s.nodes };
+    const edges = { ...s.edges };
+    const dirtyN = new Set(s.dirtyNodeIds);
+    const dirtyE = new Set(s.dirtyEdgeIds);
+    const idOf = new Map<string, string>();
+    const groupId = opts.group && inNodes.length > 1 ? newId() : null;
+    let z = maxZIndex(s.nodes) + 1;
+    const nodeIds: string[] = [];
+    for (const n of inNodes) {
+      const { tempId, ...rest } = n;
+      const id = newId();
+      idOf.set(tempId, id);
+      nodes[id] = { ...rest, id, boardId: s.boardId!, zIndex: z++, groupId, layerId, createdAt: now, updatedAt: now };
+      dirtyN.add(id);
+      nodeIds.push(id);
+    }
+    const edgeIds: string[] = [];
+    for (const e of inEdges) {
+      const { fromTemp, toTemp, ...rest } = e;
+      const fromNode = idOf.get(fromTemp);
+      const toNode = idOf.get(toTemp);
+      if (!fromNode || !toNode) continue;
+      const id = newId();
+      edges[id] = { ...rest, id, boardId: s.boardId!, fromNode, toNode, midpoint: null, labelPoint: null, layerId, createdAt: now, updatedAt: now };
+      dirtyE.add(id);
+      edgeIds.push(id);
+    }
+    set({
+      nodes,
+      edges,
+      layers,
+      currentLayerId: layerId,
+      dirtyNodeIds: dirtyN,
+      dirtyEdgeIds: dirtyE,
+      dirtyLayerIds: dirtyL,
+      selection: opts.select ? new Set(nodeIds) : s.selection,
+      edgeSelection: opts.select ? new Set() : s.edgeSelection,
+      history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+      future: [],
+    });
+    return { nodeIds, edgeIds, layerId };
   },
 
   consumeDirty: () => {

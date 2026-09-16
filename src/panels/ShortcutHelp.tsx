@@ -90,6 +90,7 @@ export default function ShortcutHelp({
         ['⌘V', 'Paste screenshot as image'],
         ['⌘⇧I', 'Import image file (placement dialog)'],
         ['⌘⇧O', 'Import .haldraw board into this project'],
+        ['⌘,', 'Settings (vectorize model, API key)'],
         ['Export ▾ › haldraw board', 'Save this board as a .haldraw file'],
         ['⇧ + resize handle', 'Keep aspect ratio'],
         ['⌘E', 'Export PNG'],

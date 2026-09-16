@@ -152,7 +152,69 @@ export interface PickedImageFile {
   bytes: ArrayBuffer;
 }
 
-export type MenuChannel = 'menu:importImage' | 'menu:importBoard';
+export type MenuChannel = 'menu:importImage' | 'menu:importBoard' | 'menu:settings';
+
+// ---- Vectorize (0.9.0): image → editable draft via a vision model ----
+
+export type VectorShapeKind = 'rect' | 'ellipse' | 'diamond' | 'text';
+
+/** One element the model found. Coordinates are pixels of the image as sent, origin top-left. */
+export interface VectorShape {
+  id: string;
+  kind: VectorShapeKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Text inside the shape, or '' when none. */
+  text: string;
+  /** Hex colours or '' when not discernible. */
+  fill: string;
+  stroke: string;
+  /** 0–1. */
+  confidence: number;
+}
+
+export interface VectorConnector {
+  from: string;
+  to: string;
+  headEnd: 'none' | 'arrow';
+  label: string;
+  confidence: number;
+}
+
+/** The structured output contract; see docs/Vectorize_raster_design.md § Implementation plan. */
+export interface VectorizeResult {
+  shapes: VectorShape[];
+  connectors: VectorConnector[];
+}
+
+export interface VectorizeRequest {
+  /** PNG, base64 without the data: prefix, long side ≤ 1568 px. */
+  pngBase64: string;
+  width: number;
+  height: number;
+  model: string;
+}
+
+export interface VectorizeResponse {
+  result: VectorizeResult;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export const VECTORIZE_MODELS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: 'claude-opus-5', label: 'Claude Opus 5 (default)' },
+  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
+  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
+];
+export const DEFAULT_VECTORIZE_MODEL = 'claude-opus-5';
+
+export interface AppSettings {
+  vectorizeModel: string;
+}
 
 export interface TextFileFilter {
   name: string;
@@ -244,6 +306,15 @@ export interface HaldrawApi {
   theme: {
     get: () => Promise<'dark' | 'light'>;
     set: (theme: 'dark' | 'light') => Promise<void>;
+  };
+  settings: {
+    get: () => Promise<AppSettings>;
+    set: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+  };
+  vectorize: {
+    /** Whether the keychain item `haldraw` / `anthropic-api-key` exists. Never returns the key. */
+    keyStatus: () => Promise<{ present: boolean }>;
+    run: (req: VectorizeRequest) => Promise<VectorizeResponse>;
   };
 }
 

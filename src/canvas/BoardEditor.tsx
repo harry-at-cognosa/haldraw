@@ -9,6 +9,7 @@ import PropertiesPanel from '@/panels/PropertiesPanel';
 import IconPicker from '@/panels/IconPicker';
 import Minimap from '@/panels/Minimap';
 import ShortcutHelp from '@/panels/ShortcutHelp';
+import SettingsModal from '@/panels/SettingsModal';
 import { exportBoardPng, buildExportSvg } from '@/util/exportPng';
 import type { ExportFormat } from '@/panels/ExportMenu';
 import ImportImageModal from '@/panels/ImportImageModal';
@@ -45,6 +46,7 @@ export default function BoardEditor({
   const [ready, setReady] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [clipboard, setClipboard] = useState<{ nodes: CanvasNode[]; edges: CanvasEdge[] } | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -59,9 +61,19 @@ export default function BoardEditor({
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3500);
+    const t = setTimeout(() => setToast(null), toast.kind === 'err' ? 9000 : 3500);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // Toasts raised outside this component (e.g. the properties panel's Vectorize…).
+  useEffect(() => {
+    const onToast = (e: Event) => setToast((e as CustomEvent<{ kind: 'ok' | 'err'; text: string }>).detail);
+    window.addEventListener('haldraw:toast', onToast);
+    return () => window.removeEventListener('haldraw:toast', onToast);
+  }, []);
+
+  // Application menu → File ▸ Settings… (⌘,)
+  useEffect(() => window.haldraw.onMenu('menu:settings', () => setSettingsOpen(true)), []);
 
   // Load board
   useEffect(() => {
@@ -660,6 +672,7 @@ export default function BoardEditor({
         onImportImage={importImageFromFile}
         onBack={onBack}
         onShortcuts={() => setShortcutsOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
         theme={theme}
         onToggleTheme={onToggleTheme}
       />
@@ -677,6 +690,7 @@ export default function BoardEditor({
       </div>
       <IconPicker open={iconPickerOpen} onClose={() => setIconPickerOpen(false)} onPick={onPickIcon} />
       <ShortcutHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ImportImageModal
         image={importState?.image ?? null}
         defaults={importState?.defaults ?? DEFAULT_PLACEMENT}
@@ -691,7 +705,7 @@ export default function BoardEditor({
               : 'bg-red-500/90 border-red-400 text-white'
           }`}
         >
-          {toast.text}
+          <span className="whitespace-pre-wrap">{toast.text}</span>
         </div>
       ) : null}
     </div>

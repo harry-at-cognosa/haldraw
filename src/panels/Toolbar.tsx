@@ -18,7 +18,7 @@ import {
   ImagePlus,
 } from 'lucide-react';
 import { layerOrder, useCanvas, type Tool } from '@/store/canvasStore';
-import { Layers } from 'lucide-react';
+import { Layers, Settings } from 'lucide-react';
 import ExportMenu, { type ExportFormat } from './ExportMenu';
 import { APP_VERSION } from '@/util/version';
 
@@ -44,6 +44,7 @@ export default function Toolbar({
   onImportImage,
   onBack,
   onShortcuts,
+  onSettings,
   theme,
   onToggleTheme,
   title,
@@ -53,6 +54,7 @@ export default function Toolbar({
   onImportImage: () => void;
   onBack: () => void;
   onShortcuts: () => void;
+  onSettings: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   title: string;
@@ -170,6 +172,7 @@ export default function Toolbar({
         </button>
         <IconButton icon={theme === 'dark' ? Sun : Moon} onClick={onToggleTheme} label="Toggle theme" />
         <IconButton icon={Keyboard} onClick={onShortcuts} label="Shortcuts (?)" />
+        <IconButton icon={Settings} onClick={onSettings} label="Settings (⌘,)" />
         <div className="w-px h-5 bg-border mx-1" />
         <ExportMenu onExport={onExport} />
       </div>
