@@ -2,6 +2,13 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.5 — 2026-09-17
+
+### Fixed
+
+- **Connector labels are readable and exported.** The label pill was 12 px light-grey text with no background, invisible on light paper, and PNG/SVG export dropped it entirely. Now: 14 px by default, text in the board's default text colour (dark on light paper, light on dark), a paper-coloured pill bordered in the line's colour, sized to the text instead of a fixed 120 × 24 box. Exports draw the same pill and text.
+- The **Label** section of the properties panel gains a colour palette and a size slider (8–48) for the label.
+
 ## 0.9.4 — 2026-09-17
 
 ### Added

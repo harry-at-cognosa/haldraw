@@ -357,12 +357,12 @@ export default function BoardEditor({
       const boardBg = useCanvas.getState().board?.background ?? '#ffffff';
       const solidBg = boardBg === 'transparent' ? '#ffffff' : boardBg;
       if (format === 'svg') {
-        const xml = buildExportSvg({ nodes, background: null });
+        const xml = buildExportSvg({ nodes, edges, paper: boardBg, background: null });
         const res = await window.haldraw.exportSvg({ defaultName: `${safeName}.svg`, xml });
         if (res.saved) setToast({ kind: 'ok', text: `Saved ${res.path}` });
       } else {
         const bg = format === 'png-solid' ? solidBg : null;
-        const dataUrl = await exportBoardPng({ nodes, edges, imageUrls, background: bg });
+        const dataUrl = await exportBoardPng({ nodes, edges, imageUrls, background: bg, paper: boardBg });
         const res = await window.haldraw.exportPng({ defaultName: `${safeName}.png`, dataUrl });
         if (res.saved) setToast({ kind: 'ok', text: `Saved ${res.path}` });
       }

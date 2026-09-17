@@ -2,7 +2,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { icons as LucideIcons } from 'lucide-react';
 import type { CanvasEdge, CanvasNode } from '@shared/types';
-import { combinedBbox, labelBox } from './geometry';
+import { combinedBbox, edgeLabelBox, labelBox } from './geometry';
+import { edgeEndpoints } from '@/canvas/routing';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -79,10 +80,48 @@ function createIconElement(node: CanvasNode): SVGElement | null {
   return iconSvg as unknown as SVGElement;
 }
 
-function replaceForeignObjects(root: Element, nodes: CanvasNode[]) {
+/** Connector label as a paper-coloured pill plus centred text, matching the canvas. */
+function createEdgeLabelElement(edge: CanvasEdge, nodesById: Record<string, CanvasNode>, paper: string): SVGElement | null {
+  if (!edge.label) return null;
+  const { from, to } = edgeEndpoints(edge, nodesById);
+  const at = edge.labelPoint ?? { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+  const lb = edgeLabelBox(edge, paper);
+  const g = document.createElementNS(SVG_NS, 'g');
+  const rect = document.createElementNS(SVG_NS, 'rect');
+  rect.setAttribute('x', String(at.x - lb.w / 2 + 2));
+  rect.setAttribute('y', String(at.y - lb.h / 2 + 2));
+  rect.setAttribute('width', String(lb.w - 4));
+  rect.setAttribute('height', String(lb.h - 4));
+  rect.setAttribute('rx', '4');
+  rect.setAttribute('fill', lb.bg ?? 'none');
+  rect.setAttribute('stroke', edge.style.stroke ?? '#e6e8eb');
+  rect.setAttribute('stroke-width', '1');
+  g.appendChild(rect);
+  const t = document.createElementNS(SVG_NS, 'text');
+  t.setAttribute('x', String(at.x));
+  t.setAttribute('y', String(at.y + lb.fontSize / 3));
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('fill', lb.color);
+  t.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+  t.setAttribute('font-size', String(lb.fontSize));
+  t.textContent = edge.label;
+  g.appendChild(t);
+  return g;
+}
+
+function replaceForeignObjects(root: Element, nodes: CanvasNode[], edges: CanvasEdge[], paper: string) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const nodesById: Record<string, CanvasNode> = Object.fromEntries(byId);
+  const edgesById = new Map(edges.map((e) => [e.id, e]));
   const fos = Array.from(root.querySelectorAll('foreignObject'));
   for (const fo of fos) {
+    if (fo.getAttribute('data-fo-role') === 'edge-label') {
+      const edge = edgesById.get(fo.getAttribute('data-edge-id') ?? '');
+      const el = edge ? createEdgeLabelElement(edge, nodesById, paper) : null;
+      if (el) fo.replaceWith(el);
+      else fo.remove();
+      continue;
+    }
     const parent = fo.closest('[data-node-id]');
     const id = parent?.getAttribute('data-node-id');
     const node = id ? byId.get(id) : undefined;
@@ -101,9 +140,13 @@ function replaceForeignObjects(root: Element, nodes: CanvasNode[]) {
 
 export function buildExportSvg(opts: {
   nodes: CanvasNode[];
+  /** Edges on the canvas, for their labels. */
+  edges?: CanvasEdge[];
+  /** Board paper colour: connector label pills use it even in transparent exports. */
+  paper?: string;
   background: string | null;
 }): string {
-  const { nodes, background } = opts;
+  const { nodes, background, edges = [], paper = '#ffffff' } = opts;
   const bbox = combinedBbox(nodes) ?? { x: 0, y: 0, width: 800, height: 600 };
   const pad = 48;
 
@@ -127,7 +170,7 @@ export function buildExportSvg(opts: {
   clone.removeAttribute('style');
   clone.removeAttribute('class');
 
-  replaceForeignObjects(clone, nodes);
+  replaceForeignObjects(clone, nodes, edges, paper);
 
   // Board-level "dim references" is a canvas aid only: restore each dimmed
   // node's stored opacity so exports never bake the dimming in.
@@ -177,15 +220,16 @@ export async function exportBoardPng(opts: {
   edges: CanvasEdge[];
   imageUrls: Record<string, string>;
   background: string | null;
+  paper?: string;
 }): Promise<string> {
-  const { nodes, background } = opts;
+  const { nodes, edges, background, paper } = opts;
   const bbox = combinedBbox(nodes) ?? { x: 0, y: 0, width: 800, height: 600 };
   const pad = 48;
   const scale = 2;
   const viewW = bbox.width + pad * 2;
   const viewH = bbox.height + pad * 2;
 
-  const xml = buildExportSvg({ nodes, background: null });
+  const xml = buildExportSvg({ nodes, edges, paper, background: null });
   const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
   try {

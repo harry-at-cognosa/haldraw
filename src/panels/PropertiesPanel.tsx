@@ -3,6 +3,7 @@ import LayersPanel from './LayersPanel';
 import { EDGE_HEADS, type Anchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type Layer, type NodeStyle } from '@shared/types';
 import { HEAD_LABELS, HeadGlyph } from '@/canvas/edgeHeads';
 import { notify, vectorizeNode } from '@/util/vectorize';
+import { defaultStyleForBackground, EDGE_LABEL_FONT_DEFAULT } from '@/util/geometry';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
 import {
@@ -63,6 +64,7 @@ export default function PropertiesPanel() {
   const setLocked = useCanvas((s) => s.setLocked);
   const layers = useCanvas((s) => s.layers);
   const moveToLayer = useCanvas((s) => s.moveToLayer);
+  const boardBg = useCanvas((s) => s.board?.background ?? '#ffffff');
 
   const selectedNodes = [...selection].map((id) => nodes[id]).filter(Boolean) as CanvasNode[];
   const selectedEdges = [...edgeSelection].map((id) => edges[id]).filter(Boolean) as CanvasEdge[];
@@ -548,6 +550,22 @@ export default function PropertiesPanel() {
                 }}
                 placeholder="optional"
                 className="w-full bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent"
+              />
+              <div className="pt-2">
+                <ColorRow
+                  options={PALETTE}
+                  value={firstEdge?.style.color ?? defaultStyleForBackground(boardBg).color ?? '#0b0d10'}
+                  onChange={(c) => patchEdges({ style: { color: c } })}
+                />
+              </div>
+              <SliderRow
+                label="Size"
+                min={8}
+                max={48}
+                step={1}
+                value={firstEdge?.style.fontSize ?? EDGE_LABEL_FONT_DEFAULT}
+                onBegin={checkpoint}
+                onChange={(v) => patchEdges({ style: { fontSize: v } }, false)}
               />
             </Section>
             <button

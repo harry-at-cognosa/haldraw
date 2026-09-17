@@ -177,3 +177,26 @@ export function defaultStyleForBackground(bg: string): NodeStyle {
 export function defaultEdgeStrokeForBackground(bg: string): string {
   return isColorDark(bg) ? '#e6e8eb' : '#0b0d10';
 }
+
+export const EDGE_LABEL_FONT_DEFAULT = 14;
+
+/**
+ * Connector label pill: size from the text and font size (Inter-like metrics),
+ * text colour from the edge style or the paper's default text colour, and the
+ * paper colour behind it so it reads over the line. Shared by the canvas and
+ * the exporter.
+ */
+export function edgeLabelBox(
+  edge: { label?: string; style: { color?: string; fontSize?: number } },
+  paper: string
+): { w: number; h: number; fontSize: number; color: string; bg: string | undefined } {
+  const fontSize = edge.style.fontSize ?? EDGE_LABEL_FONT_DEFAULT;
+  const chars = (edge.label ?? '').length;
+  return {
+    w: Math.max(40, Math.round(chars * fontSize * 0.62 + 24)),
+    h: Math.round(fontSize * 1.3 + 12),
+    fontSize,
+    color: edge.style.color ?? defaultStyleForBackground(paper).color!,
+    bg: /^#[0-9a-f]{6}$/i.test(paper) ? paper : undefined,
+  };
+}

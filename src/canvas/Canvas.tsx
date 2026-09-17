@@ -832,6 +832,7 @@ export default function Canvas({
                     key={edge.id}
                     edge={edge}
                     nodes={nodes}
+                    paper={background}
                     selected={edgeSelection.has(edge.id)}
                     onPointerDown={handleEdgePointerDown}
                     onLabelPointerDown={(e) => {

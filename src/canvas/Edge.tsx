@@ -2,17 +2,21 @@ import { memo } from 'react';
 import type { CanvasEdge, CanvasNode } from '@shared/types';
 import { buildPath, edgeEndpoints } from './routing';
 import { headMarker } from './edgeHeads';
+import { edgeLabelBox } from '@/util/geometry';
 
 type Props = {
   edge: CanvasEdge;
   nodes: Record<string, CanvasNode>;
+  /** Board paper colour: sets the label's default text colour and pill background. */
+  paper: string;
   selected: boolean;
   onPointerDown?: (e: React.PointerEvent, edge: CanvasEdge) => void;
   onLabelPointerDown?: (e: React.PointerEvent, edge: CanvasEdge) => void;
 };
 
-function EdgeInner({ edge, nodes, selected, onPointerDown, onLabelPointerDown }: Props) {
+function EdgeInner({ edge, nodes, paper, selected, onPointerDown, onLabelPointerDown }: Props) {
   const d = buildPath(edge, nodes);
+  const lb = edgeLabelBox(edge, paper);
   const stroke = edge.style.stroke ?? '#e6e8eb';
   const strokeWidth = edge.style.strokeWidth ?? 2;
   const opacity = edge.style.opacity ?? 1;
@@ -55,21 +59,32 @@ function EdgeInner({ edge, nodes, selected, onPointerDown, onLabelPointerDown }:
       ) : null}
       {edge.label ? (
         <foreignObject
-          x={labelAt.x - 60}
-          y={labelAt.y - 12}
-          width={120}
-          height={24}
+          data-fo-role="edge-label"
+          data-edge-id={edge.id}
+          x={labelAt.x - lb.w / 2}
+          y={labelAt.y - lb.h / 2}
+          width={lb.w}
+          height={lb.h}
           pointerEvents={selected ? 'all' : 'none'}
           style={{ cursor: selected ? 'move' : 'default' }}
           onPointerDown={(e) => {
             if (selected) onLabelPointerDown?.(e, edge);
           }}
         >
-          <div
-            className="text-xs text-center px-1.5 py-0.5 rounded bg-panel/80 border border-border inline-block"
-            style={{ color: edge.style.color ?? '#e6e8eb' }}
-          >
-            {edge.label}
+          <div className="w-full h-full flex items-center justify-center">
+            <div
+              className="text-center rounded px-1.5 py-0.5 inline-block whitespace-nowrap"
+              style={{
+                color: lb.color,
+                fontSize: `${lb.fontSize}px`,
+                fontFamily: 'Inter, system-ui, sans-serif',
+                lineHeight: 1.3,
+                background: lb.bg,
+                border: `1px solid ${stroke}`,
+              }}
+            >
+              {edge.label}
+            </div>
           </div>
         </foreignObject>
       ) : null}
