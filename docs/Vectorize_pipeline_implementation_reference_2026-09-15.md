@@ -4,6 +4,11 @@ Describes the implementation as of **0.9.2** (commits `8ee54aa`, `d0233eb`, `e02
 
 Audience: someone who wants to know exactly what happens between pressing **Vectorize…** and seeing shapes on a Draft layer, including every byte that goes to the model and every rule applied to what comes back.
 
+**Changes since 0.9.2** (the verbatim prompt, schema and constants below are updated to 0.9.7; the prose describes the 0.9.2 design unless noted):
+
+- 0.9.3: `vectorizeNode` re-reads the image node, layers and board id after the reply and aborts with a toast if the image is gone or another board is open (§D.1 stale-state note no longer applies). Undo falls back to the topmost unlocked layer.
+- 0.9.7: the shape `kind` enum gains `box3d`, `dsbox` and `colbox` (the composite rectangles added for drawing in 0.9.4), with one prompt rule each and a rule that a short word on a connector is its label, not a shape. The font-size estimate now uses the shape's text area (front face, right of the data-store line, below the collection divider) minus the 16 px of padding, adds a height bound, and caps at 36. Ground truth on 2026-09-17: an 11-shape, 6-connector board exported from haldraw came back 11/11 correct kinds at 2132 px and at 800 px, with all six connectors and their labels; the three single-shape spec images came back as their kinds.
+
 ---
 
 ## Table of contents
@@ -316,11 +321,16 @@ You convert a raster picture of a diagram (flowchart, data-flow diagram, archite
 Return every visible shape and every visible connector, as JSON matching the given schema. Coordinates are pixels of the supplied image, origin top-left, x/y the top-left corner of the element's bounding box, w/h its size.
 
 Rules:
-- Each box, circle, rounded rectangle or diamond is one shape. Classify as rect, ellipse or diamond; use rect when unsure.
+- Each box, circle, rounded rectangle or diamond is one shape. Classify as rect, ellipse, diamond, box3d, dsbox or colbox; use rect when unsure.
+- "box3d" is a rectangle drawn in perspective: a shaded band runs along its top and left edges. Its box is the whole outline including the band.
+- "dsbox" is a wide rectangle with one extra vertical line a short way in from its left edge (a data store).
+- "colbox" is a rectangle with one extra horizontal line a short way below its top edge and its text below that line (a collection or table).
+- A plain rectangle with no extra line or band is "rect", even when it is wide or has a heading.
 - Free-standing text that is not inside a shape is a shape of kind "text" whose box is the text's extent.
 - Text inside a shape goes in that shape's "text" field, exactly as written, line breaks as \n. Use "" when the shape has no text.
 - Colours as 6-digit lowercase hex (#rrggbb): "fill" is the shape's interior, "stroke" its outline, "textColor" the colour of its text (white text on a dark shape is common; report it). Use "" when you cannot tell. Do not invent colours.
 - A connector is a line or arrow that visibly joins two shapes; "from" and "to" are the shape ids at its ends, "headEnd" is "arrow" when the "to" end has an arrowhead. A line whose ends do not touch shapes is not a connector; omit it.
+- A short word sitting on a connector, with or without a small bordered pill around it, is that connector's "label", not a shape.
 - "confidence" is your 0–1 estimate that the element is real and correctly placed.
 - Ids are short unique strings such as s1, s2.
 - Do not describe the image; output only the JSON object.
@@ -378,7 +388,7 @@ The image block precedes the text block (the ordering Anthropic's documentation 
         "required": ["id", "kind", "x", "y", "w", "h", "text", "fill", "stroke", "textColor", "confidence"],
         "properties": {
           "id":         { "type": "string" },
-          "kind":       { "type": "string", "enum": ["rect", "ellipse", "diamond", "text"] },
+          "kind":       { "type": "string", "enum": ["rect", "ellipse", "diamond", "box3d", "dsbox", "colbox", "text"] },
           "x":          { "type": "number" },
           "y":          { "type": "number" },
           "w":          { "type": "number" },
@@ -456,7 +466,7 @@ After a successful HTTP round trip:
 | 3 | `connectors` is an array | `Missing "connectors" array.` |
 | 4 | each shape has a non-empty string `id` | `Shape <i>: missing id.` |
 | 5 | ids are unique | `Shape <i>: duplicate id "<id>".` |
-| 6 | `kind` ∈ {rect, ellipse, diamond, text} | `Shape <id>: unknown kind "<kind>".` |
+| 6 | `kind` ∈ {rect, ellipse, diamond, box3d, dsbox, colbox, text} | `Shape <id>: unknown kind "<kind>".` |
 | 7 | `x`, `y`, `w`, `h` are finite numbers | `Shape <id>: <k> must be a number.` |
 | 8 | `w > 0` and `h > 0` | `Shape <id>: w and h must be positive.` |
 | 9 | box overlaps the image: not `x + w < 0`, not `y + h < 0`, not `x > W`, not `y > H` | `Shape <id>: box lies outside the image (W×H).` |
@@ -610,7 +620,8 @@ The model reports no font size. `estimateFontSize(text, w, h, kind)` derives one
 |---|---|---|
 | `CHAR_W` | 0.55 | average glyph advance as a multiple of font size |
 | `LINE_H` | 1.25 | line height as a multiple of font size |
-| `MIN_FONT` / `MAX_FONT` | 8 / 48 | clamp |
+| `MIN_FONT` / `MAX_FONT` | 8 / 36 (48 before 0.9.7) | clamp |
+| `PAD` | 16 | renderer padding subtracted from the text area (0.9.7) |
 
 Empty (after trimming) text → 16 (the default; nothing to fit). Otherwise, on the trimmed text `t`: `lines = t.split('\n')`, `longest = max line length (≥ 1)`; `text.length` below means `t.length`.
 
@@ -786,7 +797,7 @@ Error toast: the `VectorizeError.message` with Electron's IPC prefix stripped (�
 From `shared/types.ts` (0.9.2). These are the only vectorize-specific types; everything downstream is ordinary `CanvasNode` / `CanvasEdge` / `Layer`.
 
 ```ts
-export type VectorShapeKind = 'rect' | 'ellipse' | 'diamond' | 'text';
+export type VectorShapeKind = 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' | 'text';   // composite kinds since 0.9.7
 
 /** One element the model found. Coordinates are pixels of the image as sent, origin top-left. */
 export interface VectorShape {
@@ -990,7 +1001,7 @@ function VALIDATE(raw, W, H) → problem string or null:
         if s.id is not a non-empty string:   return "Shape i: missing id."
         if s.id ∈ ids:                       return 'Shape i: duplicate id "s.id".'
         ids ← ids ∪ {s.id}
-        if s.kind ∉ {rect, ellipse, diamond, text}: return 'Shape s.id: unknown kind "s.kind".'
+        if s.kind ∉ {rect, ellipse, diamond, box3d, dsbox, colbox, text}: return 'Shape s.id: unknown kind "s.kind".'
         for k in (x, y, w, h):
             if s[k] is not a finite number:  return "Shape s.id: k must be a number."
         if s.w ≤ 0 or s.h ≤ 0:               return "Shape s.id: w and h must be positive."

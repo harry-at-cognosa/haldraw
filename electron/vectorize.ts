@@ -35,11 +35,16 @@ const SYSTEM_PROMPT = `You convert a raster picture of a diagram (flowchart, dat
 Return every visible shape and every visible connector, as JSON matching the given schema. Coordinates are pixels of the supplied image, origin top-left, x/y the top-left corner of the element's bounding box, w/h its size.
 
 Rules:
-- Each box, circle, rounded rectangle or diamond is one shape. Classify as rect, ellipse or diamond; use rect when unsure.
+- Each box, circle, rounded rectangle or diamond is one shape. Classify as rect, ellipse, diamond, box3d, dsbox or colbox; use rect when unsure.
+- "box3d" is a rectangle drawn in perspective: a shaded band runs along its top and left edges. Its box is the whole outline including the band.
+- "dsbox" is a wide rectangle with one extra vertical line a short way in from its left edge (a data store).
+- "colbox" is a rectangle with one extra horizontal line a short way below its top edge and its text below that line (a collection or table).
+- A plain rectangle with no extra line or band is "rect", even when it is wide or has a heading.
 - Free-standing text that is not inside a shape is a shape of kind "text" whose box is the text's extent.
 - Text inside a shape goes in that shape's "text" field, exactly as written, line breaks as \\n. Use "" when the shape has no text.
 - Colours as 6-digit lowercase hex (#rrggbb): "fill" is the shape's interior, "stroke" its outline, "textColor" the colour of its text (white text on a dark shape is common; report it). Use "" when you cannot tell. Do not invent colours.
 - A connector is a line or arrow that visibly joins two shapes; "from" and "to" are the shape ids at its ends, "headEnd" is "arrow" when the "to" end has an arrowhead. A line whose ends do not touch shapes is not a connector; omit it.
+- A short word sitting on a connector, with or without a small bordered pill around it, is that connector's "label", not a shape.
 - "confidence" is your 0–1 estimate that the element is real and correctly placed.
 - Ids are short unique strings such as s1, s2.
 - Do not describe the image; output only the JSON object.`;
@@ -57,7 +62,7 @@ const OUTPUT_SCHEMA = {
         required: ['id', 'kind', 'x', 'y', 'w', 'h', 'text', 'fill', 'stroke', 'textColor', 'confidence'],
         properties: {
           id: { type: 'string' },
-          kind: { type: 'string', enum: ['rect', 'ellipse', 'diamond', 'text'] },
+          kind: { type: 'string', enum: ['rect', 'ellipse', 'diamond', 'box3d', 'dsbox', 'colbox', 'text'] },
           x: { type: 'number' },
           y: { type: 'number' },
           w: { type: 'number' },
@@ -99,7 +104,7 @@ export function validateResult(raw: unknown, width: number, height: number): str
     if (!s || typeof s.id !== 'string' || !s.id) return `Shape ${i}: missing id.`;
     if (ids.has(s.id)) return `Shape ${i}: duplicate id "${s.id}".`;
     ids.add(s.id);
-    if (!['rect', 'ellipse', 'diamond', 'text'].includes(s.kind)) return `Shape ${s.id}: unknown kind "${String(s.kind)}".`;
+    if (!['rect', 'ellipse', 'diamond', 'box3d', 'dsbox', 'colbox', 'text'].includes(s.kind)) return `Shape ${s.id}: unknown kind "${String(s.kind)}".`;
     for (const k of ['x', 'y', 'w', 'h'] as const) {
       if (typeof s[k] !== 'number' || !Number.isFinite(s[k])) return `Shape ${s.id}: ${k} must be a number.`;
     }

@@ -38,7 +38,7 @@ Set from the properties panel with the line selected.
 | Heads | any of the six at the start, any of the six at the end, independently |
 | Routing | straight; orthogonal (one elbow, draggable); curved (control handle at a draggable midpoint) |
 | Anchors | per end: Auto, Top, Right, Bottom, Left, Centre (see the connection-points note) |
-| Label | optional text pill at the midpoint, draggable when the line is selected |
+| Label | optional text pill at the midpoint, draggable when the line is selected. Since 0.9.5 the pill is sized to the text, 14 px by default, in the board's default text colour on a paper-coloured pill bordered in the line's colour; the Label section offers colour, size (8–48) and, since 0.9.7, font family and weight (Reg / Med / Bold). Exported to PNG and SVG since 0.9.5 |
 | Layer | a line lives on a layer like a shape; ⌘⌥] / ⌘⌥[ step it up or down |
 
 Changing one style field leaves the others alone (since 0.8.1); earlier builds reset width when the colour changed and vice versa.

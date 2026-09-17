@@ -85,8 +85,11 @@ export interface EdgeStyle {
   strokeWidth?: number;
   strokeDasharray?: string;
   opacity?: number;
+  /** Label text: colour, size, family and weight (0.9.7 added family and weight). */
   color?: string;
   fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: number;
 }
 
 export interface CanvasEdge {
@@ -163,7 +166,8 @@ export type MenuChannel = 'menu:importImage' | 'menu:importBoard' | 'menu:settin
 
 // ---- Vectorize (0.9.0): image → editable draft via a vision model ----
 
-export type VectorShapeKind = 'rect' | 'ellipse' | 'diamond' | 'text';
+/** Kinds the vision model may report. 0.9.7 added the three composite rectangles. */
+export type VectorShapeKind = 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' | 'text';
 
 /** One element the model found. Coordinates are pixels of the image as sent, origin top-left. */
 export interface VectorShape {

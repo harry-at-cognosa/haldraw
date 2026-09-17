@@ -77,7 +77,8 @@ function EdgeInner({ edge, nodes, paper, selected, onPointerDown, onLabelPointer
               style={{
                 color: lb.color,
                 fontSize: `${lb.fontSize}px`,
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: lb.fontFamily,
+                fontWeight: lb.fontWeight,
                 lineHeight: 1.3,
                 background: lb.bg,
                 border: `1px solid ${stroke}`,

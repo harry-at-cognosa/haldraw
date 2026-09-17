@@ -187,15 +187,19 @@ export const EDGE_LABEL_FONT_DEFAULT = 14;
  * the exporter.
  */
 export function edgeLabelBox(
-  edge: { label?: string; style: { color?: string; fontSize?: number } },
+  edge: { label?: string; style: { color?: string; fontSize?: number; fontFamily?: string; fontWeight?: number } },
   paper: string
-): { w: number; h: number; fontSize: number; color: string; bg: string | undefined } {
+): { w: number; h: number; fontSize: number; fontFamily: string; fontWeight: number; color: string; bg: string | undefined } {
   const fontSize = edge.style.fontSize ?? EDGE_LABEL_FONT_DEFAULT;
+  const fontWeight = edge.style.fontWeight ?? 400;
   const chars = (edge.label ?? '').length;
+  const charW = fontWeight >= 600 ? 0.68 : 0.62;
   return {
-    w: Math.max(40, Math.round(chars * fontSize * 0.62 + 24)),
+    w: Math.max(40, Math.round(chars * fontSize * charW + 24)),
     h: Math.round(fontSize * 1.3 + 12),
     fontSize,
+    fontFamily: edge.style.fontFamily || 'Inter, system-ui, sans-serif',
+    fontWeight,
     color: edge.style.color ?? defaultStyleForBackground(paper).color!,
     bg: /^#[0-9a-f]{6}$/i.test(paper) ? paper : undefined,
   };

@@ -102,8 +102,9 @@ function createEdgeLabelElement(edge: CanvasEdge, nodesById: Record<string, Canv
   t.setAttribute('y', String(at.y + lb.fontSize / 3));
   t.setAttribute('text-anchor', 'middle');
   t.setAttribute('fill', lb.color);
-  t.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+  t.setAttribute('font-family', lb.fontFamily);
   t.setAttribute('font-size', String(lb.fontSize));
+  t.setAttribute('font-weight', String(lb.fontWeight));
   t.textContent = edge.label;
   g.appendChild(t);
   return g;

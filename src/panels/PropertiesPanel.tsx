@@ -558,6 +558,10 @@ export default function PropertiesPanel() {
                   onChange={(c) => patchEdges({ style: { color: c } })}
                 />
               </div>
+              <FontRow
+                value={firstEdge?.style.fontFamily ?? ''}
+                onChange={(family) => patchEdges({ style: { fontFamily: family || undefined } })}
+              />
               <SliderRow
                 label="Size"
                 min={8}
@@ -567,6 +571,17 @@ export default function PropertiesPanel() {
                 onBegin={checkpoint}
                 onChange={(v) => patchEdges({ style: { fontSize: v } }, false)}
               />
+              <Row label="Weight">
+                <Segmented
+                  options={[
+                    { value: 400, label: 'Reg' },
+                    { value: 500, label: 'Med' },
+                    { value: 700, label: 'Bold' },
+                  ]}
+                  value={firstEdge?.style.fontWeight ?? 400}
+                  onChange={(v) => patchEdges({ style: { fontWeight: v } })}
+                />
+              </Row>
             </Section>
             <button
               onClick={() => deleteEdges(selectedEdges.map((e) => e.id))}

@@ -1,6 +1,6 @@
 import type { CanvasEdge, CanvasNode, VectorShapeKind, VectorizeResponse, VectorizeResult } from '@shared/types';
 import { useCanvas, layerOrder } from '@/store/canvasStore';
-import { defaultStyleForBackground, defaultEdgeStrokeForBackground } from '@/util/geometry';
+import { defaultStyleForBackground, defaultEdgeStrokeForBackground, box3dDepth, dsboxOffset, COLBOX_DIVIDER_DEFAULT } from '@/util/geometry';
 
 /** Claude renders images at full resolution up to this long side; larger ones are scaled anyway. */
 const MAX_SIDE = 1568;
@@ -58,7 +58,9 @@ export function contrastingText(hex: string): string {
 const CHAR_W = 0.55;
 const LINE_H = 1.25;
 const MIN_FONT = 8;
-const MAX_FONT = 48;
+const MAX_FONT = 36;
+/** Renderer padding inside a label box (8 px each side). */
+const PAD = 16;
 
 /**
  * Font size at which the text fits the box the model measured (canvas units).
@@ -77,12 +79,27 @@ export function estimateFontSize(text: string, w: number, h: number, kind: Vecto
     const byWidth = w / (longest * CHAR_W);
     f = Math.min(byHeight, byWidth);
   } else {
-    const usable = (kind === 'ellipse' ? 0.5 : kind === 'diamond' ? 0.4 : 0.75) * w * h;
+    // `w`/`h` are the text area (front face, right of the line, below the divider), padding excluded.
+    const iw = Math.max(1, w - PAD);
+    const ih = Math.max(1, h - PAD);
+    const usable = (kind === 'ellipse' ? 0.5 : kind === 'diamond' ? 0.4 : 0.75) * iw * ih;
     const byArea = Math.sqrt(usable / (t.length * CHAR_W * LINE_H));
-    const byWidth = (w * 0.9) / (Math.min(longest, 24) * CHAR_W);
-    f = Math.min(byArea, byWidth);
+    const byWidth = iw / (Math.min(longest, 24) * CHAR_W);
+    const byHeight = ih / (lines.length * LINE_H);
+    f = Math.min(byArea, byWidth, byHeight);
   }
   return Math.round(Math.max(MIN_FONT, Math.min(MAX_FONT, f)));
+}
+
+/** Text area of a draft node before it exists: the whole box, or the composite shapes' text region. */
+function textArea(kind: VectorShapeKind, width: number, height: number): { w: number; h: number } {
+  if (kind === 'box3d') {
+    const d = box3dDepth({ width, height });
+    return { w: width - d, h: height - d };
+  }
+  if (kind === 'dsbox') return { w: width - dsboxOffset({ width, height }), h: height };
+  if (kind === 'colbox') return { w: width, h: height * (1 - COLBOX_DIVIDER_DEFAULT) };
+  return { w: width, h: height };
 }
 
 /**
@@ -126,7 +143,7 @@ export function convertResult(
         stroke: isText ? 'transparent' : colour(s.stroke, base.stroke),
         color: textColor,
         strokeDasharray: dashed && !isText ? '6 4' : undefined,
-        fontSize: estimateFontSize(s.text, width, height, s.kind),
+        fontSize: estimateFontSize(s.text, textArea(s.kind, width, height).w, textArea(s.kind, width, height).h, s.kind),
         textAlign: isText ? 'left' : base.textAlign,
         verticalAlign: isText ? ('top' as const) : undefined,
       },

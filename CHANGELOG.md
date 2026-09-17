@@ -2,6 +2,17 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.7 — 2026-09-17
+
+### Added
+
+- **Vectorize recognises the 3D box, data store and collection shapes.** The model's shape kinds grow from four to seven, with one prompt rule per shape and "use rect when unsure" unchanged. A short word on a connector, with or without a pill around it, is now explicitly the connector's label rather than a shape. Ground truth: an 11-shape, 6-connector board exported from haldraw came back with every kind correct at 2132 px and at 800 px, with all six connectors and their four labels; the three spec images came back as their kinds.
+- **Line labels have a font family and a weight** (Reg / Med / Bold) in the Label section, alongside colour and size; exports honour both.
+
+### Changed
+
+- Vectorize drafts size shape text from the shape's actual text area (front face of a 3D box, right of the data-store line, below the collection divider) minus padding, with a height bound, capped at 36 px instead of 48. Labels no longer overflow their boxes on the first draft.
+
 ## 0.9.6 — 2026-09-17
 
 ### Fixed
