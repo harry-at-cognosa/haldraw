@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.6 — 2026-09-17
+
+### Fixed
+
+- **Lines are never hidden under a locked reference image on the same layer.** Within a layer the canvas now paints locked (reference) nodes first, then lines, then the other shapes. Previously lines were painted before every node of their layer, so on a single-layer board, or after "Lock as reference" on an image pasted onto the drawing layer, a connector across the image was invisible. Lines still run under ordinary shapes.
+
 ## 0.9.5 — 2026-09-17
 
 ### Fixed

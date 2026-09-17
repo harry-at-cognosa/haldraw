@@ -718,13 +718,18 @@ export default function Canvas({
         (!e.toNode || shown.has(e.toNode))
     );
   }, [edges, nodes, refView, layers, soloLayerId, sortedNodes]);
-  // Paint order: layer by layer, each layer's edges beneath its nodes.
+  // Paint order: layer by layer; within a layer, locked (reference) nodes first,
+  // then edges, then the other nodes. Lines run under shapes but never under a
+  // reference image that shares their layer.
   const byLayer = useMemo(() => {
     const fallback = orderedLayers[0]?.id ?? '';
-    const out = new Map<string, { edges: CanvasEdge[]; nodes: CanvasNode[] }>();
-    for (const l of orderedLayers) out.set(l.id, { edges: [], nodes: [] });
+    const out = new Map<string, { refs: CanvasNode[]; edges: CanvasEdge[]; nodes: CanvasNode[] }>();
+    for (const l of orderedLayers) out.set(l.id, { refs: [], edges: [], nodes: [] });
     for (const e of sortedEdges) (out.get(e.layerId) ?? out.get(fallback))?.edges.push(e);
-    for (const n of sortedNodes) (out.get(n.layerId) ?? out.get(fallback))?.nodes.push(n);
+    for (const n of sortedNodes) {
+      const bucket = out.get(n.layerId) ?? out.get(fallback);
+      (n.locked ? bucket?.refs : bucket?.nodes)?.push(n);
+    }
     return out;
   }, [orderedLayers, sortedEdges, sortedNodes]);
   const selectedNodes = useMemo(
@@ -802,6 +807,51 @@ export default function Canvas({
         ? 'default'
         : 'crosshair';
 
+  const renderShape = (node: CanvasNode) => (
+    <Shape
+      key={node.id}
+      node={node}
+      selected={selection.has(node.id)}
+      onPointerDown={handleNodePointerDown}
+      onDoubleClick={(n) => {
+        if (!isNodeInteractive(useCanvas.getState(), n)) return;
+        if (
+          n.type === 'text' ||
+          n.type === 'rect' ||
+          n.type === 'ellipse' ||
+          n.type === 'diamond' ||
+          n.type === 'box3d' ||
+          n.type === 'dsbox' ||
+          n.type === 'colbox'
+        ) {
+          setEditingNodeId(n.id);
+          useCanvas.getState().select([n.id]);
+        }
+      }}
+      editing={editingNodeId === node.id}
+      onFinishEdit={(text) => {
+        const store = useCanvas.getState();
+        if (node.type === 'text' && !text.trim()) {
+          // A text box left empty renders nothing; drop it instead of leaving
+          // an invisible, selectable rectangle behind.
+          store.deleteNodes([node.id]);
+          setEditingNodeId(null);
+          return;
+        }
+        // A box created empty a moment ago already has its "before add"
+        // entry on the stack, so one ⌘Z removes the whole box; an edit of
+        // existing text gets its own undo point.
+        if (!(node.type === 'text' && !(node.content.text ?? '').trim())) store.checkpoint();
+        store.updateNodes([node.id], (n) => {
+          n.content = { ...n.content, text };
+        });
+        setEditingNodeId(null);
+      }}
+      imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
+      dimmed={dimReferences && node.locked}
+    />
+  );
+
   return (
     <div
       className="w-full h-full relative"
@@ -824,9 +874,10 @@ export default function Canvas({
         <g data-root="true" transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`}>
           {orderedLayers.map((layer) => {
             const bucket = byLayer.get(layer.id);
-            if (!bucket || (!bucket.edges.length && !bucket.nodes.length)) return null;
+            if (!bucket || (!bucket.edges.length && !bucket.nodes.length && !bucket.refs.length)) return null;
             return (
               <g key={layer.id} data-layer={layer.id}>
+                {bucket.refs.map(renderShape)}
                 {bucket.edges.map((edge) => (
                   <Edge
                     key={edge.id}
@@ -843,50 +894,7 @@ export default function Canvas({
                     }}
                   />
                 ))}
-                {bucket.nodes.map((node) => (
-                  <Shape
-                    key={node.id}
-                    node={node}
-                    selected={selection.has(node.id)}
-                    onPointerDown={handleNodePointerDown}
-                    onDoubleClick={(n) => {
-                      if (!isNodeInteractive(useCanvas.getState(), n)) return;
-                      if (
-                        n.type === 'text' ||
-                        n.type === 'rect' ||
-                        n.type === 'ellipse' ||
-                        n.type === 'diamond' ||
-                        n.type === 'box3d' ||
-                        n.type === 'dsbox' ||
-                        n.type === 'colbox'
-                      ) {
-                        setEditingNodeId(n.id);
-                        useCanvas.getState().select([n.id]);
-                      }
-                    }}
-                    editing={editingNodeId === node.id}
-                    onFinishEdit={(text) => {
-                      const store = useCanvas.getState();
-                      if (node.type === 'text' && !text.trim()) {
-                        // A text box left empty renders nothing; drop it instead of leaving
-                        // an invisible, selectable rectangle behind.
-                        store.deleteNodes([node.id]);
-                        setEditingNodeId(null);
-                        return;
-                      }
-                      // A box created empty a moment ago already has its "before add"
-                      // entry on the stack, so one ⌘Z removes the whole box; an edit of
-                      // existing text gets its own undo point.
-                      if (!(node.type === 'text' && !(node.content.text ?? '').trim())) store.checkpoint();
-                      store.updateNodes([node.id], (n) => {
-                        n.content = { ...n.content, text };
-                      });
-                      setEditingNodeId(null);
-                    }}
-                    imageUrl={node.content.imageId ? imageUrls[node.content.imageId] : undefined}
-                    dimmed={dimReferences && node.locked}
-                  />
-                ))}
+                {bucket.nodes.map(renderShape)}
               </g>
             );
           })}
