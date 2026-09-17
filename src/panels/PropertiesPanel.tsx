@@ -257,6 +257,19 @@ export default function PropertiesPanel() {
                 />
               </Section>
             ) : null}
+            {selectedNodes.some((n) => n.type === 'colbox') ? (
+              <Section title="Divider">
+                <SliderRow
+                  label="From top %"
+                  min={10}
+                  max={33}
+                  step={1}
+                  value={Math.round((first?.style.dividerFraction ?? 0.2) * 100)}
+                  onBegin={checkpoint}
+                  onChange={(v) => patch({ dividerFraction: v / 100 }, false)}
+                />
+              </Section>
+            ) : null}
             <Section title="Rotation">
               <div className="flex items-center gap-2">
                 <input
@@ -606,6 +619,9 @@ const TYPE_LABEL: Record<CanvasNode['type'], string> = {
   rect: 'Rectangle',
   ellipse: 'Ellipse',
   diamond: 'Diamond',
+  box3d: '3D box',
+  dsbox: 'Data store',
+  colbox: 'Collection',
   text: 'Text',
   icon: 'Icon',
   image: 'Image',

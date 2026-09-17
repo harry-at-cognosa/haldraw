@@ -35,6 +35,9 @@ Mirrors the two `?` overlays in the app. The library overlay appears on the proj
 | `S` | Square (locked ratio) |
 | `O` | Ellipse / Circle |
 | `D` | Diamond (decision) |
+| `B` | 3D box (external entity) (0.9.4) |
+| `X` | Data store (0.9.4) |
+| `K` | Collection (0.9.4) |
 | `L` | Line |
 | `A` | Arrow |
 | `T` | Text |

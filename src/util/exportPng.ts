@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { icons as LucideIcons } from 'lucide-react';
 import type { CanvasEdge, CanvasNode } from '@shared/types';
-import { combinedBbox } from './geometry';
+import { combinedBbox, labelBox } from './geometry';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -15,18 +15,20 @@ function createTextElement(node: CanvasNode): SVGElement | null {
   const align = style.textAlign ?? 'center';
   const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
   const pad = 8;
+  // Same rectangle the canvas label uses (front face / right part / lower part for composite shapes).
+  const box = labelBox(node);
   const xPos =
-    anchor === 'start' ? node.x + pad : anchor === 'end' ? node.x + node.width - pad : node.x + node.width / 2;
+    anchor === 'start' ? box.x + pad : anchor === 'end' ? box.x + box.width - pad : box.x + box.width / 2;
 
   const lines = text.split('\n');
   const va = style.verticalAlign ?? 'middle';
   let baseY: number;
-  if (va === 'top') baseY = node.y + pad + fontSize;
+  if (va === 'top') baseY = box.y + pad + fontSize;
   else if (va === 'bottom')
-    baseY = node.y + node.height - pad - (lines.length - 1) * lineH;
+    baseY = box.y + box.height - pad - (lines.length - 1) * lineH;
   else
     baseY =
-      node.y + node.height / 2 + fontSize / 3 - ((lines.length - 1) * lineH) / 2;
+      box.y + box.height / 2 + fontSize / 3 - ((lines.length - 1) * lineH) / 2;
 
   const t = document.createElementNS(SVG_NS, 'text');
   t.setAttribute('text-anchor', anchor);

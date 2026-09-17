@@ -2,6 +2,7 @@ import { memo, useEffect, useRef } from 'react';
 import type { CanvasNode } from '@shared/types';
 import { icons as LucideIcons } from 'lucide-react';
 import { useCanvas } from '@/store/canvasStore';
+import { box3dDepth, colboxHeader, dsboxOffset, labelBox } from '@/util/geometry';
 
 type Props = {
   node: CanvasNode;
@@ -69,6 +70,36 @@ function ShapeInner({
         opacity={opacity}
       />
     );
+  } else if (node.type === 'box3d') {
+    // Front face inset by d; top and left bands in the stroke colour at half opacity.
+    const d = box3dDepth(node);
+    const { x, y, width: w, height: h } = node;
+    const band = { fill: stroke, fillOpacity: 0.5, stroke, strokeWidth, strokeDasharray: style.strokeDasharray, strokeLinejoin: 'round' as const };
+    shape = (
+      <g opacity={opacity}>
+        <polygon points={`${x} ${y}, ${x + w - d} ${y}, ${x + w} ${y + d}, ${x + d} ${y + d}`} {...band} />
+        <polygon points={`${x} ${y}, ${x + d} ${y + d}, ${x + d} ${y + h}, ${x} ${y + h - d}`} {...band} />
+        <rect x={x + d} y={y + d} width={w - d} height={h - d} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
+      </g>
+    );
+  } else if (node.type === 'dsbox') {
+    // Data store: a wide box with one vertical line near the left edge.
+    const o = dsboxOffset(node);
+    shape = (
+      <g opacity={opacity}>
+        <rect x={node.x} y={node.y} width={node.width} height={node.height} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
+        <line x1={node.x + o} y1={node.y} x2={node.x + o} y2={node.y + node.height} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
+      </g>
+    );
+  } else if (node.type === 'colbox') {
+    // Collection: a box with one horizontal divider near the top; text goes below it.
+    const hh = colboxHeader(node);
+    shape = (
+      <g opacity={opacity}>
+        <rect x={node.x} y={node.y} width={node.width} height={node.height} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
+        <line x1={node.x} y1={node.y + hh} x2={node.x + node.width} y2={node.y + hh} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
+      </g>
+    );
   } else if (node.type === 'ellipse') {
     shape = (
       <ellipse
@@ -123,17 +154,21 @@ function ShapeInner({
     node.type === 'text' ||
     node.type === 'rect' ||
     node.type === 'ellipse' ||
-    node.type === 'diamond';
+    node.type === 'diamond' ||
+    node.type === 'box3d' ||
+    node.type === 'dsbox' ||
+    node.type === 'colbox';
   const labelShouldRotate = node.type === 'text';
   const label = node.content.text ?? '';
+  const lb = labelBox(node);
 
   const labelElement = hasLabel ? (
     <foreignObject
       data-fo-role="label"
-      x={node.x}
-      y={node.y}
-      width={node.width}
-      height={node.height}
+      x={lb.x}
+      y={lb.y}
+      width={lb.width}
+      height={lb.height}
       pointerEvents={node.type === 'text' ? 'all' : 'none'}
     >
       <div

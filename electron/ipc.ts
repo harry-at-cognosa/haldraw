@@ -108,9 +108,18 @@ export function registerIpcHandlers() {
     return { name: basename(path), mime, bytes };
   });
 
+  // Test seam: HALDRAW_EXPORT_CAPTURE_DIR=<dir> writes exports there under
+  // their default name with no save dialog. Only a launcher that sets the
+  // variable sees it.
+  const captureDir = process.env.HALDRAW_EXPORT_CAPTURE_DIR;
   ipcMain.handle(
     'exportPng',
     async (event, payload: { defaultName: string; dataUrl: string }) => {
+      if (captureDir) {
+        const p = `${captureDir}/${basename(payload.defaultName)}`;
+        await writeFile(p, Buffer.from(payload.dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64'));
+        return { saved: true, path: p };
+      }
       const win = BrowserWindow.fromWebContents(event.sender);
       const result = await dialog.showSaveDialog(win!, {
         defaultPath: payload.defaultName,
@@ -126,6 +135,11 @@ export function registerIpcHandlers() {
   ipcMain.handle(
     'exportSvg',
     async (event, payload: { defaultName: string; xml: string }) => {
+      if (captureDir) {
+        const p = `${captureDir}/${basename(payload.defaultName)}`;
+        await writeFile(p, payload.xml, 'utf-8');
+        return { saved: true, path: p };
+      }
       const win = BrowserWindow.fromWebContents(event.sender);
       const result = await dialog.showSaveDialog(win!, {
         defaultPath: payload.defaultName,

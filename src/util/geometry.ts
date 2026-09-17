@@ -16,6 +16,53 @@ export function nodeCenter(n: CanvasNode): Point {
   return { x: n.x + n.width / 2, y: n.y + n.height / 2 };
 }
 
+// ---- Composite rectangle shapes (0.9.4) ----
+
+/** Depth of the 3D box's top and left bands: 12 % of the shorter side, 6–40 units. */
+export function box3dDepth(n: { width: number; height: number }): number {
+  return Math.max(6, Math.min(40, 0.12 * Math.min(n.width, n.height)));
+}
+
+/** Offset of the data store's vertical line from the left edge: the box height, never past 40 % of the width. */
+export function dsboxOffset(n: { width: number; height: number }): number {
+  return Math.min(n.height, 0.4 * n.width);
+}
+
+export const COLBOX_DIVIDER_MIN = 0.1;
+export const COLBOX_DIVIDER_MAX = 1 / 3;
+export const COLBOX_DIVIDER_DEFAULT = 0.2;
+
+/** Height of the collection box's header band (above the divider). */
+export function colboxHeader(n: CanvasNode): number {
+  const f = Math.max(COLBOX_DIVIDER_MIN, Math.min(COLBOX_DIVIDER_MAX, n.style.dividerFraction ?? COLBOX_DIVIDER_DEFAULT));
+  return f * n.height;
+}
+
+/**
+ * Rectangle the label may occupy. The whole box for plain shapes; the front
+ * face of a 3D box; the part right of the line for a data store; the part
+ * below the divider for a collection. Canvas and exporter both use this so
+ * text lands in the same place on screen and in PNG/SVG.
+ */
+export function labelBox(n: CanvasNode): Rect {
+  switch (n.type) {
+    case 'box3d': {
+      const d = box3dDepth(n);
+      return { x: n.x + d, y: n.y + d, width: n.width - d, height: n.height - d };
+    }
+    case 'dsbox': {
+      const o = dsboxOffset(n);
+      return { x: n.x + o, y: n.y, width: n.width - o, height: n.height };
+    }
+    case 'colbox': {
+      const h = colboxHeader(n);
+      return { x: n.x, y: n.y + h, width: n.width, height: n.height - h };
+    }
+    default:
+      return { x: n.x, y: n.y, width: n.width, height: n.height };
+  }
+}
+
 export function rotatePoint(p: Point, origin: Point, rotation: number): Point {
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);

@@ -1,4 +1,9 @@
-export type NodeType = 'rect' | 'ellipse' | 'diamond' | 'text' | 'icon' | 'image';
+/**
+ * Shape kinds. 0.9.4 added three rectangle variants: `box3d` (front face with a
+ * shaded top-and-left band), `dsbox` (data store: one vertical line near the
+ * left edge) and `colbox` (collection: one horizontal divider near the top).
+ */
+export type NodeType = 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' | 'text' | 'icon' | 'image';
 
 export type EdgeRouting = 'straight' | 'orthogonal' | 'curved';
 
@@ -27,6 +32,8 @@ export interface NodeStyle {
   textAlign?: 'left' | 'center' | 'right';
   verticalAlign?: 'top' | 'middle' | 'bottom';
   cornerRadius?: number;
+  /** `colbox` only: divider position as a fraction of the height below the top, 0.10–0.33 (default 0.2). */
+  dividerFraction?: number;
 }
 
 export interface NodeContent {

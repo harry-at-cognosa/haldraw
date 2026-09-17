@@ -41,6 +41,8 @@ export default function ShortcutHelp({
         ['R', 'Rectangle'],
         ['S', 'Square (locked ratio)'],
         ['O', 'Ellipse / Circle'],
+        ['D', 'Diamond (decision)'],
+        ['B / X / K', '3D box / Data store / Collection'],
         ['L', 'Line'],
         ['A', 'Arrow'],
         ['T', 'Text'],

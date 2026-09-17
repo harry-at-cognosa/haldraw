@@ -2,6 +2,21 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.4 — 2026-09-17
+
+### Added
+
+- **Three composite rectangle shapes**, drawn like any other shape and carrying the same fill, stroke, dash, opacity, text and rotation attributes:
+  - **3D box** (`B`): a front face with a top-and-left band in the stroke colour at half opacity, for external entities. Band depth is 12 % of the shorter side, 6–24 units. Text sits in the front face.
+  - **Data store** (`X`): a box with one vertical line inset from the left edge by the box height (never past 40 % of the width). Text sits right of the line.
+  - **Collection** (`K`): a box with one horizontal divider below the top, adjustable from 10 % to 33 % of the height in the new **Divider** section (default 20 %). Text sits below the divider.
+- Corners stay sharp on the three; **Corners** (radius) applies to rectangles only. Anchors are unchanged: the six points of the bounding box.
+- PNG and SVG export place the text in the same sub-rectangle as the canvas.
+
+### Notes
+
+- A `.haldraw` file containing the new kinds is rejected by 0.9.3 and earlier with "unknown type".
+
 ## 0.9.3 — 2026-09-16
 
 ### Fixed

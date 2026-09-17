@@ -47,7 +47,7 @@ type Interaction =
     }
   | {
       kind: 'draw-shape';
-      shape: 'rect' | 'square' | 'ellipse' | 'diamond';
+      shape: 'rect' | 'square' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox';
       start: Point;
       nodeId: string;
     }
@@ -296,10 +296,17 @@ export default function Canvas({
         (e.target as Element).setPointerCapture(e.pointerId);
         return;
       }
-      if (tool === 'rect' || tool === 'square' || tool === 'ellipse' || tool === 'diamond') {
+      if (
+        tool === 'rect' ||
+        tool === 'square' ||
+        tool === 'ellipse' ||
+        tool === 'diamond' ||
+        tool === 'box3d' ||
+        tool === 'dsbox' ||
+        tool === 'colbox'
+      ) {
         const snapped = maybeSnap(world);
-        const nodeType: 'rect' | 'ellipse' | 'diamond' =
-          tool === 'ellipse' ? 'ellipse' : tool === 'diamond' ? 'diamond' : 'rect';
+        const nodeType: 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' = tool === 'square' ? 'rect' : tool;
         const remembered = store.lastNodeStyle[nodeType];
         const node = store.addNode({
           type: nodeType,
@@ -847,7 +854,10 @@ export default function Canvas({
                         n.type === 'text' ||
                         n.type === 'rect' ||
                         n.type === 'ellipse' ||
-                        n.type === 'diamond'
+                        n.type === 'diamond' ||
+                        n.type === 'box3d' ||
+                        n.type === 'dsbox' ||
+                        n.type === 'colbox'
                       ) {
                         setEditingNodeId(n.id);
                         useCanvas.getState().select([n.id]);

@@ -82,7 +82,7 @@ export function parseBoardFile(text: string): HaldrawBoardFile {
   if (!f.board || typeof f.board.name !== 'string') throw new Error('Missing board name.');
   if (!Array.isArray(f.nodes)) throw new Error('Missing nodes array.');
   if (!Array.isArray(f.edges)) throw new Error('Missing edges array.');
-  const NODE_TYPES = new Set(['rect', 'ellipse', 'diamond', 'text', 'icon', 'image']);
+  const NODE_TYPES = new Set(['rect', 'ellipse', 'diamond', 'box3d', 'dsbox', 'colbox', 'text', 'icon', 'image']);
   f.nodes.forEach((n, i) => {
     if (!n || typeof n.id !== 'string') throw new Error(`Node ${i}: missing id.`);
     if (!NODE_TYPES.has(n.type)) throw new Error(`Node ${i}: unknown type "${String(n.type)}".`);
