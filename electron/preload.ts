@@ -10,6 +10,7 @@ const api: HaldrawApi = {
   },
   boards: {
     listByProject: (projectId) => ipcRenderer.invoke('boards:listByProject', projectId),
+    listAll: () => ipcRenderer.invoke('boards:listAll'),
     create: (projectId, name) => ipcRenderer.invoke('boards:create', projectId, name),
     rename: (id, name) => ipcRenderer.invoke('boards:rename', id, name),
     remove: (id) => ipcRenderer.invoke('boards:remove', id),

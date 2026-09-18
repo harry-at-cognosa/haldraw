@@ -15,8 +15,11 @@ import { APP_VERSION } from '@/util/version';
 
 export default function ProjectPicker({
   onOpen,
+  initialProjectId = null,
 }: {
   onOpen: (project: Project, board: Board, pendingImport?: PickedImageFile | null) => void;
+  /** Project to show selected on mount (⌘K → project); else the most recent. */
+  initialProjectId?: string | null;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selected, setSelected] = useState<Project | null>(null);
@@ -36,7 +39,7 @@ export default function ProjectPicker({
   const refreshProjects = async () => {
     const p = await window.haldraw.projects.list();
     setProjects(p);
-    if (!selected && p.length) setSelected(p[0]);
+    if (!selected && p.length) setSelected(p.find((x) => x.id === initialProjectId) ?? p[0]);
   };
 
   useEffect(() => {

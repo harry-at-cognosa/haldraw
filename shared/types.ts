@@ -175,7 +175,7 @@ export interface PickedImageFile {
   bytes: ArrayBuffer;
 }
 
-export type MenuChannel = 'menu:importImage' | 'menu:importBoard' | 'menu:settings';
+export type MenuChannel = 'menu:importImage' | 'menu:importBoard' | 'menu:settings' | 'menu:palette';
 
 // ---- Vectorize (0.9.0): image → editable draft via a vision model ----
 
@@ -351,6 +351,8 @@ export interface HaldrawApi {
   };
   boards: {
     listByProject: (projectId: string) => Promise<Board[]>;
+    /** Every board in the library, most recently edited first (⌘K palette). */
+    listAll: () => Promise<Board[]>;
     create: (projectId: string, name: string) => Promise<Board>;
     rename: (id: string, name: string) => Promise<void>;
     remove: (id: string) => Promise<void>;

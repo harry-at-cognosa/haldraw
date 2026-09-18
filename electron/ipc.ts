@@ -59,6 +59,7 @@ export function registerIpcHandlers() {
   ipcMain.handle('boards:listByProject', (_e, projectId: string) =>
     boardsRepo.listBoardsByProject(projectId)
   );
+  ipcMain.handle('boards:listAll', () => boardsRepo.listAllBoards());
   ipcMain.handle('boards:create', (_e, projectId: string, name: string) =>
     boardsRepo.createBoard(projectId, name)
   );

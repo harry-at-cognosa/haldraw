@@ -46,6 +46,11 @@ function buildMenu(): void {
         },
         { type: 'separator' },
         {
+          label: 'Go to Board…',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => sendToFocused('menu:palette'),
+        },
+        {
           label: 'Settings…',
           accelerator: 'CmdOrCtrl+,',
           click: () => sendToFocused('menu:settings'),

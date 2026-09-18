@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.15 — 2026-09-18
+
+### Added
+
+- **⌘K palette.** From the library or any board, ⌘K (also File ▸ Go to Board…) opens a search over every board and project. Typing filters with subsequence fuzzy matching ("lvl0" finds "Level_0_test_diag_2"; the project name counts too), matched letters are highlighted, ↑ ↓ move, ↩ opens the board or shows the project in the library, esc closes. With nothing typed the twelve most recently edited entries are listed.
+
 ## 0.9.14 — 2026-09-18
 
 ### Added

@@ -13,7 +13,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 - ~~**Auto-backup.**~~ Shipped 0.9.12: daily snapshots in `backups/`, keep N (Settings, default 14), Back up now, Reveal in Finder.
 - ~~**Freehand / pen tool.**~~ Shipped 0.9.13: `P`, smoothed ink strokes as `ink` nodes.
 - ~~**Zoom in / out buttons**~~ Shipped 0.9.14, with ⌘= / ⌘−.
-- **`⌘K` palette.** Fuzzy search across all projects and boards — jump to any diagram instantly.
+- ~~**`⌘K` palette.**~~ Shipped 0.9.15: fuzzy search across projects and boards.
 - **Board search.** Find shapes within the current board by label text.
 
 ## Round 3 (heavier features; think about the use cases)

@@ -38,6 +38,11 @@ export function listBoardsByProject(projectId: string): Board[] {
   return rows.map(toBoard);
 }
 
+export function listAllBoards(): Board[] {
+  const rows = getDb().prepare('SELECT * FROM boards ORDER BY updated_at DESC').all() as BoardRow[];
+  return rows.map(toBoard);
+}
+
 export function getBoard(id: string): Board | null {
   const row = getDb().prepare('SELECT * FROM boards WHERE id = ?').get(id) as BoardRow | undefined;
   return row ? toBoard(row) : null;

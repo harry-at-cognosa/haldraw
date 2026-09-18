@@ -16,6 +16,7 @@ const PICKER_SECTIONS: Array<{ title: string; items: Array<[string, string]> }> 
     items: [
       ['Click card', 'Open board'],
       ['Hover card', 'Rename · Duplicate · Copy link · Delete'],
+      ['⌘K', 'Go to any board or project (fuzzy search)'],
       ['? ', 'Show/hide this overlay'],
     ],
   },
@@ -94,7 +95,8 @@ export default function ShortcutHelp({
         ['⌘V', 'Paste screenshot as image'],
         ['⌘⇧I', 'Import image file (placement dialog)'],
         ['⌘⇧O', 'Import .haldraw board into this project'],
-        ['⌘,', 'Settings (vectorize model, API key)'],
+        ['⌘K', 'Go to any board or project (fuzzy search)'],
+        ['⌘,', 'Settings (vectorize model, API key, palette, backups)'],
         ['Export ▾ › haldraw board', 'Save this board as a .haldraw file'],
         ['⇧ + resize handle', 'Keep aspect ratio'],
         ['⌘E', 'Export PNG'],
