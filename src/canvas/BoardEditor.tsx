@@ -10,6 +10,8 @@ import IconPicker from '@/panels/IconPicker';
 import Minimap from '@/panels/Minimap';
 import ShortcutHelp from '@/panels/ShortcutHelp';
 import SettingsModal from '@/panels/SettingsModal';
+import BoardSearch from '@/panels/BoardSearch';
+import { ensureRectInView } from '@/util/view';
 import { exportBoardPng, buildExportSvg } from '@/util/exportPng';
 import type { ExportFormat } from '@/panels/ExportMenu';
 import ImportImageModal from '@/panels/ImportImageModal';
@@ -47,6 +49,7 @@ export default function BoardEditor({
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [clipboard, setClipboard] = useState<{ nodes: CanvasNode[]; edges: CanvasEdge[] } | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -536,6 +539,11 @@ export default function BoardEditor({
         onExport('png-transparent');
         return;
       }
+      if (meta && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
       if (meta && e.key.toLowerCase() === 's') {
         e.preventDefault();
         flushSave().then(() => setToast({ kind: 'ok', text: 'Saved' }));
@@ -699,6 +707,7 @@ export default function BoardEditor({
             onOpenLink={onOpenLink}
           />
           <Minimap />
+          {searchOpen ? <BoardSearch onClose={() => setSearchOpen(false)} /> : null}
         </div>
         <PropertiesPanel />
       </div>
@@ -737,26 +746,7 @@ function selectableInStackingOrder(): CanvasNode[] {
 
 /** Pan (without zooming) so the node is fully on screen, if it is not already. */
 function ensureInView(n: CanvasNode) {
-  const state = useCanvas.getState();
-  const vp = state.viewport;
-  const el = document.querySelector('svg.haldraw-canvas') as SVGSVGElement | null;
-  const cw = el?.clientWidth ?? 1000;
-  const ch = el?.clientHeight ?? 700;
-  const pad = 40;
-  const left = n.x * vp.zoom + vp.x;
-  const top = n.y * vp.zoom + vp.y;
-  const right = left + n.width * vp.zoom;
-  const bottom = top + n.height * vp.zoom;
-  let dx = 0;
-  let dy = 0;
-  if (left < pad) dx = pad - left;
-  else if (right > cw - pad) dx = cw - pad - right;
-  if (top < pad) dy = pad - top;
-  else if (bottom > ch - pad) dy = ch - pad - bottom;
-  // A node larger than the view: centre it instead of thrashing between edges.
-  if (right - left > cw - pad * 2) dx = cw / 2 - (left + right) / 2;
-  if (bottom - top > ch - pad * 2) dy = ch / 2 - (top + bottom) / 2;
-  if (dx || dy) state.setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom });
+  ensureRectInView(n);
 }
 
 /** True when keystrokes belong to a text field. Sliders, checkboxes and buttons keep the shortcuts live. */

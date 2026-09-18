@@ -96,6 +96,7 @@ export default function ShortcutHelp({
         ['⌘⇧I', 'Import image file (placement dialog)'],
         ['⌘⇧O', 'Import .haldraw board into this project'],
         ['⌘K', 'Go to any board or project (fuzzy search)'],
+        ['⌘F', 'Find text on this board (↩ next, ⇧↩ previous)'],
         ['⌘,', 'Settings (vectorize model, API key, palette, backups)'],
         ['Export ▾ › haldraw board', 'Save this board as a .haldraw file'],
         ['⇧ + resize handle', 'Keep aspect ratio'],

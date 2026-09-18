@@ -97,6 +97,9 @@ interface CanvasState {
   /** App-wide colour palette; loaded from settings at launch, untouched by hydrate / clear. */
   palette: Palette;
   setPalette: (p: Palette) => void;
+  /** Node ids matched by the board search (⌘F), outlined on the canvas while the bar is open. */
+  searchHits: string[];
+  setSearchHits: (ids: string[]) => void;
   lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
   lastEdge: {
     style: EdgeStyle;
@@ -397,6 +400,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
     })),
   palette: DEFAULT_PALETTE,
   setPalette: (palette) => set({ palette }),
+  searchHits: [],
+  setSearchHits: (ids) => set((s) => (s.searchHits.length === 0 && ids.length === 0 ? {} : { searchHits: ids })),
   vectorizeProgress: {},
   setVectorizeProgress: (nodeId, message) =>
     set((s) => {

@@ -14,7 +14,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 - ~~**Freehand / pen tool.**~~ Shipped 0.9.13: `P`, smoothed ink strokes as `ink` nodes.
 - ~~**Zoom in / out buttons**~~ Shipped 0.9.14, with ⌘= / ⌘−.
 - ~~**`⌘K` palette.**~~ Shipped 0.9.15: fuzzy search across projects and boards.
-- **Board search.** Find shapes within the current board by label text.
+- ~~**Board search.**~~ Shipped 0.9.16: ⌘F bar, steps through text matches.
 
 ## Round 3 (heavier features; think about the use cases)
 

@@ -124,6 +124,7 @@ export default function Canvas({
   const refView = useCanvas((s) => s.refView);
   const layers = useCanvas((s) => s.layers);
   const soloLayerId = useCanvas((s) => s.soloLayerId);
+  const searchHits = useCanvas((s) => s.searchHits);
 
   const clientToWorld = useCallback(
     (client: Point): Point => {
@@ -1052,6 +1053,31 @@ export default function Canvas({
               zoom={viewport.zoom}
               onHandlePointerDown={handleHandlePointerDown}
             />
+            </g>
+          ) : null}
+          {searchHits.length ? (
+            <g data-ui="true" pointerEvents="none">
+              {searchHits.map((id) => {
+                const n = nodes[id];
+                if (!n) return null;
+                const pad = 4 / viewport.zoom;
+                return (
+                  <rect
+                    key={`hit-${id}`}
+                    data-search-hit={id}
+                    x={n.x - pad}
+                    y={n.y - pad}
+                    width={n.width + pad * 2}
+                    height={n.height + pad * 2}
+                    rx={6 / viewport.zoom}
+                    fill="var(--accent)"
+                    fillOpacity={0.12}
+                    stroke="var(--accent)"
+                    strokeWidth={1.5 / viewport.zoom}
+                    strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`}
+                  />
+                );
+              })}
             </g>
           ) : null}
           {marqueeRect ? (

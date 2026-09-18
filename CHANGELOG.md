@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.16 — 2026-09-18
+
+### Added
+
+- **Board search (⌘F).** A search bar over the canvas finds shapes on the current board by their text, and lines by their label, case-insensitively. The current hit is selected and panned into view, every hit is outlined while the bar is open, and the readout shows "n of m". ↩ or ↓ steps forward, ⇧↩ or ↑ back, esc closes and keeps the selection. Hidden layers and solo-excluded shapes are not searched.
+
 ## 0.9.15 — 2026-09-18
 
 ### Added
