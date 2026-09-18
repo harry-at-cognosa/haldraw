@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.14 — 2026-09-18
+
+### Added
+
+- **Zoom in / out buttons** either side of the percentage readout, stepping by 25 % about the centre of the view, with **⌘=** and **⌘−** as keyboard equivalents. The buttons grey out at the 5 % and 800 % limits. ⌘0 still resets to 100 % and ⌘1 fits the drawing.
+
 ## 0.9.13 — 2026-09-18
 
 ### Added

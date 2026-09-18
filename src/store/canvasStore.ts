@@ -114,6 +114,8 @@ interface CanvasState {
   setViewport: (v: Viewport) => void;
   panBy: (dx: number, dy: number) => void;
   zoomAt: (clientX: number, clientY: number, delta: number) => void;
+  /** Zoom by a factor about the centre of the canvas (buttons and ⌘= / ⌘−). */
+  zoomStep: (factor: number) => void;
 
   select: (ids: string[], opts?: { additive?: boolean; edges?: boolean }) => void;
   clearSelection: () => void;
@@ -516,6 +518,13 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       const y = clientY - (clientY - s.viewport.y) * ratio;
       return { viewport: { x, y, zoom: newZoom } };
     }),
+
+  zoomStep: (factor) => {
+    const el = document.querySelector('svg.haldraw-canvas');
+    const cx = (el?.clientWidth ?? 1000) / 2;
+    const cy = (el?.clientHeight ?? 700) / 2;
+    get().zoomAt(cx, cy, factor - 1);
+  },
 
   select: (ids, opts) =>
     set((s) => {

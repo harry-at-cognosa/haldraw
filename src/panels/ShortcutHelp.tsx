@@ -57,6 +57,7 @@ export default function ShortcutHelp({
       items: [
         ['Space + drag', 'Pan'],
         ['⌘ / Ctrl + scroll', 'Zoom'],
+        ['⌘= / ⌘−', 'Zoom in / out (also the toolbar buttons)'],
         ['⌘0', 'Reset zoom'],
         ['⌘1', 'Zoom to fit'],
       ],

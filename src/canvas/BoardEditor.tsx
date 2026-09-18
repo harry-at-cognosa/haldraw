@@ -4,7 +4,7 @@ import { DEFAULT_NODE_STYLE, isNodeInteractive, isNodeVisible, layerOrder, useCa
 import { combinedBbox, type Point } from '@/util/geometry';
 import { newId } from '@/util/id';
 import Canvas from './Canvas';
-import Toolbar from '@/panels/Toolbar';
+import Toolbar, { ZOOM_STEP } from '@/panels/Toolbar';
 import PropertiesPanel from '@/panels/PropertiesPanel';
 import IconPicker from '@/panels/IconPicker';
 import Minimap from '@/panels/Minimap';
@@ -490,6 +490,16 @@ export default function BoardEditor({
       if (meta && e.key === '1') {
         e.preventDefault();
         zoomToFit();
+        return;
+      }
+      if (meta && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        store.zoomStep(ZOOM_STEP);
+        return;
+      }
+      if (meta && (e.key === '-' || e.key === '_')) {
+        e.preventDefault();
+        store.zoomStep(1 / ZOOM_STEP);
         return;
       }
       if (meta && e.shiftKey && e.key.toLowerCase() === 'l') {

@@ -20,7 +20,12 @@ import {
   Keyboard,
   ImagePlus,
   Pencil,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
+
+/** One zoom step of the buttons and ⌘= / ⌘−. */
+export const ZOOM_STEP = 1.25;
 import { layerOrder, useCanvas, type Tool } from '@/store/canvasStore';
 import { Layers, Settings } from 'lucide-react';
 import ExportMenu, { type ExportFormat } from './ExportMenu';
@@ -79,6 +84,7 @@ export default function Toolbar({
   const hasRedo = useCanvas((s) => s.future.length > 0);
   const viewport = useCanvas((s) => s.viewport);
   const setViewport = useCanvas((s) => s.setViewport);
+  const zoomStep = useCanvas((s) => s.zoomStep);
   const layers = useCanvas((s) => s.layers);
   const currentLayerId = useCanvas((s) => s.currentLayerId);
   const setCurrentLayer = useCanvas((s) => s.setCurrentLayer);
@@ -171,13 +177,15 @@ export default function Toolbar({
         <IconButton icon={Grid3x3} onClick={toggleGrid} active={showGrid} label="Toggle grid" />
         <IconButton icon={Magnet} onClick={toggleSnap} active={snapToGrid} label="Snap to grid" />
         <div className="w-px h-5 bg-border mx-1" />
+        <IconButton icon={ZoomOut} onClick={() => zoomStep(1 / ZOOM_STEP)} disabled={viewport.zoom <= 0.05} label="Zoom out (⌘−)" />
         <button
           onClick={() => setViewport({ ...viewport, zoom: 1 })}
-          className="px-2 h-8 rounded-md hover:bg-panel-hover text-fg-muted text-xs tabular-nums"
-          title="Reset zoom (⌘0)"
+          className="px-1 h-8 rounded-md hover:bg-panel-hover text-fg-muted text-xs tabular-nums min-w-[3.25rem]"
+          title="Reset zoom (⌘0); ⌘1 fits the drawing"
         >
           {Math.round(viewport.zoom * 100)}%
         </button>
+        <IconButton icon={ZoomIn} onClick={() => zoomStep(ZOOM_STEP)} disabled={viewport.zoom >= 8} label="Zoom in (⌘=)" />
         <IconButton icon={theme === 'dark' ? Sun : Moon} onClick={onToggleTheme} label="Toggle theme" />
         <IconButton icon={Keyboard} onClick={onShortcuts} label="Shortcuts (?)" />
         <IconButton icon={Settings} onClick={onSettings} label="Settings (⌘,)" />
