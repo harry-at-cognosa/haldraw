@@ -1,13 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import Anthropic from '@anthropic-ai/sdk';
-import type { VectorizeRequest, VectorizeResponse, VectorizeResult } from '@shared/types';
-
-const KEYCHAIN_SERVICE = 'haldraw';
-const KEYCHAIN_ACCOUNT = 'anthropic-api-key';
-
-/** The command the user runs once to store the key; shown verbatim in error messages. */
-export const KEYCHAIN_ADD_COMMAND = `security add-generic-password -s ${KEYCHAIN_SERVICE} -a ${KEYCHAIN_ACCOUNT} -w '<your key>' -U`;
+import { KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, type VectorizeRequest, type VectorizeResponse, type VectorizeResult } from '@shared/types';
 
 /** Read the key from the macOS keychain at call time. Never cached, never logged. */
 function readApiKey(): string | null {
@@ -126,7 +120,22 @@ function textOf(message: Anthropic.Message): string {
     .join('');
 }
 
+/**
+ * Every failure reaches the renderer as a VectorizeError with a sentence the
+ * toast can show; anything else (a bug, an odd SDK throw) is wrapped rather
+ * than leaking a raw stack message.
+ */
 export async function runVectorize(req: VectorizeRequest): Promise<VectorizeResponse> {
+  try {
+    return await runVectorizeInner(req);
+  } catch (err) {
+    if (err instanceof VectorizeError) throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new VectorizeError(`Vectorize failed unexpectedly: ${msg}`, 'output');
+  }
+}
+
+async function runVectorizeInner(req: VectorizeRequest): Promise<VectorizeResponse> {
   // Test seam: HALDRAW_VECTORIZE_FAKE=<json file> returns that result with no
   // network call. Only a launcher that sets the variable sees this; a packaged
   // app opened from the Finder never has it.
@@ -136,7 +145,12 @@ export async function runVectorize(req: VectorizeRequest): Promise<VectorizeResp
     // can be exercised while a call is "in flight".
     const delay = Number(process.env.HALDRAW_VECTORIZE_FAKE_DELAY_MS ?? 0);
     if (delay > 0) await new Promise((r) => setTimeout(r, delay));
-    const raw = JSON.parse(readFileSync(fake, 'utf8'));
+    let raw: unknown;
+    try {
+      raw = JSON.parse(readFileSync(fake, 'utf8'));
+    } catch (err) {
+      throw new VectorizeError(`Fake result file ${fake} could not be read as JSON: ${(err as Error).message}`, 'output');
+    }
     const problem = validateResult(raw, req.width, req.height);
     if (problem) throw new VectorizeError(`Fake result rejected: ${problem}`, 'output');
     return { result: raw as VectorizeResult, model: 'fake', inputTokens: 0, outputTokens: 0 };
@@ -170,7 +184,7 @@ export async function runVectorize(req: VectorizeRequest): Promise<VectorizeResp
       if (err instanceof Anthropic.RateLimitError) throw new VectorizeError('Rate limited by the API. Try again in a minute.', 'network');
       if (err instanceof Anthropic.APIConnectionError) throw new VectorizeError('Could not reach the API. Check the network connection.', 'network');
       if (err instanceof Anthropic.APIError) throw new VectorizeError(`API error ${err.status ?? ''}: ${err.message}`, 'model');
-      throw err;
+      throw new VectorizeError(`The API call failed: ${err instanceof Error ? err.message : String(err)}`, 'network');
     }
     inputTokens += message.usage.input_tokens;
     outputTokens += message.usage.output_tokens;

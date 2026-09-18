@@ -176,16 +176,28 @@ export function convertResult(
  * Full flow for one image node: fetch bytes, downsample, call the model, place
  * the draft on a "Draft" layer above the image's layer as one undo step.
  */
-export async function vectorizeNode(ref: CanvasNode, onProgress?: (msg: string) => void): Promise<VectorizeSummary> {
+export async function vectorizeNode(ref: CanvasNode): Promise<VectorizeSummary> {
+  const state = useCanvas.getState();
+  if (Object.keys(state.vectorizeProgress).length) throw new Error('Vectorize is busy with another image; wait for it to finish.');
+  const progress = (msg: string) => useCanvas.getState().setVectorizeProgress(ref.id, msg);
+  progress('Starting…');
+  try {
+    return await vectorizeNodeInner(ref, progress);
+  } finally {
+    useCanvas.getState().setVectorizeProgress(ref.id, null);
+  }
+}
+
+async function vectorizeNodeInner(ref: CanvasNode, onProgress: (msg: string) => void): Promise<VectorizeSummary> {
   const boardId = useCanvas.getState().boardId;
   const imageId = ref.content.imageId;
   if (!imageId) throw new Error('The selected shape is not an image.');
-  onProgress?.('Preparing image…');
+  onProgress('Preparing image…');
   const blob = await window.haldraw.images.get(imageId);
   if (!blob) throw new Error('Image bytes not found.');
   const sent = await imageToPng(blob.dataUrl);
   const settings = await window.haldraw.settings.get();
-  onProgress?.(`Asking ${settings.vectorizeModel}…`);
+  onProgress(`Asking ${settings.vectorizeModel}…`);
   let res: VectorizeResponse;
   try {
     res = await window.haldraw.vectorize.run({
@@ -209,9 +221,10 @@ export async function vectorizeNode(ref: CanvasNode, onProgress?: (msg: string) 
   const { nodes, edges, lowConfidence } = convertResult(res.result, live, sent, bg);
   const refLayer = store.layers[live.layerId];
   const ordered = layerOrder(store.layers);
-  // Reuse an existing "Draft" layer directly above the reference; else create one there.
-  const above = ordered[ordered.findIndex((l) => l.id === refLayer?.id) + 1];
-  const draftLayer = above && above.name === 'Draft' ? { id: above.id } : { name: 'Draft', abovePosition: refLayer?.position ?? -1 };
+  // Reuse the nearest "Draft" layer anywhere above the reference; else create one directly above it.
+  const refIndex = ordered.findIndex((l) => l.id === refLayer?.id);
+  const existing = ordered.slice(refIndex + 1).find((l) => l.name === 'Draft');
+  const draftLayer = existing ? { id: existing.id } : { name: 'Draft', abovePosition: refLayer?.position ?? -1 };
   useCanvas.getState().insertMany({ nodes, edges }, { layer: draftLayer, group: true, select: true });
   return { shapes: nodes.length, connectors: edges.length, lowConfidence, model: res.model, inputTokens: res.inputTokens, outputTokens: res.outputTokens };
 }

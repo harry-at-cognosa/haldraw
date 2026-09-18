@@ -7,36 +7,97 @@ import { edgeEndpoints } from '@/canvas/routing';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/** Padding inside a label box, matching the canvas label's `p-2` (8 px each side). */
+const LABEL_PAD = 8;
+/** Line height as a multiple of the font size, matching the canvas label. */
+const LABEL_LINE_HEIGHT = 1.3;
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+function textWidth(text: string, font: string): number {
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return text.length * 0.55 * parseFloat(font);
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+}
+
+/**
+ * Break text into the lines the canvas label shows: explicit newlines are
+ * kept, each paragraph is filled word by word to `maxWidth`, and a word wider
+ * than the box is split by character (`word-break: break-word`). Measured with
+ * the same family, size and weight the canvas renders with.
+ */
+export function wrapLabelText(text: string, maxWidth: number, font: string): string[] {
+  const out: string[] = [];
+  for (const para of text.split('\n')) {
+    const words = para.split(' ');
+    let line = '';
+    const push = () => {
+      out.push(line);
+      line = '';
+    };
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (textWidth(candidate, font) <= maxWidth || !candidate) {
+        line = candidate;
+        continue;
+      }
+      if (line) push();
+      // The word alone does not fit: split it by characters.
+      if (textWidth(word, font) <= maxWidth) {
+        line = word;
+        continue;
+      }
+      let chunk = '';
+      for (const ch of word) {
+        if (chunk && textWidth(chunk + ch, font) > maxWidth) {
+          out.push(chunk);
+          chunk = '';
+        }
+        chunk += ch;
+      }
+      line = chunk;
+    }
+    push();
+  }
+  return out;
+}
+
 function createTextElement(node: CanvasNode): SVGElement | null {
-  const text = node.content.text?.trim() ?? '';
-  if (!text) return null;
+  const text = node.content.text?.replace(/\s+$/, '') ?? '';
+  if (!text.trim()) return null;
   const style = node.style;
   const fontSize = style.fontSize ?? 16;
-  const lineH = fontSize * 1.3;
+  const fontFamily = style.fontFamily ?? 'Inter, system-ui, sans-serif';
+  const fontWeight = style.fontWeight ?? 500;
+  const lineH = fontSize * LABEL_LINE_HEIGHT;
   const align = style.textAlign ?? 'center';
   const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-  const pad = 8;
+  const pad = LABEL_PAD;
   // Same rectangle the canvas label uses (front face / right part / lower part for composite shapes).
   const box = labelBox(node);
   const xPos =
     anchor === 'start' ? box.x + pad : anchor === 'end' ? box.x + box.width - pad : box.x + box.width / 2;
 
-  const lines = text.split('\n');
+  // Wrap to the box like the canvas does, so a long label never runs past its shape.
+  const lines = wrapLabelText(text, Math.max(1, box.width - pad * 2), `${fontWeight} ${fontSize}px ${fontFamily}`);
   const va = style.verticalAlign ?? 'middle';
-  let baseY: number;
-  if (va === 'top') baseY = box.y + pad + fontSize;
-  else if (va === 'bottom')
-    baseY = box.y + box.height - pad - (lines.length - 1) * lineH;
-  else
-    baseY =
-      box.y + box.height / 2 + fontSize / 3 - ((lines.length - 1) * lineH) / 2;
+  const block = lines.length * lineH;
+  // First baseline: the canvas centres a block of `lines × lineH` in the box;
+  // within a line the glyphs sit roughly 0.8 em from its top.
+  const ascent = fontSize * 0.8;
+  const lead = (lineH - fontSize) / 2;
+  let top: number;
+  if (va === 'top') top = box.y + pad;
+  else if (va === 'bottom') top = box.y + box.height - pad - block;
+  else top = box.y + box.height / 2 - block / 2;
+  const baseY = top + lead + ascent;
 
   const t = document.createElementNS(SVG_NS, 'text');
   t.setAttribute('text-anchor', anchor);
   t.setAttribute('fill', style.color ?? '#e6e8eb');
-  t.setAttribute('font-family', style.fontFamily ?? 'Inter, system-ui, sans-serif');
+  t.setAttribute('font-family', fontFamily);
   t.setAttribute('font-size', String(fontSize));
-  t.setAttribute('font-weight', String(style.fontWeight ?? 500));
+  t.setAttribute('font-weight', String(fontWeight));
   t.setAttribute('style', 'white-space: pre');
 
   if (node.type === 'text' && node.rotation) {

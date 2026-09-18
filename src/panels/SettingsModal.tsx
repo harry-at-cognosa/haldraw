@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { VECTORIZE_MODELS, type AppSettings } from '@shared/types';
-
-const KEYCHAIN_ADD_COMMAND = "security add-generic-password -s haldraw -a anthropic-api-key -w '<your key>' -U";
+import { KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, VECTORIZE_MODELS, type AppSettings } from '@shared/types';
 
 export default function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -53,7 +51,7 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
           <span className="text-fg-muted w-20 pt-0.5">API key</span>
           <div className="flex-1 min-w-0">
             <div className={keyPresent ? 'text-fg' : 'text-red-400'}>
-              {keyPresent === null ? 'Checking the keychain…' : keyPresent ? 'Found in the macOS keychain (haldraw / anthropic-api-key).' : 'Not found in the macOS keychain.'}
+              {keyPresent === null ? 'Checking the keychain…' : keyPresent ? `Found in the macOS keychain (${KEYCHAIN_SERVICE} / ${KEYCHAIN_ACCOUNT}).` : 'Not found in the macOS keychain.'}
             </div>
             <div className="text-fg-muted mt-1 leading-relaxed">
               The key is read from the keychain at call time and never stored by the app. To add or replace it, run this in Terminal:

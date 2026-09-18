@@ -82,6 +82,15 @@ interface CanvasState {
   /** Session-only: include locked reference images in PNG/SVG export. Default off. */
   exportIncludeRefs: boolean;
   setExportIncludeRefs: (v: boolean) => void;
+  /**
+   * Vectorize calls in flight, keyed by image node id, with their progress
+   * text. Transient and board-independent: it lives here rather than in a
+   * button so the Image section and the Reference-images row show the same
+   * state, the text survives either unmounting, and one call at a time is
+   * enforced across both.
+   */
+  vectorizeProgress: Record<string, string>;
+  setVectorizeProgress: (nodeId: string, message: string | null) => void;
   lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
   lastEdge: {
     style: EdgeStyle;
@@ -378,6 +387,14 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       selection: v === 'normal' ? s.selection : new Set<string>(),
       edgeSelection: v === 'normal' ? s.edgeSelection : new Set<string>(),
     })),
+  vectorizeProgress: {},
+  setVectorizeProgress: (nodeId, message) =>
+    set((s) => {
+      const next = { ...s.vectorizeProgress };
+      if (message === null) delete next[nodeId];
+      else next[nodeId] = message;
+      return { vectorizeProgress: next };
+    }),
   lastNodeStyle: {},
   lastEdge: {
     style: { stroke: '#0b0d10', strokeWidth: 2, opacity: 1 },

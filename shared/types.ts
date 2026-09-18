@@ -237,6 +237,12 @@ export interface AppSettings {
   vectorizeModel: string;
 }
 
+/** Where the Anthropic API key lives: one macOS keychain item, read at call time. */
+export const KEYCHAIN_SERVICE = 'haldraw';
+export const KEYCHAIN_ACCOUNT = 'anthropic-api-key';
+/** The command the user runs once to store the key; shown verbatim in Settings and in error messages. */
+export const KEYCHAIN_ADD_COMMAND = `security add-generic-password -s ${KEYCHAIN_SERVICE} -a ${KEYCHAIN_ACCOUNT} -w '<your key>' -U`;
+
 export interface TextFileFilter {
   name: string;
   extensions: string[];

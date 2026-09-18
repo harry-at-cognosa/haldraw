@@ -2,6 +2,19 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.10 — 2026-09-18
+
+### Fixed
+
+- **PNG and SVG export wrap text the way the canvas does.** Labels used to be exported as one line per typed line, so a long label ran past its shape in the file while it wrapped on screen. The exporter now measures the text with the shape's own family, size and weight and fills the label box word by word, breaking an over-long word by character, with the same padding and line height as the canvas; top / middle / bottom alignment follows the wrapped block. A label that overflows its box is clipped on the canvas but fully drawn in the export.
+- **Vectorize runs one call at a time.** The in-flight state moved from the button into the store, so the Image section's button and the Reference-images sparkle share it: while a call is running every other Vectorize button is disabled ("busy with another image"), and the progress text survives deselecting or reselecting the image. Two rows can no longer each spawn a Draft layer.
+- Vectorize reuses the nearest **Draft** layer anywhere above the reference image, not only one directly above it.
+- Errors that were not API errors (a malformed fake-result file, an unexpected SDK throw) reach the toast as a sentence instead of a raw stack message.
+
+### Changed
+
+- The keychain command shown in Settings and in error messages comes from one constant in `shared/types.ts`.
+
 ## 0.9.9 — 2026-09-18
 
 ### Added
