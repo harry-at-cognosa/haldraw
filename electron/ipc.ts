@@ -1,5 +1,6 @@
 import { ipcMain, dialog, shell, clipboard, BrowserWindow } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import { basename, extname } from 'node:path';
 import * as projectsRepo from './repo/projects';
 import * as boardsRepo from './repo/boards';
@@ -220,5 +221,35 @@ export function registerIpcHandlers() {
   });
   ipcMain.handle('writeClipboard', (_e, text: string) => {
     clipboard.writeText(text);
+  });
+  ipcMain.handle('pickColor', (_e, initial: string) => pickColorNative(initial));
+}
+
+/**
+ * The standard macOS Colors panel via AppleScript's `choose color`. Chromium's
+ * own popup is what an HTML colour input shows inside Electron, so the panel
+ * is reached this way instead. Values are 16-bit per channel.
+ */
+function pickColorNative(initial: string): Promise<string | null> {
+  const m = /^#([0-9a-f]{6})$/i.exec(initial ?? '');
+  const n = m ? parseInt(m[1], 16) : 0xffffff;
+  const to16 = (v: number) => Math.round((v / 255) * 65535);
+  const rgb = `{${to16((n >> 16) & 255)}, ${to16((n >> 8) & 255)}, ${to16(n & 255)}}`;
+  const script = `tell me to activate\nset c to choose color default color ${rgb}\nreturn (item 1 of c as integer) & "," & (item 2 of c as integer) & "," & (item 3 of c as integer) as string`;
+  return new Promise((resolve) => {
+    execFile('osascript', ['-e', script], { timeout: 10 * 60 * 1000 }, (err, stdout) => {
+      if (err) {
+        // Exit 1 with "User canceled. (-128)" on Cancel; anything else is also "no colour".
+        resolve(null);
+        return;
+      }
+      const parts = String(stdout).trim().split(',').map((x) => Number(x.trim()));
+      if (parts.length !== 3 || parts.some((x) => !Number.isFinite(x))) {
+        resolve(null);
+        return;
+      }
+      const hex = parts.map((x) => Math.round((Math.max(0, Math.min(65535, x)) / 65535) * 255).toString(16).padStart(2, '0')).join('');
+      resolve(`#${hex}`);
+    });
   });
 }

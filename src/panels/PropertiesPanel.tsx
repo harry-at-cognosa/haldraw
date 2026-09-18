@@ -17,7 +17,7 @@ import { notify, vectorizeNode } from '@/util/vectorize';
 import { defaultStyleForBackground, EDGE_LABEL_FONT_DEFAULT, slotPoints } from '@/util/geometry';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
-import { replaceSwatch } from '@/util/palette';
+import { pickColour, replaceSwatch } from '@/util/palette';
 import { BACKGROUND_NAMES } from '@shared/types';
 import {
   Minus,
@@ -814,10 +814,10 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 /**
- * Swatch row. Click applies a colour; right-click or ⌥-click opens the native
- * colour panel and replaces that swatch in the app-wide palette (live while the
- * panel is open, saved a moment after the last change). The rainbow swatch is a one-off custom
- * colour and touches no swatch; transparent cannot be replaced.
+ * Swatch row. Click applies a colour; right-click or ⌥-click opens the macOS
+ * Colors panel and replaces that swatch in the app-wide palette. The rainbow
+ * swatch opens the same panel for a one-off colour and touches no swatch;
+ * transparent cannot be replaced.
  */
 function ColorRow({
   options,
@@ -830,32 +830,27 @@ function ColorRow({
 }) {
   const isHex = /^#[0-9a-f]{6}$/i.test(value);
   const custom = isHex && !options.includes(value.toLowerCase()) && !options.includes(value);
-  const editRef = useRef<HTMLInputElement>(null);
-  const [editing, setEditing] = useState<number | null>(null);
-  const openReplace = (i: number, current: string) => {
-    if (current === 'transparent' || !editRef.current) {
-      setEditing(null);
-      return;
-    }
-    setEditing(i);
-    editRef.current.value = /^#[0-9a-f]{6}$/i.test(current) ? current : '#ffffff';
-    // Defer so the value is set before the panel reads it.
-    setTimeout(() => editRef.current?.click(), 0);
-  };
   // Map a row index to its palette index: the fill row prepends transparent.
   const paletteIndex = (i: number) => (options[0] === 'transparent' ? i - 1 : i);
+  const openReplace = async (i: number, current: string) => {
+    if (current === 'transparent') return;
+    const hex = await pickColour(current);
+    if (!hex) return;
+    replaceSwatch('swatches', paletteIndex(i), hex);
+    onChange(hex);
+  };
   return (
     <div className="flex gap-1 flex-wrap items-center">
       {options.map((c, i) => (
         <button
           key={`${i}-${c}`}
           onClick={(e) => {
-            if (e.altKey) openReplace(i, c);
+            if (e.altKey) void openReplace(i, c);
             else onChange(c);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
-            openReplace(i, c);
+            void openReplace(i, c);
           }}
           data-swatch={c}
           className={`w-6 h-6 rounded ${value === c ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'}`}
@@ -866,34 +861,18 @@ function ColorRow({
           title={c === 'transparent' ? 'Transparent (no fill)' : `${c} — right-click or ⌥-click to replace this swatch`}
         />
       ))}
-      <label
-        className={`w-6 h-6 rounded overflow-hidden cursor-pointer relative ${
-          custom ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'
-        }`}
-        title={custom ? `Custom ${value}` : 'Custom colour… (one-off, not added to the palette)'}
+      <button
+        onClick={async () => {
+          const hex = await pickColour(isHex ? value : '#ffffff');
+          if (hex) onChange(hex);
+        }}
+        data-swatch="custom"
+        className={`w-6 h-6 rounded ${custom ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'}`}
+        title={custom ? `Custom ${value} — click for the Colors panel` : 'Custom colour… (macOS Colors panel; one-off, not added to the palette)'}
         style={{
           background: custom
             ? value
             : 'conic-gradient(#ef4444,#f59e0b,#10b981,#38bdf8,#6366f1,#d946ef,#ef4444)',
-        }}
-      >
-        <input
-          type="color"
-          value={isHex ? value : '#ffffff'}
-          onChange={(e) => onChange(e.target.value)}
-          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-        />
-      </label>
-      <input
-        ref={editRef}
-        type="color"
-        data-testid="swatch-editor"
-        className="absolute w-0 h-0 opacity-0 pointer-events-none"
-        tabIndex={-1}
-        onChange={(e) => {
-          if (editing === null) return;
-          replaceSwatch('swatches', paletteIndex(editing), e.target.value);
-          onChange(e.target.value);
         }}
       />
     </div>
@@ -1302,16 +1281,12 @@ function BoardPanel() {
     ...backgrounds.map((value) => ({ value, label: BACKGROUND_NAMES[value] ?? value })),
     { value: 'transparent', label: 'Transparent' },
   ];
-  const bgEditRef = useRef<HTMLInputElement>(null);
-  const [bgEditing, setBgEditing] = useState<number | null>(null);
-  const openBgReplace = (i: number) => {
-    if (i >= backgrounds.length || !bgEditRef.current) {
-      setBgEditing(null);
-      return;
-    }
-    setBgEditing(i);
-    bgEditRef.current.value = backgrounds[i];
-    setTimeout(() => bgEditRef.current?.click(), 0);
+  const openBgReplace = async (i: number) => {
+    if (i >= backgrounds.length) return;
+    const hex = await pickColour(backgrounds[i]);
+    if (!hex) return;
+    replaceSwatch('backgrounds', i, hex);
+    set(hex);
   };
 
   const set = (color: string) => {
@@ -1340,12 +1315,12 @@ function BoardPanel() {
               <button
                 key={`${i}-${o.value}`}
                 onClick={(e) => {
-                  if (e.altKey) openBgReplace(i);
+                  if (e.altKey) void openBgReplace(i);
                   else set(o.value);
                 }}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  openBgReplace(i);
+                  void openBgReplace(i);
                 }}
                 data-swatch={o.value}
                 title={o.value === 'transparent' ? o.label : `${o.label} — right-click or ⌥-click to replace this swatch`}
@@ -1363,23 +1338,15 @@ function BoardPanel() {
           </div>
           <div className="flex items-center gap-2 pt-1">
             <label className="text-sm text-fg">Custom</label>
-            <input
-              type="color"
-              value={/^#[0-9a-f]{6}$/i.test(current) ? current : '#ffffff'}
-              onChange={(e) => set(e.target.value)}
-              className="w-8 h-7 rounded border border-border bg-canvas cursor-pointer"
-            />
-            <input
-              ref={bgEditRef}
-              type="color"
-              data-testid="bg-swatch-editor"
-              className="absolute w-0 h-0 opacity-0 pointer-events-none"
-              tabIndex={-1}
-              onChange={(e) => {
-                if (bgEditing === null) return;
-                replaceSwatch('backgrounds', bgEditing, e.target.value);
-                set(e.target.value);
+            <button
+              onClick={async () => {
+                const hex = await pickColour(current);
+                if (hex) set(hex);
               }}
+              data-swatch="custom-bg"
+              className="w-8 h-7 rounded border border-border cursor-pointer"
+              style={{ background: /^#[0-9a-f]{6}$/i.test(current) ? current : '#ffffff' }}
+              title="Choose any paper colour (macOS Colors panel)"
             />
           </div>
           <div className="text-xs text-fg-muted pt-2 leading-relaxed">

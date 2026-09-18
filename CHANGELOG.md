@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.18 — 2026-09-18
+
+### Fixed
+
+- **Colour choice uses the macOS Colors panel.** Every colour control (the rainbow custom swatch in Fill, Stroke, Text, line Color and Label, the board's Custom paper button, swatch replacement by right-click / ⌥-click, and the Settings ▸ Palette swatches) now opens the standard macOS Colors panel with the current colour preselected. 0.9.11 had used the HTML colour input, which inside Electron shows Chromium's own popup rather than the system panel. The panel is modal: the colour applies on OK and nothing changes on Cancel, so there is no live preview while it is open.
+
 ## 0.9.17 — 2026-09-18
 
 ### Added

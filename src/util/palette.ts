@@ -27,3 +27,8 @@ export function resetPalette(): void {
   useCanvas.getState().setPalette(DEFAULT_PALETTE);
   void window.haldraw.settings.set({ palette: DEFAULT_PALETTE });
 }
+
+/** Open the macOS Colors panel; null on Cancel. */
+export function pickColour(initial: string): Promise<string | null> {
+  return window.haldraw.pickColor(/^#[0-9a-f]{6}$/i.test(initial) ? initial : '#ffffff');
+}

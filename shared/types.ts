@@ -404,6 +404,11 @@ export interface HaldrawApi {
   exportSvg: (payload: { defaultName: string; xml: string }) => Promise<{ saved: boolean; path?: string }>;
   openExternal: (url: string) => Promise<void>;
   writeClipboard: (text: string) => Promise<void>;
+  /**
+   * The macOS Colors panel (0.9.18), opened with `initial` selected. Resolves
+   * the chosen hex on OK, null on Cancel. Modal; no live preview.
+   */
+  pickColor: (initial: string) => Promise<string | null>;
   theme: {
     get: () => Promise<'dark' | 'light'>;
     set: (theme: 'dark' | 'light') => Promise<void>;

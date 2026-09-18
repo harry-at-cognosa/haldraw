@@ -1,4 +1,4 @@
-# haldraw 0.9.17 — help and shortcuts
+# haldraw 0.9.17 / 0.9.18 — help and shortcuts
 
 Mirrors the two `?` overlays in the app (library and editor) and adds the mouse-only panel controls. Supersedes the 0.8.0 note. Items marked with a version arrived in that release.
 
@@ -147,7 +147,7 @@ What goes wrong and why:
 |---|---|---|
 | Header | Selection readout | Type · content, then layer · z-rank · size at position |
 | Shape (0.9.9) | Seven kind buttons | Turn the selection into a rectangle, ellipse, diamond, 3D box, data store, collection or text in place, keeping size, style, text and connectors. Not offered for icons, images or ink |
-| Fill / Stroke / Text | Swatches | Click applies. Right-click or `⌥`-click a swatch to replace it via the native colour panel, app-wide (0.9.11). The rainbow swatch is a one-off custom colour. Ink strokes show Stroke only |
+| Fill / Stroke / Text | Swatches | Click applies. Right-click or `⌥`-click a swatch to replace it, app-wide (0.9.11). The rainbow swatch is a one-off custom colour. Both open the macOS Colors panel (0.9.18); the colour applies on OK. Ink strokes show Stroke only |
 | Stroke | Width · Style | Slider and typed value; Solid · Dashed · Dotted |
 | Text | Font · Size · Weight · Align · V-Align | Installed fonts by name; size 4–999 |
 | Layer | ⇈ ▲ ▼ ⇊ · On layer | Stacking order; move to another layer |

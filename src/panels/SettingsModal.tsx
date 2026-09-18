@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BACKGROUND_NAMES, DEFAULT_PALETTE, KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, VECTORIZE_MODELS, type AppSettings, type BackupStatus, type Palette } from '@shared/types';
 import { useCanvas } from '@/store/canvasStore';
-import { replaceSwatch, resetPalette } from '@/util/palette';
+import { pickColour, replaceSwatch, resetPalette } from '@/util/palette';
 
 export default function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -118,8 +118,6 @@ function PaletteSection() {
 }
 
 function SwatchRow({ label, kind, colours }: { label: string; kind: keyof Palette; colours: string[] }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [editing, setEditing] = useState<number | null>(null);
   return (
     <div className="flex items-center gap-3 mb-2">
       <span className="text-fg-muted w-20">{label}</span>
@@ -128,25 +126,16 @@ function SwatchRow({ label, kind, colours }: { label: string; kind: keyof Palett
           <button
             key={`${i}-${c}`}
             data-settings-swatch={c}
-            onClick={() => {
-              if (!ref.current) return;
-              setEditing(i);
-              ref.current.value = c;
-              setTimeout(() => ref.current?.click(), 0);
+            onClick={async () => {
+              const hex = await pickColour(c);
+              if (hex) replaceSwatch(kind, i, hex);
             }}
             className="w-6 h-6 rounded ring-1 ring-border hover:ring-accent"
             style={{ background: c }}
-            title={`${kind === 'backgrounds' ? (BACKGROUND_NAMES[c] ?? c) : c} — click to replace`}
+            title={`${kind === 'backgrounds' ? (BACKGROUND_NAMES[c] ?? c) : c} — click to replace (macOS Colors panel)`}
           />
         ))}
       </div>
-      <input
-        ref={ref}
-        type="color"
-        className="absolute w-0 h-0 opacity-0 pointer-events-none"
-        tabIndex={-1}
-        onChange={(e) => editing !== null && replaceSwatch(kind, editing, e.target.value)}
-      />
     </div>
   );
 }
