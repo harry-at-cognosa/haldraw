@@ -2,6 +2,16 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.8 — 2026-09-17
+
+### Added
+
+- **Shift-resize of a multi-selection scales text and strokes with the boxes.** Holding Shift at the start of a corner-handle drag on two or more selected shapes now scales each shape's font size and stroke width by the smaller of the two axis factors, and does the same to the stroke and label of every line joining two selected shapes. Font size floors at 4 and rounds to a whole number on release. A plain drag, or a Shift-drag on a single shape, still only reflows the box.
+
+### Fixed
+
+- **Zoom to fit (⌘1) could write a negative zoom into the board.** It measured the viewport with `document.querySelector('svg')`, which matches the first toolbar icon rather than the canvas, so a 16 px icon produced a zoom of −0.06 that autosave then persisted; the board opened blank and unclickable on every relaunch until the row was repaired by hand. It now measures `svg.haldraw-canvas` and never goes below 2 %.
+
 ## 0.9.7 — 2026-09-17
 
 ### Added

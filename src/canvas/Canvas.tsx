@@ -14,6 +14,7 @@ import {
   rectsOverlap,
   defaultStyleForBackground,
   defaultEdgeStrokeForBackground,
+  EDGE_LABEL_FONT_DEFAULT,
   type Point,
 } from '@/util/geometry';
 import Shape from './Shape';
@@ -37,6 +38,10 @@ type Interaction =
       start: Point;
       initial: Record<string, CanvasNode>;
       bbox: { x: number; y: number; width: number; height: number };
+      /** Shift at pointerdown on a multi-selection: font size and stroke width scale with the box. */
+      scaleStyle: boolean;
+      /** Edges joining two selected nodes; scaled alongside them when scaleStyle is set. */
+      initialEdges: Record<string, CanvasEdge>;
     }
   | {
       kind: 'rotate';
@@ -249,7 +254,9 @@ export default function Canvas({
       const initial: Record<string, CanvasNode> = {};
       for (const id of ids) {
         const n = store.nodes[id];
-        if (n) initial[id] = { ...n };
+        // Copy style too: the store's shallow-copy updater would otherwise hand
+        // back this same style object, and the drag baseline would drift.
+        if (n) initial[id] = { ...n, style: { ...n.style } };
       }
       const selectedNodes = Object.values(initial);
       const bbox = combinedBbox(selectedNodes);
@@ -261,7 +268,16 @@ export default function Canvas({
         const startAngle = Math.atan2(world.y - center.y, world.x - center.x);
         setInteraction({ kind: 'rotate', start: world, center, initial, startAngle });
       } else {
-        setInteraction({ kind: 'resize', handle, start: world, initial, bbox });
+        const scaleStyle = e.shiftKey && ids.length > 1;
+        const initialEdges: Record<string, CanvasEdge> = {};
+        if (scaleStyle) {
+          for (const edge of Object.values(store.edges)) {
+            if (edge.fromNode && edge.toNode && initial[edge.fromNode] && initial[edge.toNode]) {
+              initialEdges[edge.id] = { ...edge, style: { ...edge.style } };
+            }
+          }
+        }
+        setInteraction({ kind: 'resize', handle, start: world, initial, bbox, scaleStyle, initialEdges });
       }
       (e.target as Element).setPointerCapture(e.pointerId);
     },
@@ -458,6 +474,9 @@ export default function Canvas({
           const newH = bottom - top;
           const scaleX = newW / interaction.bbox.width;
           const scaleY = newH / interaction.bbox.height;
+          // The label box is overflow:hidden, so text must follow whichever
+          // axis shrank most or it clips under a non-uniform resize.
+          const styleScale = interaction.scaleStyle ? Math.min(scaleX, scaleY) : 1;
           store.updateNodes(Object.keys(interaction.initial), (n) => {
             const init = interaction.initial[n.id];
             if (!init) return;
@@ -465,7 +484,25 @@ export default function Canvas({
             n.y = top + (init.y - interaction.bbox.y) * scaleY;
             n.width = Math.max(1, init.width * scaleX);
             n.height = Math.max(1, init.height * scaleY);
+            if (interaction.scaleStyle) {
+              n.style = {
+                ...n.style,
+                fontSize: Math.max(4, (init.style.fontSize ?? 16) * styleScale),
+                strokeWidth: (init.style.strokeWidth ?? 2) * styleScale,
+              };
+            }
           });
+          if (interaction.scaleStyle) {
+            store.updateEdges(Object.keys(interaction.initialEdges), (edge) => {
+              const init = interaction.initialEdges[edge.id];
+              if (!init) return;
+              edge.style = {
+                ...edge.style,
+                fontSize: Math.max(4, (init.style.fontSize ?? EDGE_LABEL_FONT_DEFAULT) * styleScale),
+                strokeWidth: (init.style.strokeWidth ?? 2) * styleScale,
+              };
+            });
+          }
           return;
         }
         case 'rotate': {
@@ -600,8 +637,19 @@ export default function Canvas({
           if (hit.length) store.select(hit.map((n) => n.id));
           break;
         }
-        case 'drag-nodes':
         case 'resize':
+          if (interaction.scaleStyle) {
+            // The Size control shows integers; settle on one at release.
+            store.updateNodes(Object.keys(interaction.initial), (n) => {
+              if (n.style.fontSize != null) n.style = { ...n.style, fontSize: Math.round(n.style.fontSize) };
+            });
+            store.updateEdges(Object.keys(interaction.initialEdges), (edge) => {
+              if (edge.style.fontSize != null) edge.style = { ...edge.style, fontSize: Math.round(edge.style.fontSize) };
+            });
+          }
+          store.endTransient();
+          break;
+        case 'drag-nodes':
         case 'rotate':
           store.endTransient();
           break;

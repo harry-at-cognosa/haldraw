@@ -380,11 +380,11 @@ export default function BoardEditor({
       return;
     }
     const bbox = combinedBbox(all)!;
-    const el = document.querySelector('svg');
+    const el = document.querySelector('svg.haldraw-canvas');
     const cw = el?.clientWidth ?? 1000;
     const ch = el?.clientHeight ?? 800;
     const pad = 80;
-    const zoom = Math.min((cw - pad * 2) / bbox.width, (ch - pad * 2) / bbox.height, 4);
+    const zoom = Math.max(0.02, Math.min((cw - pad * 2) / bbox.width, (ch - pad * 2) / bbox.height, 4));
     state.setViewport({
       x: cw / 2 - (bbox.x + bbox.width / 2) * zoom,
       y: ch / 2 - (bbox.y + bbox.height / 2) * zoom,
