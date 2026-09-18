@@ -1,5 +1,5 @@
 import { getDb } from '../db';
-import type { CanvasEdge, CanvasNode, EdgeHead, EdgeRouting, NodeType } from '@shared/types';
+import { normalizeAnchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type NodeType } from '@shared/types';
 
 type NodeRow = {
   id: string;
@@ -75,10 +75,10 @@ function toEdge(row: EdgeRow): CanvasEdge {
     id: row.id,
     boardId: row.board_id,
     fromNode: row.from_node,
-    fromAnchor: (row.from_anchor ?? null) as CanvasEdge['fromAnchor'],
+    fromAnchor: normalizeAnchor(row.from_anchor),
     fromPoint: row.from_point ? JSON.parse(row.from_point) : null,
     toNode: row.to_node,
-    toAnchor: (row.to_anchor ?? null) as CanvasEdge['toAnchor'],
+    toAnchor: normalizeAnchor(row.to_anchor),
     toPoint: row.to_point ? JSON.parse(row.to_point) : null,
     routing: row.routing as EdgeRouting,
     headStart: toHead(row.head_start, row.arrow_start),

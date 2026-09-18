@@ -19,13 +19,24 @@ export type EdgeRouting = 'straight' | 'orthogonal' | 'curved';
 export type EdgeHead = 'none' | 'arrow' | 'open' | 'dot' | 'diamond' | 'crow';
 export const EDGE_HEADS: readonly EdgeHead[] = ['none', 'arrow', 'open', 'dot', 'diamond', 'crow'];
 
-export type Anchor =
-  | 'auto'
-  | 'top'
-  | 'right'
-  | 'bottom'
-  | 'left'
-  | 'center';
+/**
+ * Sixteen connection slots (0.9.17), clockwise from north, named like the
+ * perimeter cells of a 5×5 grid. Every shape kind places them on its own
+ * outline; see docs/Connection_points_proposal_260918.md.
+ */
+export const ANCHOR_SLOTS = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'] as const;
+export type AnchorSlot = (typeof ANCHOR_SLOTS)[number];
+
+export type Anchor = 'auto' | 'center' | AnchorSlot;
+
+/** Pre-0.9.17 names read from the database or a file map onto the cardinal slots. */
+const ANCHOR_ALIASES: Record<string, Anchor> = { top: 'n', right: 'e', bottom: 's', left: 'w' };
+export function normalizeAnchor(v: unknown): Anchor | null {
+  if (typeof v !== 'string') return null;
+  if (v === 'auto' || v === 'center') return v;
+  if ((ANCHOR_SLOTS as readonly string[]).includes(v)) return v as AnchorSlot;
+  return ANCHOR_ALIASES[v] ?? null;
+}
 
 export interface NodeStyle {
   fill?: string;

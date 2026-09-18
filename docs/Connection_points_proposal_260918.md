@@ -1,6 +1,6 @@
 # Connection points, round 2: proposal for the record — 2026-09-18
 
-Sixteen named connection slots on every shape, an explicit picker, and snap-to-slot while dragging a line end. Written after the 0.9.16 release; supersedes the "stay with six anchors" decision recorded in [Allowed_connection_points_for_shapes_haldraw_v0.9.3.md](./Allowed_connection_points_for_shapes_haldraw_v0.9.3.md). Decisions below are Harry's, 2026-09-18.
+Sixteen named connection slots on every shape, an explicit picker, and snap-to-slot while dragging a line end. Written after the 0.9.16 release; supersedes the "stay with six anchors" decision recorded in [Allowed_connection_points_for_shapes_haldraw_v0.9.3.md](./Allowed_connection_points_for_shapes_haldraw_v0.9.3.md). Decisions below are Harry's, 2026-09-18. **Implemented in 0.9.17** the same day; the behaviour note is [Allowed_connection_points_for_shapes_haldraw_v0.9.17.md](./Allowed_connection_points_for_shapes_haldraw_v0.9.17.md).
 
 ## Decisions
 

@@ -14,7 +14,7 @@ import {
 } from '@shared/types';
 import { HEAD_LABELS, HeadGlyph } from '@/canvas/edgeHeads';
 import { notify, vectorizeNode } from '@/util/vectorize';
-import { defaultStyleForBackground, EDGE_LABEL_FONT_DEFAULT } from '@/util/geometry';
+import { defaultStyleForBackground, EDGE_LABEL_FONT_DEFAULT, slotPoints } from '@/util/geometry';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
 import { replaceSwatch } from '@/util/palette';
@@ -475,6 +475,7 @@ export default function PropertiesPanel() {
                   <AnchorRow
                     label="From"
                     value={firstEdge?.fromAnchor ?? 'auto'}
+                    node={nodes[firstEdge.fromNode] ?? null}
                     onChange={(a) => patchEdges({ fromAnchor: a })}
                   />
                 ) : null}
@@ -482,9 +483,13 @@ export default function PropertiesPanel() {
                   <AnchorRow
                     label="To"
                     value={firstEdge?.toAnchor ?? 'auto'}
+                    node={nodes[firstEdge.toNode] ?? null}
                     onChange={(a) => patchEdges({ toAnchor: a })}
                   />
                 ) : null}
+                <div className="text-xs text-fg-muted leading-relaxed">
+                  Sixteen slots per shape. While dragging a line end over a shape, release on a dot to pick a slot, or anywhere else for Auto.
+                </div>
               </Section>
             ) : null}
             <Section title="Routing">
@@ -1191,38 +1196,88 @@ function IconBtn({
   );
 }
 
+/**
+ * Connection-slot picker for one line end: the sixteen slots drawn where they
+ * sit on a glyph of the attached shape's kind (the same geometry the canvas
+ * uses), a centre dot, and Auto. Hovering a dot names it.
+ */
 function AnchorRow({
   label,
   value,
+  node,
   onChange,
 }: {
   label: string;
   value: Anchor;
+  node: CanvasNode | null;
   onChange: (a: Anchor) => void;
 }) {
-  const options: Array<{ v: Anchor; l: string }> = [
-    { v: 'auto', l: 'Auto' },
-    { v: 'top', l: 'Top' },
-    { v: 'right', l: 'Right' },
-    { v: 'bottom', l: 'Bot' },
-    { v: 'left', l: 'Left' },
-    { v: 'center', l: 'Ctr' },
-  ];
+  const size = 64;
+  const inset = 8;
+  const glyph: CanvasNode = {
+    ...(node ?? ({ type: 'rect' } as CanvasNode)),
+    x: inset,
+    y: inset,
+    width: size - inset * 2,
+    height: size - inset * 2,
+    rotation: 0,
+  };
+  const kind = node?.type ?? 'rect';
+  const boxLike = kind !== 'ellipse' && kind !== 'diamond';
+  const dots = slotPoints(glyph);
+  const cx = size / 2;
+  const cy = size / 2;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" data-testid={`anchor-row-${label.toLowerCase()}`}>
       <span className="text-fg-muted text-xs w-10">{label}</span>
-      <div className="flex flex-wrap gap-1">
-        {options.map((o) => (
-          <button
-            key={o.v}
-            onClick={() => onChange(o.v)}
-            className={`px-2 py-0.5 rounded text-xs ${
-              value === o.v ? 'bg-accent text-white' : 'border border-border hover:bg-panel-hover text-fg-muted'
-            }`}
+      <svg width={size} height={size} className="shrink-0" data-anchor-picker={label.toLowerCase()}>
+        {kind === 'ellipse' ? (
+          <ellipse cx={cx} cy={cy} rx={glyph.width / 2} ry={glyph.height / 2} fill="none" stroke="var(--border)" strokeWidth={1.5} />
+        ) : kind === 'diamond' ? (
+          <polygon points={`${cx} ${inset}, ${size - inset} ${cy}, ${cx} ${size - inset}, ${inset} ${cy}`} fill="none" stroke="var(--border)" strokeWidth={1.5} />
+        ) : (
+          <rect x={inset} y={inset} width={glyph.width} height={glyph.height} rx={kind === 'rect' ? 4 : 0} fill="none" stroke="var(--border)" strokeWidth={1.5} strokeDasharray={boxLike && (kind === 'text' || kind === 'image' || kind === 'icon') ? '3 2' : undefined} />
+        )}
+        {dots.map(({ slot, point }) => (
+          <circle
+            key={slot}
+            cx={point.x}
+            cy={point.y}
+            r={value === slot ? 4 : 3}
+            fill={value === slot ? 'var(--accent)' : 'var(--panel)'}
+            stroke={value === slot ? 'var(--accent)' : 'var(--fg-muted)'}
+            strokeWidth={1.2}
+            className="cursor-pointer"
+            data-anchor-slot={slot}
+            onClick={() => onChange(slot)}
           >
-            {o.l}
-          </button>
+            <title>{slot.toUpperCase()}</title>
+          </circle>
         ))}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={value === 'center' ? 4 : 3}
+          fill={value === 'center' ? 'var(--accent)' : 'var(--panel)'}
+          stroke={value === 'center' ? 'var(--accent)' : 'var(--fg-muted)'}
+          strokeWidth={1.2}
+          className="cursor-pointer"
+          data-anchor-slot="center"
+          onClick={() => onChange('center')}
+        >
+          <title>Centre</title>
+        </circle>
+      </svg>
+      <div className="flex flex-col gap-1">
+        <button
+          onClick={() => onChange('auto')}
+          data-anchor-slot="auto"
+          className={`px-2 py-0.5 rounded text-xs ${value === 'auto' ? 'bg-accent text-white' : 'border border-border hover:bg-panel-hover text-fg-muted'}`}
+          title="Auto: the side facing the other end (boxes and diamonds use the four midpoints; ellipses also the diagonals)"
+        >
+          Auto
+        </button>
+        <span className="text-[10px] text-fg-muted tabular-nums">{value === 'auto' ? 'auto' : value === 'center' ? 'centre' : value.toUpperCase()}</span>
       </div>
     </div>
   );

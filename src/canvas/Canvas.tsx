@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CanvasEdge, CanvasNode, NodeType } from '@shared/types';
+import type { Anchor, CanvasEdge, CanvasNode, NodeType } from '@shared/types';
 import {
   DEFAULT_NODE_STYLE,
   isEdgeInteractive,
@@ -16,8 +16,10 @@ import {
   defaultEdgeStrokeForBackground,
   EDGE_LABEL_FONT_DEFAULT,
   INK_DEFAULT_WIDTH,
+  nearestSlot,
   normalizeInk,
   pointsBbox,
+  slotPoints,
   type Point,
 } from '@/util/geometry';
 import Shape from './Shape';
@@ -140,6 +142,8 @@ export default function Canvas({
 
   const maybeSnap = (p: Point): Point =>
     snapToGrid ? { x: Math.round(p.x / gridSize) * gridSize, y: Math.round(p.y / gridSize) * gridSize } : p;
+  /** Slot dot within 12 screen px of the pointer, else null (Auto). */
+  const snapSlot = (node: CanvasNode, p: Point) => nearestSlot(node, p, SLOT_SNAP_PX / viewport.zoom);
 
   // Keyboard listener for space = pan
   useEffect(() => {
@@ -595,10 +599,11 @@ export default function Canvas({
           const snapped = maybeSnap(world);
           const target = e.altKey ? null : findTopmostNodeAt(store.nodes, world, interaction.startNodeId);
           setHoveredNodeId(target?.id ?? null);
+          const slot = target ? snapSlot(target, world) : null;
           store.updateEdges([interaction.edgeId], (edge) => {
             if (target) {
               edge.toNode = target.id;
-              edge.toAnchor = 'auto';
+              edge.toAnchor = slot ?? 'auto';
               edge.toPoint = null;
             } else {
               edge.toNode = null;
@@ -612,10 +617,11 @@ export default function Canvas({
           // Track hovered node for snapping
           const target = findTopmostNodeAt(store.nodes, world, interaction.fromNodeId);
           setHoveredNodeId(target?.id ?? null);
+          const slot = target ? snapSlot(target, world) : null;
           store.updateEdges([interaction.edgeId], (edge) => {
             if (target) {
               edge.toNode = target.id;
-              edge.toAnchor = 'auto';
+              edge.toAnchor = slot ?? 'auto';
               edge.toPoint = null;
             } else {
               edge.toNode = null;
@@ -644,11 +650,12 @@ export default function Canvas({
           // ⌥-drag detaches: the end follows the pointer instead of snapping.
           const target = e.altKey ? null : findTopmostNodeAt(store.nodes, world, otherId);
           setHoveredNodeId(target?.id ?? null);
+          const slot = target ? snapSlot(target, world) : null;
           store.updateEdges([interaction.edgeId], (ed) => {
             if (interaction.which === 'from') {
               if (target) {
                 ed.fromNode = target.id;
-                ed.fromAnchor = 'auto';
+                ed.fromAnchor = slot ?? 'auto';
                 ed.fromPoint = null;
               } else {
                 ed.fromNode = null;
@@ -658,7 +665,7 @@ export default function Canvas({
             } else {
               if (target) {
                 ed.toNode = target.id;
-                ed.toAnchor = 'auto';
+                ed.toAnchor = slot ?? 'auto';
                 ed.toPoint = null;
               } else {
                 ed.toNode = null;
@@ -1130,6 +1137,36 @@ export default function Canvas({
             </g>
           ) : null}
           {hoveredNodeId && nodes[hoveredNodeId] ? (
+            <g data-ui="true" pointerEvents="none">
+              {(() => {
+                const n = nodes[hoveredNodeId];
+                const edgeId =
+                  interaction.kind === 'draw-line' || interaction.kind === 'draw-connector' || interaction.kind === 'drag-edge-endpoint'
+                    ? interaction.edgeId
+                    : null;
+                const edge = edgeId ? edges[edgeId] : null;
+                const which = interaction.kind === 'drag-edge-endpoint' ? interaction.which : 'to';
+                const current: Anchor | null = edge ? (which === 'from' ? edge.fromAnchor : edge.toAnchor) : null;
+                const r = 3.5 / viewport.zoom;
+                return slotPoints(n).map(({ slot, point }) => {
+                  const on = current === slot;
+                  return (
+                    <circle
+                      key={slot}
+                      data-slot-dot={slot}
+                      cx={point.x}
+                      cy={point.y}
+                      r={on ? r * 1.6 : r}
+                      fill={on ? 'var(--accent)' : 'white'}
+                      stroke="var(--accent)"
+                      strokeWidth={1.25 / viewport.zoom}
+                    />
+                  );
+                });
+              })()}
+            </g>
+          ) : null}
+          {hoveredNodeId && nodes[hoveredNodeId] ? (
             <rect
               data-ui="true"
               x={nodes[hoveredNodeId].x - 4 / viewport.zoom}
@@ -1196,3 +1233,6 @@ function isTyping(): boolean {
   return tag === 'TEXTAREA' || (el as HTMLElement).isContentEditable;
 }
 const NON_TEXT_INPUTS = new Set(['range', 'checkbox', 'radio', 'button', 'submit', 'color', 'file']);
+
+/** Screen-pixel radius within which a dragged line end snaps to a slot dot. */
+const SLOT_SNAP_PX = 12;

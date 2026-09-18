@@ -2,6 +2,19 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.17 — 2026-09-18
+
+### Added
+
+- **Sixteen connection slots per shape.** Every shape now offers the same sixteen named slots (compass names, `n` through `nnw`), placed on its own outline: boxes get each side's quarter points and midpoint plus the four corners; ellipses get a point every 22.5° around the curve, so the "halfway" diagonals sit on the oval; diamonds keep their vertices at `n e s w` and gain edge midpoints and quarter points. Text, image and icon boxes follow the box rule.
+- **Release on a dot.** While a line end is dragged over a shape (drawing with L, A or C, or re-dragging an endpoint), the slots show as dots and the nearest one within 12 px lights up; release there to take that slot, or anywhere else inside the shape to keep Auto. Two parallel lines into one side no longer overlap.
+- **Slot picker.** The Anchors section shows each attached end's slots on a glyph of that shape's kind (rounded box, ellipse or diamond), a centre dot and Auto; hovering a dot names it.
+
+### Changed
+
+- **Auto on ellipses** chooses among eight directions (cardinals and diagonals) by angle, so a diagonal line meets the oval where it points and a curved line leaves along the tangent, instead of always at an extreme point. Boxes and diamonds keep the four-midpoint Auto rule.
+- Stored anchors use the slot names; the old `top` `right` `bottom` `left` are read as `n` `e` `s` `w`. A `.haldraw` file with the new names opened in 0.9.16 or earlier resolves those ends to `center`.
+
 ## 0.9.16 — 2026-09-18
 
 ### Added
