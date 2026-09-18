@@ -19,6 +19,7 @@ import {
   Moon,
   Keyboard,
   ImagePlus,
+  Pencil,
 } from 'lucide-react';
 import { layerOrder, useCanvas, type Tool } from '@/store/canvasStore';
 import { Layers, Settings } from 'lucide-react';
@@ -40,6 +41,7 @@ const TOOLS: ToolDef[] = [
   { id: 'arrow', icon: MoveRight, label: 'Arrow', shortcut: 'A' },
   { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
   { id: 'connector', icon: Link2, label: 'Connector (snaps to shapes)', shortcut: 'C' },
+  { id: 'pen', icon: Pencil, label: 'Pen (freehand ink; stays active, Esc to leave)', shortcut: 'P' },
   { id: 'icon', icon: Sparkles, label: 'Icon library', shortcut: 'I' },
   { id: 'image', icon: ImagePlus, label: 'Import image file', shortcut: '⌘⇧I' },
 ];

@@ -32,6 +32,7 @@ export type Tool =
   | 'arrow'
   | 'text'
   | 'connector'
+  | 'pen'
   | 'icon'
   | 'image'
   | 'pan';

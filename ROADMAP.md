@@ -11,7 +11,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 - **Configurable grid spacing.** Slider in the Board panel for dot size and snap granularity. Today hardcoded: 20 px between dots, 10 px snap. Harry wanted "half-inch dots" as an option.
 - ~~**Export to JSON** + **import from JSON.**~~ Shipped 0.6.0 as `.haldraw` v1, single board. Project-level export and merge-into-existing are open follow-ups. Spec: [docs/Haldraw_file_format.md](./docs/Haldraw_file_format.md).
 - ~~**Auto-backup.**~~ Shipped 0.9.12: daily snapshots in `backups/`, keep N (Settings, default 14), Back up now, Reveal in Finder.
-- **Freehand / pen tool.** Ink-style freehand drawing for annotations and quick sketches.
+- ~~**Freehand / pen tool.**~~ Shipped 0.9.13: `P`, smoothed ink strokes as `ink` nodes.
 - **Zoom in / out buttons** next to the % readout. Today zoom is keyboard + scroll only.
 - **`⌘K` palette.** Fuzzy search across all projects and boards — jump to any diagram instantly.
 - **Board search.** Find shapes within the current board by label text.

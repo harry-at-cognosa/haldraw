@@ -15,6 +15,9 @@ import {
   defaultStyleForBackground,
   defaultEdgeStrokeForBackground,
   EDGE_LABEL_FONT_DEFAULT,
+  INK_DEFAULT_WIDTH,
+  normalizeInk,
+  pointsBbox,
   type Point,
 } from '@/util/geometry';
 import Shape from './Shape';
@@ -54,6 +57,11 @@ type Interaction =
       kind: 'draw-shape';
       shape: 'rect' | 'square' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox';
       start: Point;
+      nodeId: string;
+    }
+  | {
+      /** Pen tool: the stroke's world samples live in `inkPoints` (a ref) while drawing. */
+      kind: 'draw-ink';
       nodeId: string;
     }
   | {
@@ -100,6 +108,7 @@ export default function Canvas({
   const setEditingNodeId = useCanvas((s) => s.setEditingNodeId);
   const [spacePressed, setSpacePressed] = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const inkPoints = useRef<Point[]>([]);
 
   const nodes = useCanvas((s) => s.nodes);
   const edges = useCanvas((s) => s.edges);
@@ -338,6 +347,29 @@ export default function Canvas({
         (e.target as Element).setPointerCapture(e.pointerId);
         return;
       }
+      if (tool === 'pen') {
+        // Ink never snaps; the stroke is sampled raw and boxed on release.
+        const remembered = store.lastNodeStyle.ink;
+        const node = store.addNode({
+          type: 'ink',
+          x: world.x,
+          y: world.y,
+          width: 1,
+          height: 1,
+          rotation: 0,
+          style: {
+            stroke: defaultEdgeStrokeForBackground(background),
+            strokeWidth: INK_DEFAULT_WIDTH,
+            opacity: 1,
+            ...(remembered ?? {}),
+          },
+          content: { ink: [[0, 0]] },
+        });
+        inkPoints.current = [world];
+        setInteraction({ kind: 'draw-ink', nodeId: node.id });
+        (e.target as Element).setPointerCapture(e.pointerId);
+        return;
+      }
       if (tool === 'line' || tool === 'arrow') {
         const snapped = maybeSnap(world);
         // ⌥ (Alt): draw without snapping the endpoints to shapes.
@@ -541,6 +573,23 @@ export default function Canvas({
           });
           return;
         }
+        case 'draw-ink': {
+          const pts = inkPoints.current;
+          const last = pts[pts.length - 1];
+          // Skip samples closer than a screen pixel; they add nothing but path length.
+          if (last && Math.hypot(world.x - last.x, world.y - last.y) < 1 / viewport.zoom) return;
+          pts.push(world);
+          const box = pointsBbox(pts);
+          const ink = normalizeInk(pts, box);
+          store.updateNodes([interaction.nodeId], (n) => {
+            n.x = box.x;
+            n.y = box.y;
+            n.width = box.width;
+            n.height = box.height;
+            n.content = { ...n.content, ink };
+          });
+          return;
+        }
         case 'draw-line': {
           const snapped = maybeSnap(world);
           const target = e.altKey ? null : findTopmostNodeAt(store.nodes, world, interaction.startNodeId);
@@ -661,6 +710,15 @@ export default function Canvas({
             store.select([interaction.nodeId]);
           }
           store.setTool('select');
+          break;
+        }
+        case 'draw-ink': {
+          // A tap with no travel is dropped; a real stroke stays and the pen
+          // remains the tool, so the next stroke needs no re-selection.
+          const pts = inkPoints.current;
+          const box = pointsBbox(pts);
+          if (pts.length < 2 || (box.width < 2 && box.height < 2)) store.deleteNodes([interaction.nodeId]);
+          inkPoints.current = [];
           break;
         }
         case 'draw-line': {
@@ -987,7 +1045,7 @@ export default function Canvas({
                 );
               })}
           </g>
-          {selectedNodes.length > 0 && interaction.kind !== 'marquee' && interaction.kind !== 'draw-shape' ? (
+          {selectedNodes.length > 0 && interaction.kind !== 'marquee' && interaction.kind !== 'draw-shape' && interaction.kind !== 'draw-ink' ? (
             <g data-ui="true">
             <SelectionLayer
               nodes={selectedNodes}
@@ -1083,7 +1141,7 @@ function findTopmostNodeAt(
   const state = useCanvas.getState();
   const sorted = Object.values(nodes).sort((a, b) => b.zIndex - a.zIndex);
   for (const n of sorted) {
-    if (n.id === excludeId || !isNodeInteractive(state, n)) continue;
+    if (n.id === excludeId || n.type === 'ink' || !isNodeInteractive(state, n)) continue;
     if (p.x >= n.x && p.x <= n.x + n.width && p.y >= n.y && p.y <= n.y + n.height) {
       return n;
     }

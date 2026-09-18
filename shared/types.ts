@@ -3,14 +3,14 @@
  * shaded top-and-left band), `dsbox` (data store: one vertical line near the
  * left edge) and `colbox` (collection: one horizontal divider near the top).
  */
-export type NodeType = 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' | 'text' | 'icon' | 'image';
+export type NodeType = 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' | 'text' | 'icon' | 'image' | 'ink';
 
 /**
  * Kinds a node can be turned into, and from, in place (0.9.9 "Change shape
  * type"): position, size, rotation, style, text and connectors all survive.
  * Icons and images are excluded; their content is not a label.
  */
-export type ConvertibleNodeType = Exclude<NodeType, 'icon' | 'image'>;
+export type ConvertibleNodeType = Exclude<NodeType, 'icon' | 'image' | 'ink'>;
 export const CONVERTIBLE_NODE_TYPES: readonly ConvertibleNodeType[] = ['rect', 'ellipse', 'diamond', 'box3d', 'dsbox', 'colbox', 'text'];
 
 export type EdgeRouting = 'straight' | 'orthogonal' | 'curved';
@@ -52,6 +52,11 @@ export interface NodeContent {
   /** Intrinsic pixel size of the imported image (image nodes only). */
   naturalWidth?: number;
   naturalHeight?: number;
+  /**
+   * Freehand stroke (0.9.13, `ink` nodes): points as [nx, ny] fractions of the
+   * node's box, so moving or resizing the box moves or scales the stroke.
+   */
+  ink?: Array<[number, number]>;
 }
 
 /** Ordered, named container of nodes within one board. */

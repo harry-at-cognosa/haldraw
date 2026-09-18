@@ -415,6 +415,7 @@ export default function BoardEditor({
           a: () => store.setTool('arrow'),
           t: () => store.setTool('text'),
           c: () => store.setTool('connector'),
+          p: () => store.setTool('pen'),
           i: () => setIconPickerOpen(true),
           '?': () => setShortcutsOpen((v) => !v),
         };

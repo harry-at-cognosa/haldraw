@@ -2,6 +2,16 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.13 — 2026-09-18
+
+### Added
+
+- **Pen tool (`P`)** for freehand ink: annotations, circles-around-things, quick sketches. Drag to draw; the tool stays active for the next stroke (Esc or `V` leaves it), a tap with no travel leaves nothing behind, and a stroke begun on top of a shape draws over it instead of dragging it. Each stroke is an `ink` node with its points kept as fractions of its box, so it moves, resizes, rotates, groups, copies, changes layer and shift-scales like any shape, and one ⌘Z removes one stroke. Strokes are smoothed through the sample midpoints, drawn with round caps and joins, and selectable by clicking anywhere along the line. The properties panel shows Stroke (colour, width, dash), Layer, Rotation and Link for ink; the pen remembers the last width and colour. Lines and connectors never snap to ink. Exports carry the stroke as a plain SVG path.
+
+### Notes
+
+- A `.haldraw` file containing ink is rejected by 0.9.12 and earlier with "unknown type".
+
 ## 0.9.12 — 2026-09-18
 
 ### Added

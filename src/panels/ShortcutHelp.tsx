@@ -47,6 +47,7 @@ export default function ShortcutHelp({
         ['A', 'Arrow'],
         ['T', 'Text'],
         ['C', 'Connector'],
+        ['P', 'Pen (freehand ink; stays active)'],
         ['⌥-drag (L / A)', 'Draw without snapping to shapes'],
         ['I', 'Icon library'],
       ],

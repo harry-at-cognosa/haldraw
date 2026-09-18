@@ -204,3 +204,55 @@ export function edgeLabelBox(
     bg: /^#[0-9a-f]{6}$/i.test(paper) ? paper : undefined,
   };
 }
+
+// ---- Freehand ink (0.9.13) ----
+
+/** Default pen width in canvas units. */
+export const INK_DEFAULT_WIDTH = 3;
+
+/** Bounding box of a run of world points; a single point gets a 1×1 box. */
+export function pointsBbox(pts: Point[]): Rect {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of pts) {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+  if (!pts.length) return { x: 0, y: 0, width: 1, height: 1 };
+  return { x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
+}
+
+/** World points → fractions of `box`. */
+export function normalizeInk(pts: Point[], box: Rect): Array<[number, number]> {
+  return pts.map((p) => [(p.x - box.x) / box.width, (p.y - box.y) / box.height]);
+}
+
+/** Fractions of the node's box → world points. */
+export function inkWorldPoints(n: { x: number; y: number; width: number; height: number; content: { ink?: Array<[number, number]> } }): Point[] {
+  return (n.content.ink ?? []).map(([fx, fy]) => ({ x: n.x + fx * n.width, y: n.y + fy * n.height }));
+}
+
+/**
+ * SVG path for a stroke: quadratic curves through the midpoints between
+ * samples, which rounds the polyline without overshooting. One sample draws a
+ * dot; two draw a line.
+ */
+export function inkPath(pts: Point[]): string {
+  if (!pts.length) return '';
+  const f = (v: number) => Math.round(v * 100) / 100;
+  if (pts.length === 1) return `M ${f(pts[0].x)} ${f(pts[0].y)} l 0.01 0`;
+  if (pts.length === 2) return `M ${f(pts[0].x)} ${f(pts[0].y)} L ${f(pts[1].x)} ${f(pts[1].y)}`;
+  let d = `M ${f(pts[0].x)} ${f(pts[0].y)}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const c = pts[i];
+    const m = { x: (c.x + pts[i + 1].x) / 2, y: (c.y + pts[i + 1].y) / 2 };
+    d += ` Q ${f(c.x)} ${f(c.y)} ${f(m.x)} ${f(m.y)}`;
+  }
+  const last = pts[pts.length - 1];
+  d += ` L ${f(last.x)} ${f(last.y)}`;
+  return d;
+}

@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from 'react';
 import type { CanvasNode } from '@shared/types';
 import { icons as LucideIcons } from 'lucide-react';
 import { useCanvas } from '@/store/canvasStore';
-import { box3dDepth, colboxHeader, dsboxOffset, labelBox } from '@/util/geometry';
+import { box3dDepth, colboxHeader, dsboxOffset, inkPath, inkWorldPoints, labelBox } from '@/util/geometry';
 
 type Props = {
   node: CanvasNode;
@@ -98,6 +98,24 @@ function ShapeInner({
       <g opacity={opacity}>
         <rect x={node.x} y={node.y} width={node.width} height={node.height} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
         <line x1={node.x} y1={node.y + hh} x2={node.x + node.width} y2={node.y + hh} stroke={stroke} strokeWidth={strokeWidth} strokeDasharray={style.strokeDasharray} />
+      </g>
+    );
+  } else if (node.type === 'ink') {
+    // Freehand stroke: a wide transparent twin underneath makes it clickable along its length.
+    const d = inkPath(inkWorldPoints(node));
+    shape = (
+      <g opacity={opacity}>
+        <path d={d} fill="none" stroke="transparent" strokeWidth={Math.max(12, strokeWidth + 8)} strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          data-ink="true"
+          d={d}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeDasharray={style.strokeDasharray}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </g>
     );
   } else if (node.type === 'ellipse') {

@@ -132,6 +132,8 @@ export default function PropertiesPanel() {
   const firstEdge = selectedEdges[0];
   const convertible = selectedNodes.length > 0 && selectedNodes.every((n) => (CONVERTIBLE_NODE_TYPES as readonly string[]).includes(n.type));
   const sameType = selectedNodes.every((n) => n.type === first?.type) ? first?.type : null;
+  // Ink strokes have no fill or text: those sections are noise for them.
+  const inkOnly = selectedNodes.length > 0 && selectedNodes.every((n) => n.type === 'ink');
 
   return (
     <aside className="w-64 shrink-0 border-l border-border bg-panel flex flex-col text-sm">
@@ -158,13 +160,15 @@ export default function PropertiesPanel() {
                 </div>
               </Section>
             ) : null}
-            <Section title="Fill">
-              <ColorRow
-                options={FILL_PALETTE}
-                value={first?.style.fill ?? '#1f2937'}
-                onChange={(c) => patch({ fill: c })}
-              />
-            </Section>
+            {!inkOnly ? (
+              <Section title="Fill">
+                <ColorRow
+                  options={FILL_PALETTE}
+                  value={first?.style.fill ?? '#1f2937'}
+                  onChange={(c) => patch({ fill: c })}
+                />
+              </Section>
+            ) : null}
             <Section title="Stroke">
               <ColorRow
                 options={PALETTE}
@@ -194,6 +198,7 @@ export default function PropertiesPanel() {
                 />
               </Row>
             </Section>
+            {!inkOnly ? (
             <Section title="Text">
               <ColorRow
                 options={PALETTE}
@@ -243,6 +248,7 @@ export default function PropertiesPanel() {
                 />
               </Row>
             </Section>
+            ) : null}
             <Section title="Layer">
               <div className="grid grid-cols-4 gap-1">
                 <IconBtn
@@ -701,6 +707,7 @@ const TYPE_LABEL: Record<CanvasNode['type'], string> = {
   text: 'Text',
   icon: 'Icon',
   image: 'Image',
+  ink: 'Ink',
 };
 
 function snippet(text: string | undefined, max = 28): string {
@@ -758,7 +765,9 @@ function SelectionReadout({
           : n.locked ? 'locked' : ''
         : n.type === 'icon'
           ? n.content.iconName ?? ''
-          : snippet(n.content.text);
+          : n.type === 'ink'
+            ? `${n.content.ink?.length ?? 0} points`
+            : snippet(n.content.text);
     what = `${TYPE_LABEL[n.type]}${content ? ` · ${content}` : ''}`;
     where = `${layerName(n.layerId)} · ${zRank(n)} · ${r0(n.width)} × ${r0(n.height)} at ${r0(n.x)}, ${r0(n.y)}`;
   } else {
