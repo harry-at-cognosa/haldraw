@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>ROADMAP</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="/Users/harryAtMac/.config/pandoc/github.css" />
+</head>
+<body>
+<h1 id="haldraw-roadmap">haldraw Roadmap</h1>
+<p>Living list of proposed features, post-v0.2. Edit freely — reorder,
+strike through, add.</p>
+<hr />
+<h2 id="round-2-next-batch-of-likely-valuable-work">Round 2 (next batch
+of likely-valuable work)</h2>
+<ul>
+<li><del><strong>Reference image polish (0.5.0).</strong></del> Shipped
+2026-09-13: opacity, dim references, large-image downsampling, dense
+z-order. Hide / exclude-from-export folds into object layers (Round
+3).</li>
+<li><del><strong>Customizable color palette.</strong></del> Shipped
+0.9.11: right-click / ⌥-click a swatch to replace it via the native
+colour panel, app-wide, with Reset palette in Settings.</li>
+<li><strong>Configurable grid spacing.</strong> Slider in the Board
+panel for dot size and snap granularity. Today hardcoded: 20 px between
+dots, 10 px snap. Harry wanted “half-inch dots” as an option.</li>
+<li><del><strong>Export to JSON</strong> + <strong>import from
+JSON.</strong></del> Shipped 0.6.0 as <code>.haldraw</code> v1, single
+board. Project-level export and merge-into-existing are open follow-ups.
+Spec: <a
+href="./docs/Haldraw_file_format.md">docs/Haldraw_file_format.md</a>.</li>
+<li><del><strong>Auto-backup.</strong></del> Shipped 0.9.12: daily
+snapshots in <code>backups/</code>, keep N (Settings, default 14), Back
+up now, Reveal in Finder.</li>
+<li><del><strong>Freehand / pen tool.</strong></del> Shipped 0.9.13:
+<code>P</code>, smoothed ink strokes as <code>ink</code> nodes.</li>
+<li><del><strong>Zoom in / out buttons</strong></del> Shipped 0.9.14,
+with ⌘= / ⌘−.</li>
+<li><del><strong><code>⌘K</code> palette.</strong></del> Shipped 0.9.15:
+fuzzy search across projects and boards.</li>
+<li><del><strong>Board search.</strong></del> Shipped 0.9.16: ⌘F bar,
+steps through text matches.</li>
+</ul>
+<h2 id="round-3-heavier-features-think-about-the-use-cases">Round 3
+(heavier features; think about the use cases)</h2>
+<ul>
+<li><del><strong>Object layers.</strong></del> Shipped 0.7.0.
+Follow-ups: drag-to-reorder rows, per-layer export subset picker, row
+flash on auto-switch.</li>
+<li><del><strong>Vectorize a raster image into shapes and
+text.</strong></del> Shipped 0.9.0–0.9.3 (Claude vision → Draft layer).
+Spec: <a
+href="./docs/Vectorize_raster_design.md">docs/Vectorize_raster_design.md</a>;
+how it works: <a
+href="./docs/Vectorize_pipeline_implementation_reference_2026-09-15.md">docs/Vectorize_pipeline_implementation_reference_2026-09-15.md</a>.
+Review follow-ups (serialise concurrent calls, share the keychain
+command string, classify stray errors) shipped 0.9.10, which also made
+PNG/SVG export wrap text like the canvas (<a
+href="./docs/Vectorize_findings_impact_2026-09-15.md">docs/Vectorize_findings_impact_2026-09-15.md</a>).</li>
+<li><del><strong>Vectorize recognises the composite
+shapes</strong></del> Shipped 0.9.7. Ground truth (an 11-shape board
+exported from haldraw) came back 11/11 kinds at 2132 px and at 800 px;
+the three spec images likewise. Open: the test set is haldraw’s own
+rendering; hand-drawn or other tools’ renderings of these shapes are
+untested.</li>
+<li><del><strong>Change shape type.</strong></del> Shipped 0.9.9: Shape
+row in the properties panel (rect ↔︎ ellipse ↔︎ diamond ↔︎ 3D box ↔︎ data
+store ↔︎ collection ↔︎ text), keeps everything else.</li>
+<li><strong>Templates / stencils.</strong> A starter library: flowchart,
+DFD (L0/L1/L2 scaffolds), ERD, system architecture, sequence diagram.
+Insert a pre-populated group of shapes.</li>
+<li><strong>Presentation mode.</strong> Hide chrome, framed “slides”
+defined by rectangles, step through with arrow keys. Good for walking
+someone through a DFD hierarchy.</li>
+<li><strong>Markdown inside text shapes.</strong> Bold / italic /
+bullets without leaving the diagram.</li>
+<li><strong>Shape comments / sticky notes.</strong> Per-shape discussion
+threads (would require a tiny comments table).</li>
+<li><strong>Outline / tree view.</strong> Sidebar showing the
+hierarchical structure of what’s on the board — useful for big
+diagrams.</li>
+</ul>
+<h2 id="polish-backlog-small-opportunistic">Polish backlog (small,
+opportunistic)</h2>
+<ul>
+<li><del>Resize handle proportions / aspect-ratio lock (hold
+<code>Shift</code> while resizing).</del> Shipped in 0.4.0.</li>
+<li>Smarter orthogonal auto-routing (avoid overlapping shapes, Manhattan
+pathfinding).</li>
+<li>Pinch-zoom on trackpad.</li>
+<li>Window size / position persistence per project.</li>
+<li>Quick-swap between light/dark canvas while dark-UI stays (or
+vice-versa).</li>
+<li>Optional app-theme ↔︎ board-background link (toggle: when app theme
+flips, auto-flip the current board’s paper color). Left independent by
+default.</li>
+<li><del>“Lock” a shape so it can’t be accidentally moved.</del> Shipped
+in 0.4.0 for images (reference layer); generalising the toggle to every
+shape type is a small follow-up.</li>
+<li>Arrow keys while dragging = constrain to horizontal / vertical.</li>
+</ul>
+<h2 id="things-to-decide-later">Things to decide later</h2>
+<ul>
+<li><strong>Portable <code>.haldraw</code> file format.</strong> JSON
+export does 80% of this; do we also want a CLI
+(<code>haldraw open path.haldraw</code>)?</li>
+<li><strong>Code signing &amp; notarization &amp; Mac App
+Store.</strong> Detailed plan lives in <a href="./MAS.md">MAS.md</a> —
+two rungs (Developer ID notarized DMG, then MAS). Skip until the app
+outgrows the “share with a few friends” phase.</li>
+<li><strong>Windows / Linux builds.</strong>
+<code>electron-builder</code> handles most of it; Windows signing cert
+is an extra cost.</li>
+<li><strong>Collaboration.</strong> Single-user was the explicit goal.
+Shared boards would require a sync layer (Yjs, etc.) and an upstream
+server.</li>
+</ul>
+<hr />
+<h2 id="tracking">Tracking</h2>
+<p>Shipped features get logged to <a
+href="./CHANGELOG.md">CHANGELOG.md</a> with a dated version. Once
+something here is done, cross it off (or delete) here and add it
+there.</p>
+</body>
+</html>
