@@ -190,7 +190,7 @@ Vectorize: a first editable draft of a reference image. Spec: [docs/Vectorize_ra
 
 ## 0.8.0 — 2026-09-15
 
-Edges on layers, head styles, no-snap drawing. Spec: [docs/Edge_layers_design.md](./docs/Edge_layers_design.md) (section 13 lists the deviations). Shortcuts: [docs/help_shortcuts_for_haldraw_v0.8.0.md](./docs/help_shortcuts_for_haldraw_v0.8.0.md).
+Edges on layers, head styles, no-snap drawing. Spec: [docs/Edge_layers_design.md](./docs/Edge_layers_design.md) (section 13 lists the deviations). Shortcuts: [docs/help_shortcuts_for_haldraw_v0.9.17.md](./docs/help_shortcuts_for_haldraw_v0.9.17.md).
 
 ### Added
 
