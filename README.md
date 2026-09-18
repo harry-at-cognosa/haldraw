@@ -27,23 +27,25 @@ Packaging uses `build/icon.png` for the app icon. For full build & distribution 
 
 ## Features
 
-- **Projects & boards** — unlimited, renameable, deletable. Autosave on every change.
-- **Infinite canvas** — pan with `Space`+drag or middle-mouse, zoom with `⌘`+scroll.
-- **Shapes** — rectangle, square (1:1 lock), ellipse/circle, diamond, 3D box, data store, collection, line, arrow, text. All resizable, rotatable through a full 360°.
-- **Text** — rotatable to any angle (uphill, downhill, upside-down), double-click to edit, works on shapes too as a centered label.
-- **Connectors** — `C` to drag from one shape to another; endpoints track shapes when moved. Pick routing (straight, right-angle, curved) and a head style for each end (none, arrow, open arrow, dot, diamond, crow's foot) in the properties panel. Lines and connectors live on layers like shapes; hold `⌥` while drawing a line or arrow to keep it from snapping to shapes.
+- **Projects & boards** — unlimited, renameable, deletable. Autosave on every change. `⌘K` jumps to any board or project by fuzzy search.
+- **Infinite canvas** — pan with `Space`+drag or middle-mouse, zoom with `⌘`+scroll, `⌘=` / `⌘−` or the toolbar buttons; `⌘0` resets, `⌘1` fits.
+- **Shapes** — rectangle, square (1:1 lock), ellipse/circle, diamond, 3D box, data store, collection, line, arrow, text, freehand ink (`P`). All resizable, rotatable through a full 360°. The Shape row in the properties panel turns a shape into another kind in place.
+- **Text** — rotatable to any angle, double-click to edit, works on shapes too as a centred label that wraps; exports wrap the same way.
+- **Connectors** — `C` to drag from one shape to another, or `L` / `A` from anywhere; endpoints track shapes when moved. Sixteen connection slots per shape: release a line end on a dot to attach there, or anywhere inside the shape for Auto. Routing (straight, right-angle, curved) and a head style for each end (none, arrow, open arrow, dot, diamond, crow's foot) in the properties panel; labels are draggable pills. Lines live on layers like shapes; hold `⌥` while drawing to skip snapping.
 - **Vectorize** — select a reference image and press **Vectorize…** to get an editable draft of its boxes, text and connectors on a Draft layer above it, from a Claude vision model. Needs an Anthropic API key in the macOS keychain (Settings… shows the command). This is the app's only network call.
-- **Icons** — `I` opens the full Lucide icon library with search; icons are movable, resizable, rotatable, recolorable.
-- **Screenshots / images** — `⌘+V` to paste a screenshot, or drag-drop image files. Stored deduped by SHA-256 in the local DB.
-- **Styles** — per-shape fill, stroke color/width/dash, font size/weight/alignment, opacity.
-- **Layers** — `⌘]` / `⌘[` (with `⇧` for front/back).
+- **Icons** — `I` opens the full Lucide icon library with search; icons are movable, resizable, rotatable, recolourable.
+- **Screenshots / images** — `⌘+V` to paste a screenshot, or drag-drop image files. Stored deduped by SHA-256 in the local DB. Lock as a reference to draw over it.
+- **Styles** — per-shape fill, stroke colour/width/dash, font family/size/weight/alignment, opacity. The palette is editable: right-click a swatch to replace it via the native colour panel; Reset in Settings.
+- **Layers** — named layers with show/hide, lock, solo and reorder; stacking within a layer with `⌘]` / `⌘[` (add `⇧` for front/back).
 - **Grid & snap** — toggleable dot grid and snap-to-grid.
-- **Multi-select** — marquee select, shift-click to add/remove, `⌘C/V/X/D` copy/paste/cut/duplicate, `⌘A` select all.
+- **Multi-select** — marquee select, shift-click to add/remove, `⌘C/V/X/D` copy/paste/cut/duplicate, `⌘A` select all, align and distribute, `Shift`-resize scales text and strokes with the boxes.
+- **Board search** — `⌘F` finds shapes and line labels by text and steps through them.
 - **Undo/redo** — `⌘Z` / `⌘⇧Z`.
-- **Minimap** — bottom-right, shows all content + viewport; click to recenter.
+- **Minimap** — bottom-right, shows all content + viewport; click to recentre.
 - **Dark/light theme** — toggle in toolbar, persisted in DB.
-- **PNG export** — `⌘E` opens a save dialog. Export is cropped to content bounding box with padding.
-- **Shortcut overlay** — press `?` anywhere.
+- **Export** — PNG (transparent or solid), SVG, or a portable `.haldraw` board file that re-imports anywhere. `⌘E` is PNG.
+- **Backups** — a daily snapshot of the database in `~/Library/Application Support/haldraw/backups/`, newest 14 kept; Back up now and Reveal in Finder in Settings.
+- **Shortcut overlay** — press `?` anywhere. Full list with panel controls: [docs/help_shortcuts_for_haldraw_v0.9.17.md](./docs/help_shortcuts_for_haldraw_v0.9.17.md).
 
 ## Keyboard
 
@@ -55,18 +57,25 @@ Packaging uses `build/icon.png` for the app icon. For full build & distribution 
 | L / A | Line / Arrow |
 | T | Text |
 | C | Connector |
+| P | Pen (freehand ink) |
 | I | Icon library |
 | Space+drag | Pan |
-| ⌘+scroll | Zoom |
+| ⌘+scroll, ⌘= / ⌘− | Zoom |
 | ⌘0 / ⌘1 | Reset zoom / Fit to content |
+| ⌘K | Go to board or project |
+| ⌘F | Find on this board |
 | ⌘Z / ⌘⇧Z | Undo / Redo |
 | ⌘C/V/X/D | Copy/Paste/Cut/Duplicate |
+| ⌘G / ⌘⇧G | Group / Ungroup |
 | ⌘A | Select all |
 | ⌘] / ⌘[ (add ⇧ for front/back) | Bring forward / Send back |
+| ⌘⌥] / ⌘⌥[ | Move selection up / down a layer |
+| ⌘⇧L | New layer |
 | Arrows (+⇧) | Nudge 1px (10px) |
 | Delete / Backspace | Delete selection |
 | ⌘E | Export PNG |
-| Esc | Deselect / cancel editing |
+| ⌘, | Settings |
+| Esc | Deselect / cancel editing / leave the pen |
 | ? | Shortcut help |
 
 ## Architecture
