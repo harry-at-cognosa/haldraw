@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.9 — 2026-09-18
+
+### Added
+
+- **Change shape type.** A **Shape** row at the top of the properties panel turns the selection into a rectangle, ellipse, diamond, 3D box, data store, collection or free text in place. Position, size, rotation, fill, stroke, text and connectors are all kept; a multi-selection converts as a block, and one ⌘Z reverses the whole change. A text node that becomes a box gets the paper's default fill and stroke so it does not come out invisible. Icons and images are not convertible. This is the cheap way to correct a Vectorize misclassification.
+
 ## 0.9.8 — 2026-09-17
 
 ### Added

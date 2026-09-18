@@ -5,6 +5,14 @@
  */
 export type NodeType = 'rect' | 'ellipse' | 'diamond' | 'box3d' | 'dsbox' | 'colbox' | 'text' | 'icon' | 'image';
 
+/**
+ * Kinds a node can be turned into, and from, in place (0.9.9 "Change shape
+ * type"): position, size, rotation, style, text and connectors all survive.
+ * Icons and images are excluded; their content is not a label.
+ */
+export type ConvertibleNodeType = Exclude<NodeType, 'icon' | 'image'>;
+export const CONVERTIBLE_NODE_TYPES: readonly ConvertibleNodeType[] = ['rect', 'ellipse', 'diamond', 'box3d', 'dsbox', 'colbox', 'text'];
+
 export type EdgeRouting = 'straight' | 'orthogonal' | 'curved';
 
 /** Marker drawn at one end of an edge. */

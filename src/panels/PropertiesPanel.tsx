@@ -1,6 +1,17 @@
 import { layerOrder, useCanvas } from '@/store/canvasStore';
 import LayersPanel from './LayersPanel';
-import { EDGE_HEADS, type Anchor, type CanvasEdge, type CanvasNode, type EdgeHead, type EdgeRouting, type Layer, type NodeStyle } from '@shared/types';
+import {
+  CONVERTIBLE_NODE_TYPES,
+  EDGE_HEADS,
+  type Anchor,
+  type CanvasEdge,
+  type CanvasNode,
+  type ConvertibleNodeType,
+  type EdgeHead,
+  type EdgeRouting,
+  type Layer,
+  type NodeStyle,
+} from '@shared/types';
 import { HEAD_LABELS, HeadGlyph } from '@/canvas/edgeHeads';
 import { notify, vectorizeNode } from '@/util/vectorize';
 import { defaultStyleForBackground, EDGE_LABEL_FONT_DEFAULT } from '@/util/geometry';
@@ -26,7 +37,25 @@ import {
   Lock,
   Unlock,
   Sparkles,
+  Square,
+  Circle,
+  Diamond,
+  Cuboid,
+  Database,
+  PanelTop,
+  Type,
 } from 'lucide-react';
+
+/** Buttons of the Shape section, in toolbar order. */
+const SHAPE_KINDS: Array<{ type: ConvertibleNodeType; icon: React.ComponentType<any>; label: string }> = [
+  { type: 'rect', icon: Square, label: 'Rectangle' },
+  { type: 'ellipse', icon: Circle, label: 'Ellipse' },
+  { type: 'diamond', icon: Diamond, label: 'Diamond' },
+  { type: 'box3d', icon: Cuboid, label: '3D box' },
+  { type: 'dsbox', icon: Database, label: 'Data store' },
+  { type: 'colbox', icon: PanelTop, label: 'Collection' },
+  { type: 'text', icon: Type, label: 'Text (no box)' },
+];
 
 const PALETTE = [
   '#ffffff',
@@ -62,6 +91,7 @@ export default function PropertiesPanel() {
   const rememberEdgeAttrs = useCanvas((s) => s.rememberEdgeAttrs);
   const resetNodeStyle = useCanvas((s) => s.resetNodeStyle);
   const setLocked = useCanvas((s) => s.setLocked);
+  const changeNodeType = useCanvas((s) => s.changeNodeType);
   const layers = useCanvas((s) => s.layers);
   const moveToLayer = useCanvas((s) => s.moveToLayer);
   const boardBg = useCanvas((s) => s.board?.background ?? '#ffffff');
@@ -109,6 +139,8 @@ export default function PropertiesPanel() {
 
   const first = selectedNodes[0];
   const firstEdge = selectedEdges[0];
+  const convertible = selectedNodes.length > 0 && selectedNodes.every((n) => (CONVERTIBLE_NODE_TYPES as readonly string[]).includes(n.type));
+  const sameType = selectedNodes.every((n) => n.type === first?.type) ? first?.type : null;
 
   return (
     <aside className="w-64 shrink-0 border-l border-border bg-panel flex flex-col text-sm">
@@ -116,6 +148,25 @@ export default function PropertiesPanel() {
       <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-4">
         {selectedNodes.length > 0 ? (
           <>
+            {convertible ? (
+              <Section title="Shape">
+                <div className="grid grid-cols-7 gap-1" data-testid="shape-kind-row">
+                  {SHAPE_KINDS.map((k) => (
+                    <button
+                      key={k.type}
+                      onClick={() => changeNodeType(selectedNodes.map((n) => n.id), k.type)}
+                      title={sameType === k.type ? k.label : `Change to ${k.label.toLowerCase()} (keeps size, style and text)`}
+                      data-shape-kind={k.type}
+                      className={`py-1.5 rounded flex items-center justify-center ${
+                        sameType === k.type ? 'bg-accent text-white' : 'border border-border hover:bg-panel-hover text-fg-muted'
+                      }`}
+                    >
+                      <k.icon size={14} />
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            ) : null}
             <Section title="Fill">
               <ColorRow
                 options={FILL_PALETTE}

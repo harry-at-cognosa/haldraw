@@ -1,18 +1,21 @@
 import { create } from 'zustand';
-import type {
-  Board,
-  BoardSnapshot,
-  CanvasEdge,
-  CanvasNode,
-  EdgeHead,
-  EdgeRouting,
-  EdgeStyle,
-  Layer,
-  NodeStyle,
-  NodeType,
-  Viewport,
+import {
+  CONVERTIBLE_NODE_TYPES,
+  type Board,
+  type BoardSnapshot,
+  type CanvasEdge,
+  type CanvasNode,
+  type ConvertibleNodeType,
+  type EdgeHead,
+  type EdgeRouting,
+  type EdgeStyle,
+  type Layer,
+  type NodeStyle,
+  type NodeType,
+  type Viewport,
 } from '@shared/types';
 import { newId } from '@/util/id';
+import { defaultStyleForBackground } from '@/util/geometry';
 
 export type Tool =
   | 'select'
@@ -103,6 +106,13 @@ interface CanvasState {
   addNode: (partial: Omit<CanvasNode, 'id' | 'boardId' | 'createdAt' | 'updatedAt' | 'zIndex' | 'groupId' | 'locked' | 'layerId'> & { zIndex?: number; groupId?: string | null; locked?: boolean; layerId?: string }) => CanvasNode;
   /** Lock (reference layer) or unlock nodes. Locking drops them from the selection. */
   setLocked: (ids: string[], locked: boolean) => void;
+  /**
+   * Turn nodes into another kind in place, as one undo step. Everything else
+   * (box, rotation, style, text, layer, group, connectors) is kept; icons and
+   * images are skipped. Anchors are bounding-box points for every kind, so
+   * attached lines need no change.
+   */
+  changeNodeType: (ids: string[], type: ConvertibleNodeType) => void;
   updateNodes: (ids: string[], updater: (n: CanvasNode) => CanvasNode | void) => void;
   deleteNodes: (ids: string[]) => void;
 
@@ -564,6 +574,41 @@ export const useCanvas = create<CanvasState>((set, get) => ({
         dirtyNodeIds: dirty,
         selection,
         history: [...s.history.slice(-HISTORY_LIMIT + 1), prev],
+        future: [],
+      };
+    });
+  },
+
+  changeNodeType: (ids, type) => {
+    if (!CONVERTIBLE_NODE_TYPES.includes(type)) return;
+    const s = get();
+    const targets = ids.filter((id) => {
+      const n = s.nodes[id];
+      return n && n.type !== type && (CONVERTIBLE_NODE_TYPES as readonly string[]).includes(n.type);
+    });
+    if (!targets.length) return;
+    const prev = snapshot(s);
+    set((st) => {
+      const nodes = { ...st.nodes };
+      const dirty = new Set(st.dirtyNodeIds);
+      const now = Date.now();
+      const paper = st.board?.background ?? '#ffffff';
+      for (const id of targets) {
+        const n = nodes[id];
+        let style = n.style;
+        // A text node has no outline; give it the paper's default fill and
+        // stroke when it becomes a box, or the box would be invisible.
+        if (n.type === 'text' && type !== 'text' && (style.fill ?? 'transparent') === 'transparent' && (style.stroke ?? 'transparent') === 'transparent') {
+          const d = defaultStyleForBackground(paper);
+          style = { ...style, fill: d.fill, stroke: d.stroke };
+        }
+        nodes[id] = { ...n, type, style, updatedAt: now };
+        dirty.add(id);
+      }
+      return {
+        nodes,
+        dirtyNodeIds: dirty,
+        history: [...st.history.slice(-HISTORY_LIMIT + 1), prev],
         future: [],
       };
     });
