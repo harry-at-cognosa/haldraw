@@ -47,7 +47,31 @@ Mirrors the two `?` overlays in the app (library and editor) and adds the mouse-
 | `⌥`-drag with `L` / `A` | Draw without snapping to shapes; also `⌥`-drag an endpoint handle to detach it |
 | `I` | Icon library |
 
-Drawing a line or arrow is one press-drag-release: press anywhere inside the source shape, drag, release inside the target. Release outside every shape and that end is a loose point. While the end is over a shape its sixteen connection dots show; release on a dot to attach there, anywhere else inside the shape for Auto (0.9.17).
+### Drawing an arrow between two shapes, step by step
+
+One press-drag-release gesture, not two clicks.
+
+1. Press `A` (or click the arrow icon). The cursor becomes a crosshair.
+2. **Press the mouse button down anywhere inside the source shape**: interior, label, or on the border line. It does not have to be on the border. Do not release.
+3. **Keep the button held and drag** toward the target. When the pointer crosses into the target shape's box, that shape gets a blue halo and sixteen small dots appear on its outline.
+4. **Release while the pointer is inside the target shape.** Two choices at that moment:
+   - Release **on or within 12 px of a dot** and the arrow attaches at exactly that dot (the lit one).
+   - Release **anywhere else inside the target's box** and the arrow attaches with Auto: the head goes to the side midpoint facing the source.
+5. The tool returns to Select and the new arrow is selected.
+
+The source end is always Auto when drawn this way: the tail sits at the source's side midpoint facing the target, whatever point inside the source you pressed on. To pick a source slot, use the From picker in the Anchors section afterwards, or drag the tail's endpoint handle onto a dot.
+
+What goes wrong and why:
+
+| You did | Result |
+|---|---|
+| Released outside the target's box, even one pixel past the border | The end is loose at that exact point. Select the arrow and drag its endpoint handle onto the shape |
+| Pressed on empty canvas instead of inside the source | The tail is a loose point where you pressed |
+| Pressed and released with under 4 px of travel, touching no shape | Nothing is created |
+| Dragged back and released on the shape you started from | Nothing is created |
+| Held `⌥` during the gesture | No attachment at either end, by design |
+
+`C` (Connector) is the same gesture with stricter rules: the press must be inside a shape and the release inside a different shape, or nothing is created. `L` (Line) is the same as `A` but with no head unless you last used one.
 
 ### Canvas
 
