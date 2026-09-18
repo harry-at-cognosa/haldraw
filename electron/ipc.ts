@@ -8,6 +8,7 @@ import * as imagesRepo from './repo/images';
 import * as metaRepo from './repo/meta';
 import * as layersRepo from './repo/layers';
 import { hasApiKey, runVectorize } from './vectorize';
+import { backupKeep, backupStatus, revealBackups, runBackup, setBackupKeep } from './backup';
 import {
   DEFAULT_VECTORIZE_MODEL,
   sanitizePalette,
@@ -32,6 +33,7 @@ function readSettings(): AppSettings {
   return {
     vectorizeModel: metaRepo.getMeta('vectorize.model') ?? DEFAULT_VECTORIZE_MODEL,
     palette: sanitizePalette(palette),
+    backupKeep: backupKeep(),
   };
 }
 
@@ -198,8 +200,14 @@ export function registerIpcHandlers() {
     if (patch.palette !== undefined) {
       metaRepo.setMeta('palette', JSON.stringify(sanitizePalette(patch.palette)));
     }
+    if (typeof patch.backupKeep === 'number' && Number.isFinite(patch.backupKeep)) {
+      setBackupKeep(patch.backupKeep);
+    }
     return readSettings();
   });
+  ipcMain.handle('backups:status', () => backupStatus());
+  ipcMain.handle('backups:runNow', () => runBackup({ force: true }));
+  ipcMain.handle('backups:reveal', () => revealBackups());
   ipcMain.handle('vectorize:keyStatus', () => ({ present: hasApiKey() }));
   ipcMain.handle('vectorize:run', (_e, req: VectorizeRequest) => runVectorize(req));
 

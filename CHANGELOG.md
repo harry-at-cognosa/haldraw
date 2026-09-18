@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.12 — 2026-09-18
+
+### Added
+
+- **Auto-backup.** Once a day the whole database is snapshotted to `~/Library/Application Support/haldraw/backups/haldraw-YYYY-MM-DD.db`, at launch or within the hour if the app stays open, using SQLite's online backup so a write in progress is folded in. The newest 14 are kept by default. **Settings…** gains a Backups section: the keep count (1–365), the newest snapshot and how many are kept, **Back up now** (a second snapshot on the same day gets a time suffix) and **Reveal in Finder**. To restore, quit haldraw and copy a snapshot over `haldraw.db`.
+
 ## 0.9.11 — 2026-09-18
 
 ### Added

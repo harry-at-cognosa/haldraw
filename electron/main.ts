@@ -3,6 +3,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { join } from 'node:path';
 import { getDb, closeDb } from './db';
 import { registerIpcHandlers } from './ipc';
+import { scheduleBackups } from './backup';
 
 app.setName('haldraw');
 
@@ -123,6 +124,7 @@ app.whenReady().then(() => {
   getDb();
   registerIpcHandlers();
   buildMenu();
+  scheduleBackups();
 
   createWindow();
 

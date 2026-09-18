@@ -273,6 +273,24 @@ export function sanitizePalette(raw: unknown): Palette {
 export interface AppSettings {
   vectorizeModel: string;
   palette: Palette;
+  /** Daily database snapshots to keep (0.9.12). 1–365. */
+  backupKeep: number;
+}
+
+export const DEFAULT_BACKUP_KEEP = 14;
+
+export interface BackupFile {
+  name: string;
+  path: string;
+  size: number;
+  mtime: number;
+}
+
+export interface BackupStatus {
+  dir: string;
+  keep: number;
+  /** Newest first. */
+  files: BackupFile[];
 }
 
 /** Where the Anthropic API key lives: one macOS keychain item, read at call time. */
@@ -380,6 +398,13 @@ export interface HaldrawApi {
     /** Whether the keychain item `haldraw` / `anthropic-api-key` exists. Never returns the key. */
     keyStatus: () => Promise<{ present: boolean }>;
     run: (req: VectorizeRequest) => Promise<VectorizeResponse>;
+  };
+  backups: {
+    status: () => Promise<BackupStatus>;
+    /** Write a snapshot now; a second one on the same day gets a time suffix. */
+    runNow: () => Promise<{ path: string; skipped: boolean }>;
+    /** Show the newest snapshot in the Finder (or open the folder when empty). */
+    reveal: () => Promise<void>;
   };
 }
 

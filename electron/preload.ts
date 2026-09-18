@@ -62,6 +62,11 @@ const api: HaldrawApi = {
     keyStatus: () => ipcRenderer.invoke('vectorize:keyStatus'),
     run: (req) => ipcRenderer.invoke('vectorize:run', req),
   },
+  backups: {
+    status: () => ipcRenderer.invoke('backups:status'),
+    runNow: () => ipcRenderer.invoke('backups:runNow'),
+    reveal: () => ipcRenderer.invoke('backups:reveal'),
+  },
 };
 
 contextBridge.exposeInMainWorld('haldraw', api);

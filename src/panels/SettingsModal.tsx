@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BACKGROUND_NAMES, DEFAULT_PALETTE, KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, VECTORIZE_MODELS, type AppSettings, type Palette } from '@shared/types';
+import { BACKGROUND_NAMES, DEFAULT_PALETTE, KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, VECTORIZE_MODELS, type AppSettings, type BackupStatus, type Palette } from '@shared/types';
 import { useCanvas } from '@/store/canvasStore';
 import { replaceSwatch, resetPalette } from '@/util/palette';
 
@@ -81,6 +81,8 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
 
         <PaletteSection />
 
+        <BackupSection open={open} settings={settings} onSettings={setSettings} />
+
         <div className="mt-5 flex justify-end">
           <button onClick={onClose} className="px-3 h-8 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90">
             Done
@@ -145,6 +147,104 @@ function SwatchRow({ label, kind, colours }: { label: string; kind: keyof Palett
         tabIndex={-1}
         onChange={(e) => editing !== null && replaceSwatch(kind, editing, e.target.value)}
       />
+    </div>
+  );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** Daily snapshots: keep count, the newest file, Back up now, Reveal in Finder. */
+function BackupSection({ open, settings, onSettings }: { open: boolean; settings: AppSettings | null; onSettings: (s: AppSettings) => void }) {
+  const [status, setStatus] = useState<BackupStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [keepDraft, setKeepDraft] = useState('');
+  const refresh = () => window.haldraw.backups.status().then(setStatus);
+  useEffect(() => {
+    if (open) {
+      setNote(null);
+      refresh();
+    }
+  }, [open]);
+  useEffect(() => {
+    if (settings) setKeepDraft(String(settings.backupKeep));
+  }, [settings?.backupKeep]);
+  const commitKeep = async () => {
+    const n = Math.round(Number(keepDraft));
+    if (!Number.isFinite(n) || n < 1) {
+      setKeepDraft(String(settings?.backupKeep ?? ''));
+      return;
+    }
+    const next = await window.haldraw.settings.set({ backupKeep: n });
+    onSettings(next);
+    refresh();
+  };
+  const newest = status?.files[0];
+  return (
+    <div className="mt-5" data-testid="backup-section">
+      <div className="text-xs uppercase tracking-wider text-fg font-semibold mb-2">Backups</div>
+      <div className="text-fg-muted leading-relaxed mb-2">
+        A snapshot of the whole database is written once a day, at launch or within the hour, to{' '}
+        <code className="text-xs break-all">{status?.dir ?? '…'}</code>. Older snapshots are removed beyond the count kept.
+      </div>
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-fg-muted w-20">Keep</span>
+        <input
+          type="number"
+          min={1}
+          max={365}
+          value={keepDraft}
+          onChange={(e) => setKeepDraft(e.target.value)}
+          onBlur={commitKeep}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            }
+            e.stopPropagation();
+          }}
+          className="w-20 bg-canvas rounded px-2 py-1 border border-border outline-none focus:border-accent text-sm tabular-nums"
+          title="How many daily snapshots to keep (1–365)"
+        />
+        <span className="text-fg-muted text-xs">daily snapshots</span>
+      </div>
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-fg-muted w-20">Newest</span>
+        <span className="text-fg text-xs" data-testid="backup-newest">
+          {status === null ? '…' : newest ? `${newest.name} · ${formatSize(newest.size)} · ${status.files.length} kept` : 'none yet'}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const r = await window.haldraw.backups.runNow();
+              setNote(`Saved ${r.path.split('/').pop()}`);
+              await refresh();
+            } catch (err) {
+              setNote(`Backup failed: ${(err as Error).message}`);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="px-2 h-7 rounded border border-border text-xs text-fg-muted hover:text-fg hover:bg-panel-hover disabled:opacity-40"
+        >
+          {busy ? 'Backing up…' : 'Back up now'}
+        </button>
+        <button
+          onClick={() => window.haldraw.backups.reveal()}
+          className="px-2 h-7 rounded border border-border text-xs text-fg-muted hover:text-fg hover:bg-panel-hover"
+          title="Show the newest snapshot in the Finder"
+        >
+          Reveal in Finder
+        </button>
+        {note ? <span className="text-xs text-fg-muted truncate" data-testid="backup-note">{note}</span> : null}
+      </div>
     </div>
   );
 }
