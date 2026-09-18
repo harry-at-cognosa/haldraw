@@ -12,7 +12,9 @@ import {
   type Layer,
   type NodeStyle,
   type NodeType,
+  type Palette,
   type Viewport,
+  DEFAULT_PALETTE,
 } from '@shared/types';
 import { newId } from '@/util/id';
 import { defaultStyleForBackground } from '@/util/geometry';
@@ -91,6 +93,9 @@ interface CanvasState {
    */
   vectorizeProgress: Record<string, string>;
   setVectorizeProgress: (nodeId: string, message: string | null) => void;
+  /** App-wide colour palette; loaded from settings at launch, untouched by hydrate / clear. */
+  palette: Palette;
+  setPalette: (p: Palette) => void;
   lastNodeStyle: Partial<Record<NodeType, NodeStyle>>;
   lastEdge: {
     style: EdgeStyle;
@@ -387,6 +392,8 @@ export const useCanvas = create<CanvasState>((set, get) => ({
       selection: v === 'normal' ? s.selection : new Set<string>(),
       edgeSelection: v === 'normal' ? s.edgeSelection : new Set<string>(),
     })),
+  palette: DEFAULT_PALETTE,
+  setPalette: (palette) => set({ palette }),
   vectorizeProgress: {},
   setVectorizeProgress: (nodeId, message) =>
     set((s) => {

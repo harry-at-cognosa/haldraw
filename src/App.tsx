@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Board, PickedImageFile, Project } from '@shared/types';
 import ProjectPicker from './panels/ProjectPicker';
 import BoardEditor from './canvas/BoardEditor';
+import { useCanvas } from './store/canvasStore';
 
 export default function App() {
   const [board, setBoard] = useState<{
@@ -15,6 +16,7 @@ export default function App() {
       document.documentElement.classList.toggle('dark', theme === 'dark');
       document.documentElement.classList.toggle('light', theme === 'light');
     });
+    window.haldraw.settings.get().then((s) => useCanvas.getState().setPalette(s.palette));
   }, []);
 
   const openBoardById = useCallback(async (boardId: string): Promise<boolean> => {

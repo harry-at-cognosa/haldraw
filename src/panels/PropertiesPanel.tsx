@@ -17,6 +17,8 @@ import { notify, vectorizeNode } from '@/util/vectorize';
 import { defaultStyleForBackground, EDGE_LABEL_FONT_DEFAULT } from '@/util/geometry';
 import { useEffect, useRef, useState } from 'react';
 import { listLocalFonts } from '@/util/fonts';
+import { replaceSwatch } from '@/util/palette';
+import { BACKGROUND_NAMES } from '@shared/types';
 import {
   Minus,
   Spline,
@@ -57,19 +59,6 @@ const SHAPE_KINDS: Array<{ type: ConvertibleNodeType; icon: React.ComponentType<
   { type: 'text', icon: Type, label: 'Text (no box)' },
 ];
 
-const PALETTE = [
-  '#ffffff',
-  '#000000',
-  '#e6e8eb',
-  '#0b0d10',
-  '#ef4444',
-  '#f59e0b',
-  '#10b981',
-  '#38bdf8',
-  '#6366f1',
-  '#d946ef',
-];
-const FILL_PALETTE = ['transparent', ...PALETTE];
 
 export default function PropertiesPanel() {
   const selection = useCanvas((s) => s.selection);
@@ -92,6 +81,8 @@ export default function PropertiesPanel() {
   const resetNodeStyle = useCanvas((s) => s.resetNodeStyle);
   const setLocked = useCanvas((s) => s.setLocked);
   const changeNodeType = useCanvas((s) => s.changeNodeType);
+  const PALETTE = useCanvas((s) => s.palette.swatches);
+  const FILL_PALETTE = ['transparent', ...PALETTE];
   const layers = useCanvas((s) => s.layers);
   const moveToLayer = useCanvas((s) => s.moveToLayer);
   const boardBg = useCanvas((s) => s.board?.background ?? '#ffffff');
@@ -808,6 +799,12 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+/**
+ * Swatch row. Click applies a colour; right-click or ⌥-click opens the native
+ * colour panel and replaces that swatch in the app-wide palette (live while the
+ * panel is open, saved a moment after the last change). The rainbow swatch is a one-off custom
+ * colour and touches no swatch; transparent cannot be replaced.
+ */
 function ColorRow({
   options,
   value,
@@ -819,25 +816,47 @@ function ColorRow({
 }) {
   const isHex = /^#[0-9a-f]{6}$/i.test(value);
   const custom = isHex && !options.includes(value.toLowerCase()) && !options.includes(value);
+  const editRef = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState<number | null>(null);
+  const openReplace = (i: number, current: string) => {
+    if (current === 'transparent' || !editRef.current) {
+      setEditing(null);
+      return;
+    }
+    setEditing(i);
+    editRef.current.value = /^#[0-9a-f]{6}$/i.test(current) ? current : '#ffffff';
+    // Defer so the value is set before the panel reads it.
+    setTimeout(() => editRef.current?.click(), 0);
+  };
+  // Map a row index to its palette index: the fill row prepends transparent.
+  const paletteIndex = (i: number) => (options[0] === 'transparent' ? i - 1 : i);
   return (
     <div className="flex gap-1 flex-wrap items-center">
-      {options.map((c) => (
+      {options.map((c, i) => (
         <button
-          key={c}
-          onClick={() => onChange(c)}
+          key={`${i}-${c}`}
+          onClick={(e) => {
+            if (e.altKey) openReplace(i, c);
+            else onChange(c);
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            openReplace(i, c);
+          }}
+          data-swatch={c}
           className={`w-6 h-6 rounded ${value === c ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'}`}
           style={{
             background:
               c === 'transparent' ? 'repeating-linear-gradient(45deg,#999 0 3px,#ddd 3px 6px)' : c,
           }}
-          title={c === 'transparent' ? 'Transparent (no fill)' : c}
+          title={c === 'transparent' ? 'Transparent (no fill)' : `${c} — right-click or ⌥-click to replace this swatch`}
         />
       ))}
       <label
         className={`w-6 h-6 rounded overflow-hidden cursor-pointer relative ${
           custom ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : 'ring-1 ring-border'
         }`}
-        title={custom ? `Custom ${value}` : 'Custom colour…'}
+        title={custom ? `Custom ${value}` : 'Custom colour… (one-off, not added to the palette)'}
         style={{
           background: custom
             ? value
@@ -851,6 +870,18 @@ function ColorRow({
           className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
         />
       </label>
+      <input
+        ref={editRef}
+        type="color"
+        data-testid="swatch-editor"
+        className="absolute w-0 h-0 opacity-0 pointer-events-none"
+        tabIndex={-1}
+        onChange={(e) => {
+          if (editing === null) return;
+          replaceSwatch('swatches', paletteIndex(editing), e.target.value);
+          onChange(e.target.value);
+        }}
+      />
     </div>
   );
 }
@@ -1188,17 +1219,6 @@ function AnchorRow({
   );
 }
 
-const BOARD_BG_PALETTE: Array<{ value: string; label: string }> = [
-  { value: '#ffffff', label: 'White' },
-  { value: '#f7f8fa', label: 'Pearl' },
-  { value: '#f4f1ea', label: 'Paper' },
-  { value: '#eef2f5', label: 'Mist' },
-  { value: '#edf4ec', label: 'Sage' },
-  { value: '#fdf5d3', label: 'Cream' },
-  { value: '#1a1b1e', label: 'Graphite' },
-  { value: 'transparent', label: 'Transparent' },
-];
-
 function BoardPanel() {
   const board = useCanvas((s) => s.board);
   const setBoardBackground = useCanvas((s) => s.setBoardBackground);
@@ -1213,6 +1233,22 @@ function BoardPanel() {
     .filter((n) => n.locked)
     .sort((a, b) => a.zIndex - b.zIndex);
   const writeTimer = useRef<number | null>(null);
+  const backgrounds = useCanvas((s) => s.palette.backgrounds);
+  const BOARD_BG_PALETTE: Array<{ value: string; label: string }> = [
+    ...backgrounds.map((value) => ({ value, label: BACKGROUND_NAMES[value] ?? value })),
+    { value: 'transparent', label: 'Transparent' },
+  ];
+  const bgEditRef = useRef<HTMLInputElement>(null);
+  const [bgEditing, setBgEditing] = useState<number | null>(null);
+  const openBgReplace = (i: number) => {
+    if (i >= backgrounds.length || !bgEditRef.current) {
+      setBgEditing(null);
+      return;
+    }
+    setBgEditing(i);
+    bgEditRef.current.value = backgrounds[i];
+    setTimeout(() => bgEditRef.current?.click(), 0);
+  };
 
   const set = (color: string) => {
     if (!board) return;
@@ -1236,11 +1272,19 @@ function BoardPanel() {
             Background
           </div>
           <div className="grid grid-cols-4 gap-1.5">
-            {BOARD_BG_PALETTE.map((o) => (
+            {BOARD_BG_PALETTE.map((o, i) => (
               <button
-                key={o.value}
-                onClick={() => set(o.value)}
-                title={o.label}
+                key={`${i}-${o.value}`}
+                onClick={(e) => {
+                  if (e.altKey) openBgReplace(i);
+                  else set(o.value);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  openBgReplace(i);
+                }}
+                data-swatch={o.value}
+                title={o.value === 'transparent' ? o.label : `${o.label} — right-click or ⌥-click to replace this swatch`}
                 className={`aspect-square rounded ring-1 ring-border hover:ring-accent ${
                   current === o.value ? 'ring-2 ring-accent' : ''
                 }`}
@@ -1261,10 +1305,23 @@ function BoardPanel() {
               onChange={(e) => set(e.target.value)}
               className="w-8 h-7 rounded border border-border bg-canvas cursor-pointer"
             />
+            <input
+              ref={bgEditRef}
+              type="color"
+              data-testid="bg-swatch-editor"
+              className="absolute w-0 h-0 opacity-0 pointer-events-none"
+              tabIndex={-1}
+              onChange={(e) => {
+                if (bgEditing === null) return;
+                replaceSwatch('backgrounds', bgEditing, e.target.value);
+                set(e.target.value);
+              }}
+            />
           </div>
           <div className="text-xs text-fg-muted pt-2 leading-relaxed">
             This colour is the board's paper and is included in Solid exports.
-            Transparent exports always ignore it.
+            Transparent exports always ignore it. Right-click a swatch to replace it
+            in the palette (Settings… resets the palette).
           </div>
         </div>
         <LayersPanel />

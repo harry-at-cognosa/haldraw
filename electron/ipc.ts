@@ -10,6 +10,7 @@ import * as layersRepo from './repo/layers';
 import { hasApiKey, runVectorize } from './vectorize';
 import {
   DEFAULT_VECTORIZE_MODEL,
+  sanitizePalette,
   type AppSettings,
   type CanvasEdge,
   type CanvasNode,
@@ -21,7 +22,17 @@ import {
 } from '@shared/types';
 
 function readSettings(): AppSettings {
-  return { vectorizeModel: metaRepo.getMeta('vectorize.model') ?? DEFAULT_VECTORIZE_MODEL };
+  let palette: unknown = null;
+  try {
+    const raw = metaRepo.getMeta('palette');
+    palette = raw ? JSON.parse(raw) : null;
+  } catch {
+    palette = null;
+  }
+  return {
+    vectorizeModel: metaRepo.getMeta('vectorize.model') ?? DEFAULT_VECTORIZE_MODEL,
+    palette: sanitizePalette(palette),
+  };
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
@@ -183,6 +194,9 @@ export function registerIpcHandlers() {
   ipcMain.handle('settings:set', (_e, patch: Partial<AppSettings>) => {
     if (typeof patch.vectorizeModel === 'string' && patch.vectorizeModel.trim()) {
       metaRepo.setMeta('vectorize.model', patch.vectorizeModel.trim());
+    }
+    if (patch.palette !== undefined) {
+      metaRepo.setMeta('palette', JSON.stringify(sanitizePalette(patch.palette)));
     }
     return readSettings();
   });

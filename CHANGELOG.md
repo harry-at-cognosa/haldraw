@@ -2,6 +2,12 @@
 
 All notable changes to haldraw. Dates are calendar dates; version numbers follow [semver](https://semver.org/).
 
+## 0.9.11 — 2026-09-18
+
+### Added
+
+- **Customisable colour palette.** Right-click (or ⌥-click) any swatch in the Fill, Stroke or Text rows, or any board background swatch, to open the native macOS colour panel and replace that swatch for good; the change shows live while the panel is open and is saved a moment after the last pick. The palette is app-wide and stored in the settings table, so it holds across boards and relaunches; existing shapes keep their own hex and never change. Transparent cannot be replaced, and the rainbow "custom" swatch remains a one-off that touches no slot. **Settings…** gains a Palette section that lists the ten shape swatches and seven backgrounds, lets you replace any of them by clicking, and has a **Reset palette** button that restores the starter set.
+
 ## 0.9.10 — 2026-09-18
 
 ### Fixed

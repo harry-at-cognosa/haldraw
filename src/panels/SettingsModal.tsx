@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, VECTORIZE_MODELS, type AppSettings } from '@shared/types';
+import { useEffect, useRef, useState } from 'react';
+import { BACKGROUND_NAMES, DEFAULT_PALETTE, KEYCHAIN_ACCOUNT, KEYCHAIN_ADD_COMMAND, KEYCHAIN_SERVICE, VECTORIZE_MODELS, type AppSettings, type Palette } from '@shared/types';
+import { useCanvas } from '@/store/canvasStore';
+import { replaceSwatch, resetPalette } from '@/util/palette';
 
 export default function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -77,12 +79,72 @@ export default function SettingsModal({ open, onClose }: { open: boolean; onClos
           </div>
         </div>
 
+        <PaletteSection />
+
         <div className="mt-5 flex justify-end">
           <button onClick={onClose} className="px-3 h-8 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90">
             Done
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Swatch editor: click any swatch to replace it (native colour panel); Reset restores the starter set. */
+function PaletteSection() {
+  const palette = useCanvas((s) => s.palette);
+  const isDefault = JSON.stringify(palette) === JSON.stringify(DEFAULT_PALETTE);
+  return (
+    <div className="mt-5">
+      <div className="text-xs uppercase tracking-wider text-fg font-semibold mb-2">Palette</div>
+      <div className="text-fg-muted leading-relaxed mb-2">
+        Click a swatch to replace it. The palette is app-wide and applies to new choices only; every shape keeps its own colour.
+      </div>
+      <SwatchRow label="Shapes" kind="swatches" colours={palette.swatches} />
+      <SwatchRow label="Boards" kind="backgrounds" colours={palette.backgrounds} />
+      <button
+        onClick={resetPalette}
+        disabled={isDefault}
+        className="mt-2 px-2 h-7 rounded border border-border text-xs text-fg-muted hover:text-fg hover:bg-panel-hover disabled:opacity-40 disabled:hover:bg-transparent"
+        title="Restore the starter palette (ten swatches, seven backgrounds)"
+      >
+        Reset palette
+      </button>
+    </div>
+  );
+}
+
+function SwatchRow({ label, kind, colours }: { label: string; kind: keyof Palette; colours: string[] }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState<number | null>(null);
+  return (
+    <div className="flex items-center gap-3 mb-2">
+      <span className="text-fg-muted w-20">{label}</span>
+      <div className="flex gap-1 flex-wrap">
+        {colours.map((c, i) => (
+          <button
+            key={`${i}-${c}`}
+            data-settings-swatch={c}
+            onClick={() => {
+              if (!ref.current) return;
+              setEditing(i);
+              ref.current.value = c;
+              setTimeout(() => ref.current?.click(), 0);
+            }}
+            className="w-6 h-6 rounded ring-1 ring-border hover:ring-accent"
+            style={{ background: c }}
+            title={`${kind === 'backgrounds' ? (BACKGROUND_NAMES[c] ?? c) : c} — click to replace`}
+          />
+        ))}
+      </div>
+      <input
+        ref={ref}
+        type="color"
+        className="absolute w-0 h-0 opacity-0 pointer-events-none"
+        tabIndex={-1}
+        onChange={(e) => editing !== null && replaceSwatch(kind, editing, e.target.value)}
+      />
     </div>
   );
 }

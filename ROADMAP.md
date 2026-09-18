@@ -7,7 +7,7 @@ Living list of proposed features, post-v0.2. Edit freely — reorder, strike thr
 ## Round 2 (next batch of likely-valuable work)
 
 - ~~**Reference image polish (0.5.0).**~~ Shipped 2026-09-13: opacity, dim references, large-image downsampling, dense z-order. Hide / exclude-from-export folds into object layers (Round 3).
-- **Customizable color palette.** Let the user replace any swatch in the fill / stroke / text palettes with a color picked via the native macOS color panel ("crayon box"). Scope: system-wide going forward. Existing drawings untouched — every element already stores its own hex code. Includes a **Reset palette** button to revert to the starter set (eight swatches + transparent + eight board backgrounds).
+- ~~**Customizable color palette.**~~ Shipped 0.9.11: right-click / ⌥-click a swatch to replace it via the native colour panel, app-wide, with Reset palette in Settings.
 - **Configurable grid spacing.** Slider in the Board panel for dot size and snap granularity. Today hardcoded: 20 px between dots, 10 px snap. Harry wanted "half-inch dots" as an option.
 - ~~**Export to JSON** + **import from JSON.**~~ Shipped 0.6.0 as `.haldraw` v1, single board. Project-level export and merge-into-existing are open follow-ups. Spec: [docs/Haldraw_file_format.md](./docs/Haldraw_file_format.md).
 - **Auto-backup.** Rotating daily snapshots of the SQLite file to `~/Library/Application Support/haldraw/backups/`, keep last N (configurable, default 14). Cheap insurance.

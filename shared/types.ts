@@ -233,8 +233,46 @@ export const VECTORIZE_MODELS: ReadonlyArray<{ id: string; label: string }> = [
 ];
 export const DEFAULT_VECTORIZE_MODEL = 'claude-opus-5';
 
+/**
+ * Colour palette (0.9.11): the swatches offered for fill, stroke and text, and
+ * the board background choices. Stored app-wide in the meta table; elements
+ * keep their own hex, so editing the palette never changes a drawing.
+ */
+export interface Palette {
+  /** Ten hex colours shared by the Fill, Stroke and Text rows (Fill also offers transparent). */
+  swatches: string[];
+  /** Seven hex colours for the board background (the panel adds transparent). */
+  backgrounds: string[];
+}
+
+export const DEFAULT_PALETTE: Palette = {
+  swatches: ['#ffffff', '#000000', '#e6e8eb', '#0b0d10', '#ef4444', '#f59e0b', '#10b981', '#38bdf8', '#6366f1', '#d946ef'],
+  backgrounds: ['#ffffff', '#f7f8fa', '#f4f1ea', '#eef2f5', '#edf4ec', '#fdf5d3', '#1a1b1e'],
+};
+
+/** Names for the starter backgrounds; a replaced swatch is titled by its hex. */
+export const BACKGROUND_NAMES: Record<string, string> = {
+  '#ffffff': 'White',
+  '#f7f8fa': 'Pearl',
+  '#f4f1ea': 'Paper',
+  '#eef2f5': 'Mist',
+  '#edf4ec': 'Sage',
+  '#fdf5d3': 'Cream',
+  '#1a1b1e': 'Graphite',
+};
+
+const HEX6 = /^#[0-9a-f]{6}$/i;
+/** A palette from unknown input: wrong shape or bad entries fall back to the defaults, slot by slot. */
+export function sanitizePalette(raw: unknown): Palette {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Palette>;
+  const fix = (arr: unknown, def: string[]) =>
+    def.map((d, i) => (Array.isArray(arr) && typeof arr[i] === 'string' && HEX6.test(arr[i]) ? (arr[i] as string).toLowerCase() : d));
+  return { swatches: fix(r.swatches, DEFAULT_PALETTE.swatches), backgrounds: fix(r.backgrounds, DEFAULT_PALETTE.backgrounds) };
+}
+
 export interface AppSettings {
   vectorizeModel: string;
+  palette: Palette;
 }
 
 /** Where the Anthropic API key lives: one macOS keychain item, read at call time. */

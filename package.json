@@ -1,6 +1,6 @@
 {
   "name": "haldraw",
-  "version": "0.9.10",
+  "version": "0.9.11",
   "description": "Local infinite-canvas diagramming app",
   "main": "out/main/index.js",
   "author": "harry",
